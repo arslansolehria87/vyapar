@@ -26,6 +26,8 @@ $(document).ready(function () {
   const salePreviewModalTitle = document.getElementById('salePreviewModalTitle');
   const salePreviewOpenPdfBtn = document.getElementById('salePreviewOpenPdf');
   const salePreviewPrintBtn = document.getElementById('salePreviewPrint');
+  const salePreviewSavePdfBtn = document.getElementById('salePreviewSavePdf');
+  const salePreviewEmailPdfBtn = document.getElementById('salePreviewEmailPdf');
   const saleHistoryModalEl = document.getElementById('saleHistoryModal');
   const saleHistoryModal = saleHistoryModalEl ? bootstrap.Modal.getOrCreateInstance(saleHistoryModalEl) : null;
   const saleHistoryModalTitle = document.getElementById('saleHistoryModalTitle');
@@ -103,6 +105,40 @@ $(document).ready(function () {
     return url.toString();
   }
 
+  function buildDownloadUrl(url) {
+    if (!url) return '';
+    try {
+      const parsed = new URL(url, window.location.origin);
+      parsed.searchParams.set('download', '1');
+      return parsed.toString();
+    } catch (error) {
+      return url + (String(url).includes('?') ? '&' : '?') + 'download=1';
+    }
+  }
+
+  function openMailClient(subject, body) {
+    const mailtoUrl = 'mailto:?subject=' + encodeURIComponent(subject || 'Invoice Preview') +
+      '&body=' + encodeURIComponent(body || '');
+
+    try {
+      const opened = window.open(mailtoUrl, '_self');
+      if (opened !== null) {
+        return;
+      }
+    } catch (error) {
+      // fall through to the anchor-based fallback
+    }
+
+    const link = document.createElement('a');
+    link.href = mailtoUrl;
+    link.target = '_self';
+    link.rel = 'noopener';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+
   function openPreviewModal(url, title, options = {}) {
     if (!salePreviewModal || !salePreviewFrame || !url) {
       if (url) window.open(url, '_blank');
@@ -113,6 +149,7 @@ $(document).ready(function () {
     salePreviewFrame.src = url;
     salePreviewFrame.dataset.pdfUrl = options.pdfUrl || '';
     salePreviewFrame.dataset.printUrl = options.printUrl || '';
+    salePreviewFrame.dataset.downloadUrl = options.downloadUrl || buildDownloadUrl(options.pdfUrl || url);
     salePreviewModal.show();
   }
 
@@ -234,11 +271,36 @@ $(document).ready(function () {
     }
   });
 
+  salePreviewSavePdfBtn?.addEventListener('click', function () {
+    const downloadUrl = salePreviewFrame?.dataset?.downloadUrl || salePreviewFrame?.dataset?.pdfUrl || salePreviewFrame?.src;
+    if (!downloadUrl) return;
+
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  });
+
+  salePreviewEmailPdfBtn?.addEventListener('click', function (event) {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    const downloadUrl = salePreviewFrame?.dataset?.downloadUrl || salePreviewFrame?.dataset?.pdfUrl || salePreviewFrame?.src;
+    if (!downloadUrl) return;
+
+    const subject = salePreviewModalTitle?.textContent || 'Invoice Preview';
+    const body = 'Please review the invoice preview here: ' + downloadUrl;
+    openMailClient(subject, body);
+  });
+
   salePreviewModalEl?.addEventListener('hidden.bs.modal', function () {
     if (salePreviewFrame) {
       salePreviewFrame.src = 'about:blank';
       delete salePreviewFrame.dataset.pdfUrl;
       delete salePreviewFrame.dataset.printUrl;
+      delete salePreviewFrame.dataset.downloadUrl;
     }
   });
 

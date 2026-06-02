@@ -2084,7 +2084,20 @@ itemTxnPreviewEmailPdfBtn?.addEventListener('click', function () {
     if (!downloadUrl) return showToast('PDF is not available for this transaction.');
     const subject = document.getElementById('txnTitle')?.textContent?.trim() || 'Transaction PDF';
     const body = `Please find the PDF here: ${downloadUrl}`;
-    window.location.href = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    const mailtoUrl = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    try {
+      const opened = window.open(mailtoUrl, '_self');
+      if (opened !== null) return;
+    } catch (error) {
+      // fallback to anchor click below
+    }
+    const link = document.createElement('a');
+    link.href = mailtoUrl;
+    link.target = '_self';
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
 });
 
 itemTxnPreviewModalEl?.addEventListener('hidden.bs.modal', function () {
@@ -2274,7 +2287,8 @@ function openTxnAction(idx, ti, action) {
     if (action === 'preview') {
         openItemTxnPreview(url, `Preview - ${txn.invoice || txn.id}`, {
             pdfUrl: links.pdf,
-            printUrl: links.print
+            printUrl: links.print,
+            downloadUrl: links.pdf ? links.pdf + (String(links.pdf).includes('?') ? '&' : '?') + 'download=1' : ''
         });
         return;
     }

@@ -906,6 +906,16 @@
       challanPreviewFrame.dataset.reportUrl = url;
       challanPreviewFrame.dataset.reportPdfUrl = pdfUrl || url;
       challanPreviewFrame.dataset.reportPrintUrl = printUrl || pdfUrl || url;
+      challanPreviewFrame.dataset.reportDownloadUrl = (() => {
+        const target = pdfUrl || url;
+        try {
+          const download = new URL(target, window.location.origin);
+          download.searchParams.set('download', '1');
+          return download.toString();
+        } catch (error) {
+          return target + (String(target).includes('?') ? '&' : '?') + 'download=1';
+        }
+      })();
       challanPreviewModal.show();
     }
 
@@ -915,6 +925,26 @@
 
     function printChallanPdf(url) {
       window.open(url, '_blank');
+    }
+
+    function openMailClient(subject, body) {
+      const mailtoUrl = 'mailto:?subject=' + encodeURIComponent(subject || 'Invoice Preview') +
+        '&body=' + encodeURIComponent(body || '');
+      try {
+        const opened = window.open(mailtoUrl, '_self');
+        if (opened !== null) {
+          return;
+        }
+      } catch (error) {
+        // fall through to anchor fallback
+      }
+      const link = document.createElement('a');
+      link.href = mailtoUrl;
+      link.target = '_self';
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
     }
 
     function getVisibleChallanRows() {
@@ -1318,7 +1348,7 @@
       });
 
       challanPreviewSavePdf?.addEventListener('click', function () {
-        const url = challanPreviewFrame?.dataset?.reportUrl;
+        const url = challanPreviewFrame?.dataset?.reportDownloadUrl || challanPreviewFrame?.dataset?.reportPdfUrl || challanPreviewFrame?.dataset?.reportUrl;
         if (!url) return;
         const a = document.createElement('a');
         a.href = url;
@@ -1332,8 +1362,8 @@
       challanPreviewEmailPdf?.addEventListener('click', function () {
         const rows = getFilteredChallanRows();
         const subject = `Delivery Challan Report - ${rows.length} entries`;
-        const body = `Please find the delivery challan report attached/opened here: ${window.location.href}`;
-        window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        const body = `Please find the delivery challan report attached/opened here: ${challanPreviewFrame?.dataset?.reportDownloadUrl || challanPreviewFrame?.dataset?.reportPdfUrl || window.location.href}`;
+        openMailClient(subject, body);
       });
 
       challanPreviewModalEl?.addEventListener('hidden.bs.modal', function () {
@@ -1343,6 +1373,7 @@
           challanPreviewFrame.removeAttribute('data-report-html');
           challanPreviewFrame.removeAttribute('data-report-pdf-url');
           challanPreviewFrame.removeAttribute('data-report-print-url');
+          challanPreviewFrame.removeAttribute('data-report-download-url');
         }
         if (challanPreviewObjectUrl) {
           URL.revokeObjectURL(challanPreviewObjectUrl);

@@ -1447,13 +1447,21 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
             return $pdf->download('invoice-' . ($sale->bill_number ?: $sale->id) . '.pdf');
         }
 
-        return view('themes.sales_invoice_pdf_document', [
+        $pdf = Pdf::loadView('themes.sales_invoice_pdf_document', [
             'invoicePreviewData' => $this->mapSaleToThemePreviewData($sale),
             'themeConfig' => $themeConfig,
             'accent' => $themeDefaults['accent'],
             'accent2' => $themeDefaults['accent2'],
             'autoPrint' => $request->boolean('print'),
         ]);
+
+        if (($themeConfig['mode'] ?? 'regular') === 'thermal') {
+            $pdf->setPaper([0, 0, 226.77, 841.89], 'portrait');
+        } else {
+            $pdf->setPaper('a4', 'portrait');
+        }
+
+        return $pdf->stream('invoice-' . ($sale->bill_number ?: $sale->id) . '.pdf');
     }
 
     public function print(Sale $sale)

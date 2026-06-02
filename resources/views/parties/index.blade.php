@@ -3497,7 +3497,20 @@ document.addEventListener("DOMContentLoaded", function () {
         const downloadUrl = partyTxnPreviewFrame?.dataset?.downloadUrl || partyTxnPreviewFrame?.dataset?.pdfUrl || partyTxnPreviewFrame?.src;
         const subject = `Party Statement - ${partyName}`;
         const body = `Please find the party statement here: ${downloadUrl}`;
-        window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        try {
+          const opened = window.open(mailtoUrl, '_self');
+          if (opened !== null) return;
+        } catch (error) {
+          // fallback to anchor click below
+        }
+        const link = document.createElement('a');
+        link.href = mailtoUrl;
+        link.target = '_self';
+        link.rel = 'noopener';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
     });
 
     partyTxnPreviewModalEl?.addEventListener('hidden.bs.modal', function () {
@@ -5997,6 +6010,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return openPartyTxnPreview(previewUrl || pdfUrl, `Preview - ${txnNumber}`, {
                 pdfUrl: pdfUrl || previewUrl,
                 printUrl: printUrl || previewUrl,
+                downloadUrl: (pdfUrl || previewUrl) ? (pdfUrl || previewUrl) + ((pdfUrl || previewUrl).includes('?') ? '&' : '?') + 'download=1' : '',
             });
         }
 
@@ -6010,6 +6024,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return openPartyTxnPreview(previewDeliveryUrl, `Delivery Challan - ${txnNumber}`, {
                 pdfUrl: previewDeliveryUrl,
                 printUrl: printUrl || previewDeliveryUrl,
+                downloadUrl: previewDeliveryUrl ? previewDeliveryUrl + (previewDeliveryUrl.includes('?') ? '&' : '?') + 'download=1' : '',
             });
         }
 
