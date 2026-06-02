@@ -1393,6 +1393,15 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
         ]);
     }
 
+    public function print(Sale $sale)
+    {
+        $sale->loadMissing(['items.item', 'party', 'payments']);
+
+        return view('dashboard.sales.sale_print', [
+            'sale' => $sale,
+        ]);
+    }
+
     public function destroy(Sale $sale)
     {
         // Remove related items and payments first to avoid foreign key issues

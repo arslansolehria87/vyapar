@@ -78,6 +78,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::put('/sales/{sale}', [SaleController::class, 'update'])->name('sale.update');
     Route::get('/sales/{sale}/invoice-preview', [SaleController::class, 'invoicePreview'])->name('sale.invoice-preview');
     Route::get('/sales/{sale}/invoice-pdf', [SaleController::class, 'invoicePdf'])->name('sale.invoice-pdf');
+    Route::get('/sales/{sale}/print', [SaleController::class, 'print'])->name('sale.print');
     Route::post('/sales/{sale}/invoice-theme', [SaleController::class, 'storeInvoiceTheme'])->name('sale.invoice-theme.store');
     Route::get('/sales/{sale}/delivery-preview', [SaleController::class, 'deliveryPreview'])->name('sale.delivery-preview');
     Route::get('/sales/{sale}/payment-history', [SaleController::class, 'paymentHistory'])->name('sale.payment-history');

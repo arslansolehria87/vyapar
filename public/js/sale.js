@@ -926,9 +926,8 @@ $(document).ready(function () {
   $(document).on('click', '.row-action-print', function () {
     const $menu = $(this).closest('td').find('.sale-action-menu');
     const saleId = $menu.data('sale-id');
-    const printUrl = buildReactInvoiceUrl($menu.data('pdf-url'), saleId, { print: 1 });
-    if (printUrl) {
-      window.open(printUrl, '_blank');
+    if (saleId) {
+      window.open(`/dashboard/sales/${saleId}/print`, '_blank');
     }
   });
 
