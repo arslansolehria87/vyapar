@@ -93,17 +93,23 @@ class SaleController extends Controller
     {
         $data = $request->validate([
             'mode' => 'required|in:regular,thermal',
-            'regularThemeId' => 'required|integer|min:1',
-            'thermalThemeId' => 'required|integer|min:1',
+            'regularThemeId' => 'nullable|integer|min:1',
+            'thermalThemeId' => 'nullable|integer|min:1',
             'accent' => 'nullable|string|max:30',
             'accent2' => 'nullable|string|max:30',
         ]);
 
+        $currentTheme = $sale->invoice_theme;
+        if (is_string($currentTheme)) {
+            $currentTheme = json_decode($currentTheme, true);
+        }
+        $currentTheme = is_array($currentTheme) ? $currentTheme : [];
+
         $sale->forceFill([
             'invoice_theme' => [
                 'mode' => $data['mode'],
-                'regularThemeId' => (int) $data['regularThemeId'],
-                'thermalThemeId' => (int) $data['thermalThemeId'],
+                'regularThemeId' => (int) ($data['regularThemeId'] ?? ($currentTheme['regularThemeId'] ?? 1)),
+                'thermalThemeId' => (int) ($data['thermalThemeId'] ?? ($currentTheme['thermalThemeId'] ?? 1)),
                 'accent' => $data['accent'] ?? '#1f4e79',
                 'accent2' => $data['accent2'] ?? '#ff981f',
             ],
@@ -1663,9 +1669,7 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
             abort(404);
         }
 
-        $sale->load(['items']);
-
-        return view('dashboard.sales.estimate-preview', compact('sale'));
+        return redirect()->route('sale.invoice-preview', ['sale' => $sale->id]);
     }
 
     public function printEstimate(Sale $sale)
@@ -1674,9 +1678,7 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
             abort(404);
         }
 
-        $sale->load(['items']);
-
-        return view('dashboard.sales.estimate-preview', ['sale' => $sale, 'autoPrint' => true]);
+        return redirect()->route('sale.invoice-preview', ['sale' => $sale->id, 'print' => 1]);
     }
 
     private function mapSaleToThemePreviewData(Sale $sale): array
@@ -2053,13 +2055,7 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
             abort(404);
         }
 
-        $sale->load(['items']);
-        $pdf = Pdf::loadView('dashboard.sales.estimate-preview', ['sale' => $sale, 'pdfMode' => true])
-            ->setPaper('a4', 'portrait');
-
-        $fileName = 'estimate-' . ($sale->bill_number ?: $sale->id) . '.pdf';
-
-        return $pdf->download($fileName);
+        return redirect()->route('sale.invoice-pdf', ['sale' => $sale->id, 'download' => 1]);
     }
 
     public function previewSaleOrder(Sale $sale)

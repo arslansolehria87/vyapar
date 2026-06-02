@@ -188,29 +188,19 @@ class DeliveryController extends Controller
     public function preview(Sale $sale)
     {
         abort_unless($sale->type === 'delivery_challan', 404);
-        $sale->load(['items', 'challanDetail']);
-
-        return view('dashboard.delivery.challan-preview', compact('sale'));
+        return redirect()->route('sale.invoice-preview', ['sale' => $sale->id, 'doc' => 'delivery_challan']);
     }
 
     public function print(Sale $sale)
     {
         abort_unless($sale->type === 'delivery_challan', 404);
-        $sale->load(['items', 'challanDetail']);
-
-        return view('dashboard.delivery.challan-preview', ['sale' => $sale, 'autoPrint' => true]);
+        return redirect()->route('sale.invoice-preview', ['sale' => $sale->id, 'doc' => 'delivery_challan', 'print' => 1]);
     }
 
     public function pdf(Request $request, Sale $sale)
     {
         abort_unless($sale->type === 'delivery_challan', 404);
-        $sale->load(['items', 'challanDetail']);
-        $pdf = Pdf::loadView('dashboard.delivery.challan-preview', ['sale' => $sale, 'pdfMode' => true])
-            ->setPaper('a4', 'portrait');
-
-        $fileName = 'delivery-challan-' . ($sale->bill_number ?: $sale->id) . '.pdf';
-
-        return $pdf->download($fileName);
+        return redirect()->route('sale.invoice-pdf', ['sale' => $sale->id, 'doc' => 'delivery_challan', 'download' => 1]);
     }
 
     private function validateChallanRequest(Request $request): array

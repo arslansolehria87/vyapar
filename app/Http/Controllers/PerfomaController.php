@@ -200,29 +200,19 @@ class PerfomaController extends Controller
     public function preview(Sale $sale)
     {
         abort_unless($sale->type === 'proforma', 404);
-        $sale->load(['items', 'party']);
-
-        return view('dashboard.perfoma.proforma-preview', compact('sale'));
+        return redirect()->route('sale.invoice-preview', ['sale' => $sale->id]);
     }
 
     public function print(Sale $sale)
     {
         abort_unless($sale->type === 'proforma', 404);
-        $sale->load(['items', 'party']);
-
-        return view('dashboard.perfoma.proforma-preview', ['sale' => $sale, 'autoPrint' => true]);
+        return redirect()->route('sale.invoice-preview', ['sale' => $sale->id, 'print' => 1]);
     }
 
     public function pdf(Sale $sale)
     {
         abort_unless($sale->type === 'proforma', 404);
-        $sale->load(['items', 'party']);
-        $pdf = Pdf::loadView('dashboard.perfoma.proforma-preview', ['sale' => $sale, 'pdfMode' => true])
-            ->setPaper('a4', 'portrait');
-
-        $fileName = 'proforma-' . ($sale->bill_number ?: $sale->id) . '.pdf';
-
-        return $pdf->download($fileName);
+        return redirect()->route('sale.invoice-pdf', ['sale' => $sale->id, 'download' => 1]);
     }
 
     private function renderProformaForm(?Sale $proforma = null, ?Sale $duplicateProforma = null)

@@ -72,8 +72,8 @@ const App = () => {
 
     const payload = {
       mode: theme.startsWith('thermal') ? 'thermal' : 'regular',
-      regularThemeId: theme.startsWith('thermal') ? null : (regularMap[theme] || 1),
-      thermalThemeId: theme.startsWith('thermal') ? (thermalMap[theme] || 1) : null,
+      regularThemeId: regularMap[theme] || 1,
+      thermalThemeId: thermalMap[theme] || 1,
       accent: selectedColor || '#1f4e79',
       accent2: selectedColor2 || '#ff981f',
     }
@@ -94,7 +94,7 @@ const App = () => {
           'Content-Type': 'application/json',
           'X-CSRF-TOKEN': csrfToken,
         },
-        body: signature,
+        body: JSON.stringify(payload),
       }).catch(() => {})
     }
   }, [selectedTheme, selectedColor, selectedColor2])
