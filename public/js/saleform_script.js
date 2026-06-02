@@ -7,7 +7,11 @@ function initializeForm(context) {
     const defaultPaymentDirection = 'payment_in';
 
     const baseItems = Array.isArray(window.items) ? window.items : [];
-    const currentDocType = String(window.docType || 'invoice');
+    const getUrlDocType = () => new URLSearchParams(window.location.search).get('type') || '';
+    const getActiveDocType = () => String($ctx.find('.doc-type').val() || window.docType || getUrlDocType() || 'invoice');
+    const currentDocType = getActiveDocType();
+    window.docType = currentDocType;
+    const isDuplicateSaleMode = Boolean(window.isDuplicateSaleMode);
     let termsConditionTemplates = Array.isArray(window.transactionTermsTemplates) ? window.transactionTermsTemplates : [];
     const termsConditionTypeLabels = {
         invoice: 'Sale Invoice',
@@ -218,6 +222,8 @@ function initializeForm(context) {
     const $closeIcon = $('.close-app-icon');
     const selectedImages = [];
     const selectedDocuments = [];
+    const existingImages = [];
+    const existingDocuments = [];
     const $imageFilesList = $ctx.find('.image-files-list');
     const $documentFilesList = $ctx.find('.document-files-list');
     const termsConditionModalEl = document.getElementById('termsConditionModal');
@@ -812,6 +818,32 @@ function initializeForm(context) {
         return payload;
     };
 
+    const getPersistedInvoiceThemeState = () => {
+        const keys = [];
+        const editSaleId = !isDuplicateSaleMode ? window.editSaleData?.id : null;
+
+        if (editSaleId) {
+            keys.push(`saleInvoiceTheme:${editSaleId}`);
+        }
+
+        keys.push('saleInvoiceTheme:draft');
+
+        for (const key of keys) {
+            try {
+                const raw = window.localStorage.getItem(key);
+                if (!raw) continue;
+                const parsed = JSON.parse(raw);
+                if (parsed && typeof parsed === 'object') {
+                    return parsed;
+                }
+            } catch (error) {
+                // ignore malformed theme payloads
+            }
+        }
+
+        return null;
+    };
+
     const renderItemSettingsColumns = () => {
         const settings = itemFormSettings || defaultItemFormSettings;
         const showFreeQty = !!(settings.free_item_qty_enabled || saleFormSettings.items_table?.free_item_qty_enabled);
@@ -953,7 +985,8 @@ function initializeForm(context) {
         }
         $ctx.find('.col-free-qty').toggleClass('d-none', !settings.items_table.free_item_qty_enabled);
         uiFind('.sale-payment-terms-item').toggle(!!settings.more_transaction_features.due_dates_payment_terms_enabled);
-        $ctx.find('.deal-days-group, .final-due-date-group').toggle(!!settings.more_transaction_features.due_dates_payment_terms_enabled);
+        $ctx.find('.deal-days-group').toggle(!!settings.more_transaction_features.due_dates_payment_terms_enabled);
+        $ctx.find('.final-due-date-group').show();
         uiFind('.settings-prefix-enabled').prop('checked', !!settings.sale_prefix.enabled);
         uiFind('.settings-prefix-select').html(
             settings.sale_prefix.options.map(option => `<option value="${option}" ${option === settings.sale_prefix.active ? 'selected' : ''}>${option}</option>`).join('')
@@ -998,12 +1031,16 @@ function initializeForm(context) {
         const normalizedPrefix = String(prefix || '').trim().toUpperCase() || 'INV';
         const currentBillNumber = String(uiFind('.bill-number').val() || '').trim();
         const fallbackApply = () => {
-            const numericPart = currentBillNumber.replace(/^[A-Z]+-?/i, '') || String(window.editSaleData?.id || '').trim() || '1';
+            const numericPart = currentBillNumber.replace(/^[A-Z]+-?/i, '')
+                || (isDuplicateSaleMode
+                    ? String(window.nextInvoiceNumber || '').replace(/^[A-Z]+-?/i, '')
+                    : String(window.editSaleData?.id || '').trim())
+                || '1';
             uiFind('.bill-number').val(`${normalizedPrefix}-${numericPart}`);
             updatePrefixPreview();
         };
 
-        if (window.editSaleData?.id || !window.saleNextNumberUrl) {
+        if ((window.editSaleData?.id && !isDuplicateSaleMode) || !window.saleNextNumberUrl) {
             fallbackApply();
             return;
         }
@@ -1490,7 +1527,10 @@ function initializeForm(context) {
 
     // IMPORTANT: Set the doc-type field from window.docType
     // This ensures the correct type is captured when form is saved
-    $ctx.find('.doc-type').val(window.docType || 'invoice');
+    $ctx.find('.doc-type').val(currentDocType);
+    $ctx.on('change', '.doc-type', function() {
+        window.docType = String($(this).val() || 'invoice');
+    });
 
     // Auto-fill invoice/order dates
     const today = new Date();
@@ -1530,6 +1570,16 @@ function initializeForm(context) {
         const displayMonth = String(parsed.getMonth() + 1).padStart(2, '0');
         const displayYear = parsed.getFullYear();
         return `${displayDay}/${displayMonth}/${displayYear}`;
+    }
+
+    function formatInputDate(value) {
+        const parsed = parseFlexibleDate(value);
+        if (!parsed) return '';
+
+        const year = parsed.getFullYear();
+        const month = String(parsed.getMonth() + 1).padStart(2, '0');
+        const day = String(parsed.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     }
   $ctx.find('.due-days-select').val('0');
 
@@ -1621,10 +1671,10 @@ if (!window.editSaleData) {
             dueDate.setDate(dueDate.getDate() + days);
         }
 
-        const displayDay = String(dueDate.getDate()).padStart(2, '0');
-        const displayMonth = String(dueDate.getMonth() + 1).padStart(2, '0');
         const displayYear = dueDate.getFullYear();
-        $dueDate.val(`${displayDay}/${displayMonth}/${displayYear}`);
+        const displayMonth = String(dueDate.getMonth() + 1).padStart(2, '0');
+        const displayDay = String(dueDate.getDate()).padStart(2, '0');
+        $dueDate.val(`${displayYear}-${displayMonth}-${displayDay}`);
     }
 
     function syncDealDaysFromSale(sale) {
@@ -2242,6 +2292,53 @@ if (!window.editSaleData) {
         $placeholder.addClass('d-none');
     }
 
+    function normalizeStoredMediaList(value, type = 'image') {
+        const items = Array.isArray(value) ? value : (value ? [value] : []);
+        return items
+            .map(entry => {
+                if (!entry) return null;
+                if (typeof entry === 'string') {
+                    const trimmed = entry.trim();
+                    if (!trimmed) return null;
+                    return {
+                        name: trimmed.split('/').pop() || trimmed,
+                        url: type === 'image' ? buildImageUrl(trimmed) : null,
+                    };
+                }
+
+                const rawUrl = entry.url || entry.path || entry.image_url || entry.image_path || entry.document_url || entry.document_path || '';
+                const name = entry.name || (rawUrl ? String(rawUrl).split('/').pop() : '');
+                if (!name && !rawUrl) return null;
+
+                return {
+                    name,
+                    url: type === 'image' && rawUrl ? buildImageUrl(rawUrl) : (rawUrl || null),
+                };
+            })
+            .filter(Boolean);
+    }
+
+    function renderStoredImages() {
+        if (!existingImages.length) return '';
+
+        return existingImages.map((item, index) => `
+            <div class="image-file-card position-relative border rounded overflow-hidden bg-white" data-existing="1" data-index="${index}">
+                <img src="${item.url || ''}" alt="${item.name || 'Image'}" class="img-fluid" style="width:120px;height:120px;object-fit:cover;" />
+                <div class="small text-truncate p-1 text-center" style="max-width:120px;">${item.name || 'Image'}</div>
+            </div>
+        `).join('');
+    }
+
+    function renderStoredDocuments() {
+        if (!existingDocuments.length) return '';
+
+        return existingDocuments.map((item) => `
+            <div class="list-group-item d-flex justify-content-between align-items-center bg-light" data-existing="1">
+                <span class="text-truncate" style="max-width: 100%;">${item.name || 'Document'}</span>
+            </div>
+        `).join('');
+    }
+
     function populateFormFromSale(sale) {
         // Fill header fields
         let selectedPartyRecord = null;
@@ -2315,15 +2412,19 @@ if (!window.editSaleData) {
             $ctx.find('.shipping-address').val(sale.shipping_address || '');
         }
 
-        if (typeof window.initializeSelectedPartyCard === 'function') {
+        window.pendingSelectedPartyRecord = selectedPartyRecord;
+        if (typeof window.initializeSelectedPartyCard === 'function' && selectedPartyRecord) {
             window.initializeSelectedPartyCard(selectedPartyRecord);
         }
 
         $ctx.find('.bill-number').val(sale.bill_number || '');
-        $ctx.find('.invoice-date').val(sale.invoice_date ? formatDisplayDate(sale.invoice_date.split(' ')[0]) : todayDisplayValue);
-        $ctx.find('.order-date').val(sale.order_date ? formatDisplayDate(sale.order_date.split(' ')[0]) : todayDisplayValue);
+        const editOrderDateValue = sale.order_date
+            ? formatInputDate(sale.order_date)
+            : (sale.invoice_date ? formatInputDate(sale.invoice_date) : todayValue);
+        $ctx.find('.order-date').val(editOrderDateValue);
+        $ctx.find('.invoice-date').val(editOrderDateValue);
         syncDealDaysFromSale(sale);
-        $ctx.find('.due-date').val(sale.due_date ? formatDisplayDate(sale.due_date.split(' ')[0]) : '');
+        $ctx.find('.due-date').val(sale.due_date ? formatInputDate(sale.due_date) : '');
 
         // Items
         $ctx.find('.item-rows').empty();
@@ -2380,17 +2481,10 @@ if (!window.editSaleData) {
             $ctx.find('.description-side-fields').removeClass('d-none');
         }
 
-        // Image (show preview if there is an existing image)
-        const imageUrl = sale.image_url || sale.image_path || '';
-        setImagePreviewUrl(imageUrl);
-
-        // Document (show file name if there is an existing document)
-        const docName = sale.document_name || sale.document_path || '';
-        if (docName) {
-            $ctx.find('.selected-document-name').text('Document: ' + docName);
-        } else {
-            $ctx.find('.selected-document-name').text('');
-        }
+        existingImages.splice(0, existingImages.length, ...normalizeStoredMediaList(sale.image_paths || sale.image_url || sale.image_path || [], 'image'));
+        existingDocuments.splice(0, existingDocuments.length, ...normalizeStoredMediaList(sale.document_paths || sale.document_name || sale.document_path || [], 'document'));
+        renderSelectedImages();
+        renderSelectedDocuments();
 
         // Payments: treat values as "already received" and allow adding new payments
         window.existingReceivedAmount = parseFloat(sale.received_amount || 0) || 0;
@@ -2657,7 +2751,9 @@ if (!window.editSaleData) {
         calculateTotals();
     }
 
-    const isQuickEntryEnabled = () => !!(saleFormSettings.quick_entry || saleFormSettings.more_transaction_features?.quick_entry);
+    function isQuickEntryEnabled() {
+        return !!(saleFormSettings.quick_entry || saleFormSettings.more_transaction_features?.quick_entry);
+    }
 
     function renumberItemRows() {
         $ctx.find('.item-row').each(function(index) {
@@ -3674,23 +3770,28 @@ const itemName = String($selectedOption.data('label') || $selectedOption.text() 
             });
         });
 
+        const previousInvoiceExtraFields = (() => {
+            const fromDetails = window.editSaleData?.details?.invoice_extra_fields;
+            const fromRoot = window.editSaleData?.invoice_extra_fields;
+            return (fromDetails && typeof fromDetails === 'object')
+                ? fromDetails
+                : ((fromRoot && typeof fromRoot === 'object') ? fromRoot : {});
+        })();
+
         return {
-
-            type: $ctx.find('.doc-type').val() || 'invoice',
-
 
             type: window.docType || $ctx.find('.doc-type').val() || 'invoice',
 
-            source_estimate_id: window.sourceEstimateId || window.editSaleData?.source_estimate_id || null,
-            source_sale_order_id: window.sourceSaleOrderId || window.editSaleData?.source_sale_order_id || null,
-            source_challan_id: window.sourceChallanId || window.editSaleData?.source_challan_id || null,
-            source_proforma_id: window.sourceProformaId || window.editSaleData?.source_proforma_id || null,
+            source_estimate_id: isDuplicateSaleMode ? null : (window.sourceEstimateId || window.editSaleData?.source_estimate_id || null),
+            source_sale_order_id: isDuplicateSaleMode ? null : (window.sourceSaleOrderId || window.editSaleData?.source_sale_order_id || null),
+            source_challan_id: isDuplicateSaleMode ? null : (window.sourceChallanId || window.editSaleData?.source_challan_id || null),
+            source_proforma_id: isDuplicateSaleMode ? null : (window.sourceProformaId || window.editSaleData?.source_proforma_id || null),
             party_id: $ctx.find('.party-id').val() || $ctx.find('.party-select').val() || null,
             broker_id: $ctx.find('.broker-id').val() || null,
             brokerage_type: $ctx.find('.brokerage-type').val() || null,
             brokerage_rate: parseFloat($ctx.find('.brokerage-base-amount').val() || $ctx.find('.brokerage-rate').val() || 0) || 0,
             broker_amount: parseFloat($ctx.find('.brokerage-amount').val() || 0) || 0,
-           party_name: $ctx.find('.billing-name-input').val().trim() || getPartyDropdownDisplay() || $ctx.find('.party-select option:selected').text() || '',
+            party_name: ($ctx.find('.billing-name-input').val() || '').trim() || getPartyDropdownDisplay() || $ctx.find('.party-select option:selected').text() || '',
             phone: document.getElementById('pscPhone')?.value || $ctx.find('.phone-input').val() || '',
             warehouse_id: $ctx.find('.warehouse-select').val() || null,
             delivery_person: $ctx.find('.delivery-person-input').val() || '',
@@ -3706,7 +3807,10 @@ const itemName = String($selectedOption.data('label') || $selectedOption.text() 
             terms_condition_name: $ctx.find('.terms-condition-select').val() || '',
             terms_condition_text: $ctx.find('.terms-condition-text').val() || '',
             terms_condition_templates: normalizeTermsConditionTemplates(termsConditionTemplates),
-            invoice_extra_fields: serializeInvoiceExtraFields(),
+            invoice_extra_fields: {
+                ...previousInvoiceExtraFields,
+                ...serializeInvoiceExtraFields(),
+            },
             payment_term_name: String($ctx.find('.settings-payment-term-name').val() || saleFormSettings.payment_terms?.name || '').trim(),
             payment_term_days: parseInt($ctx.find('.settings-payment-term-days').val() || saleFormSettings.payment_terms?.days || 0, 10) || 0,
             additional_charges: serializeAdditionalCharges(),
@@ -3755,6 +3859,16 @@ shipping_address: document.getElementById('pscShipping')?.value || $ctx.find('.s
 
     function submitSale(btn, options = {}) {
         const saleData = gatherSaleData();
+
+        const persistedTheme = getPersistedInvoiceThemeState();
+        if (persistedTheme) {
+            saleData.invoice_extra_fields = saleData.invoice_extra_fields || {};
+            saleData.invoice_extra_fields.theme_mode = String(persistedTheme.mode || 'regular');
+            saleData.invoice_extra_fields.theme_regular_theme_id = parseInt(persistedTheme.regularThemeId || 1, 10) || 1;
+            saleData.invoice_extra_fields.theme_thermal_theme_id = parseInt(persistedTheme.thermalThemeId || 1, 10) || 1;
+            saleData.invoice_extra_fields.theme_accent = String(persistedTheme.accent || '#1f4e79');
+            saleData.invoice_extra_fields.theme_accent2 = String(persistedTheme.accent2 || '#ff981f');
+        }
 
         // Include custom header names in the submission
         const savedHeaders = JSON.parse(localStorage.getItem('itemTableHeaders') || '{}');
@@ -3852,7 +3966,7 @@ shipping_address: document.getElementById('pscShipping')?.value || $ctx.find('.s
             })
             .catch(err => {
                 console.error(err);
-                showToast('Error saving sale. ' + (err.message || ''), true);
+                showToast(err.message || 'Error saving sale.', true);
             })
             .finally(() => {
                 btn.prop('disabled', false).text(idleText);
@@ -3861,11 +3975,17 @@ shipping_address: document.getElementById('pscShipping')?.value || $ctx.find('.s
 
     // Save button
     $ctx.on('click', '.btn-save', function() {
+        const isSaleOrderFlow = getActiveDocType() === 'sale_order';
+        const isReturnAfterInvoice = isSaleOrderFlow && new URLSearchParams(window.location.search).get('from_sale_order') === '1';
         submitSale($(this), {
-            redirectToShare: true,
+            redirectToShare: isSaleOrderFlow && !isReturnAfterInvoice,
             idleText: 'Save',
             loadingText: 'Saving...',
-            successMessage: 'Sale saved successfully! Opening invoice preview...',
+            successMessage: isSaleOrderFlow
+                ? (isReturnAfterInvoice
+                    ? 'Invoice saved successfully! Returning to sale orders...'
+                    : 'Sale order saved successfully! Opening invoice...')
+                : 'Sale saved successfully! Opening invoice preview...',
         });
     });
 
@@ -3999,12 +4119,19 @@ shipping_address: document.getElementById('pscShipping')?.value || $ctx.find('.s
     });
 
     function renderSelectedImages() {
-        if (!selectedImages.length) {
+        if (!existingImages.length && !selectedImages.length) {
             $imageFilesList.empty();
             return;
         }
 
-        const html = selectedImages.map((file, index) => {
+        const existingHtml = existingImages.map((item) => `
+            <div class="image-file-card position-relative border rounded overflow-hidden bg-white">
+                <img src="${item.url || ''}" alt="${item.name || 'Image'}" class="img-fluid" style="width:120px;height:120px;object-fit:cover;" />
+                <div class="small text-truncate p-1 text-center" style="max-width:120px;">${item.name || 'Image'}</div>
+            </div>
+        `).join('');
+
+        const newHtml = selectedImages.map((file, index) => {
             const url = URL.createObjectURL(file);
             return `
                 <div class="image-file-card position-relative border rounded overflow-hidden" data-index="${index}">
@@ -4015,16 +4142,22 @@ shipping_address: document.getElementById('pscShipping')?.value || $ctx.find('.s
             `;
         }).join('');
 
-        $imageFilesList.html(html);
+        $imageFilesList.html(existingHtml + newHtml);
     }
 
     function renderSelectedDocuments() {
-        if (!selectedDocuments.length) {
+        if (!existingDocuments.length && !selectedDocuments.length) {
             $documentFilesList.empty();
             return;
         }
 
-        const html = selectedDocuments.map((file, index) => {
+        const existingHtml = existingDocuments.map((item) => `
+            <div class="list-group-item d-flex justify-content-between align-items-center bg-light" data-existing="1">
+                <span class="text-truncate" style="max-width: 100%;">${item.name || 'Document'}</span>
+            </div>
+        `).join('');
+
+        const newHtml = selectedDocuments.map((file, index) => {
             return `
                 <div class="list-group-item d-flex justify-content-between align-items-center" data-index="${index}">
                     <span class="text-truncate" style="max-width: calc(100% - 32px);">${file.name}</span>
@@ -4033,26 +4166,24 @@ shipping_address: document.getElementById('pscShipping')?.value || $ctx.find('.s
             `;
         }).join('');
 
-        $documentFilesList.html(html);
+        $documentFilesList.html(existingHtml + newHtml);
     }
 
     function addSelectedImages(files) {
-        Array.from(files || []).forEach(file => {
-            const duplicate = selectedImages.some(existing => existing.name === file.name && existing.size === file.size && existing.type === file.type);
-            if (!duplicate) {
-                selectedImages.push(file);
-            }
-        });
+        selectedImages.length = 0;
+        const firstFile = Array.from(files || [])[0];
+        if (firstFile) {
+            selectedImages.push(firstFile);
+        }
         renderSelectedImages();
     }
 
     function addSelectedDocuments(files) {
-        Array.from(files || []).forEach(file => {
-            const duplicate = selectedDocuments.some(existing => existing.name === file.name && existing.size === file.size && existing.type === file.type);
-            if (!duplicate) {
-                selectedDocuments.push(file);
-            }
-        });
+        selectedDocuments.length = 0;
+        const firstFile = Array.from(files || [])[0];
+        if (firstFile) {
+            selectedDocuments.push(firstFile);
+        }
         renderSelectedDocuments();
     }
 
@@ -4436,7 +4567,11 @@ shipping_address: document.getElementById('pscShipping')?.value || $ctx.find('.s
         $ctx.find('.order-date').val(invoiceDateValue);
         updateDueDateFromSelection();
     });
-    $ctx.on('change', '.order-date', updateDueDateFromSelection);
+    $ctx.on('change', '.order-date', function() {
+        const orderDateValue = $(this).val();
+        $ctx.find('.invoice-date').val(orderDateValue);
+        updateDueDateFromSelection();
+    });
     updateDueDateFromSelection();
 
     $('#itemColumnModal').on('show.bs.modal', function () {

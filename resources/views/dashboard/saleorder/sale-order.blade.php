@@ -97,13 +97,13 @@
     /* ── Sale order table with fixed layout for resize ── */
     .sale-order-table {
       table-layout: fixed;
-      min-width: 1300px;
+      min-width: 100%;
       border-collapse: collapse;
       width: 100%;
     }
     .sale-order-table thead th {
       position: relative;
-      overflow: hidden;
+      overflow: visible;
       background: #fafafa; color: #6c757d;
       font-size: 13px; font-weight: 500;
       border-bottom: 1px solid #eee;
@@ -116,6 +116,16 @@
       vertical-align: middle; color: #0f172a;
       white-space: nowrap;
       overflow: hidden; text-overflow: ellipsis;
+    }
+    .sale-order-table tbody td.action-cell {
+      overflow: visible !important;
+      position: relative;
+    }
+    .sale-order-table tbody td.action-menu-cell {
+      overflow: visible !important;
+      position: relative;
+      text-align: center;
+      white-space: nowrap;
     }
     .sale-order-table tbody tr:hover { background: #fafafa; }
     .sale-order-table th, .sale-order-table td { border-right: 1px solid #e9ecef !important; }
@@ -134,13 +144,14 @@
       background: transparent;
       color: #94a3b8;
       padding: 0;
-      width: 18px;
-      height: 18px;
+      width: 22px;
+      height: 22px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      border-radius: 999px;
     }
-    .filter-icon-btn:hover { color: #334155; }
+    .filter-icon-btn:hover { color: #64748b; background: #f8fafc; }
     .column-filter-dropdown {
       display: none;
       position: absolute;
@@ -154,23 +165,72 @@
       box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
       z-index: 20;
     }
+    .column-filter-dropdown.align-end {
+      left: auto;
+      right: 0;
+    }
     .column-filter-dropdown.show { display: block; }
     .column-filter-dropdown .form-control { font-size: 12px; }
+    .column-filter-dropdown .form-select { font-size: 12px; }
+    .column-filter-label {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .column-filter-actions .btn {
+      border-radius: 999px;
+      min-width: 62px;
+      padding: 0.35rem 0.9rem;
+      font-weight: 700;
+      box-shadow: none;
+    }
+    .column-filter-clear {
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      color: #6b7280;
+    }
+    .column-filter-clear:hover {
+      background: #e5e7eb;
+      color: #4b5563;
+    }
+    .column-filter-apply {
+      background: #f43f5e;
+      border: 1px solid #f43f5e;
+      color: #fff;
+    }
+    .column-filter-apply:hover {
+      background: #e11d48;
+      border-color: #e11d48;
+      color: #fff;
+    }
 
     /* ── Status styles ── */
     .status-text { font-weight: 500; }
-    .text-success { color: #22c55e !important; }
-    .text-warning { color: #f59e0b !important; }
+    .text-success { color: #16a34a !important; }
+    .text-warning { color: #f97316 !important; }
     .text-danger { color: #ef4444 !important; }
 
     .convert-btn {
-      border-radius: 8px; border: 1px solid #d8dee9;
-      background: #fff; color: #6366f1; font-weight: 600;
+      border-radius: 8px; border: 1px solid #d1d5db;
+      background: #f8fafc;
+      color: #6b7280; font-weight: 600;
       padding: 0.55rem 0.95rem; white-space: nowrap;
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+      box-shadow: none;
+    }
+    .convert-btn:hover {
+      color: #4b5563;
+      background: #eef2f7;
+      border-color: #cbd5e1;
     }
 
     .converted-link {
+      display: inline-block;
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: middle;
       color: #6366f1; font-weight: 500;
       text-decoration: underline; text-underline-offset: 2px;
     }
@@ -180,6 +240,72 @@
       color: #64748b; padding: 0.35rem 0.5rem;
     }
     .action-menu-btn::after { display: none; }
+    .sale-order-table tbody td.action-cell .dropdown-menu {
+      z-index: 1090;
+    }
+    .sale-order-table tbody td.action-cell .dropdown-menu {
+      min-width: 180px;
+      padding: 0.45rem 0;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+    }
+    .sale-order-table tbody td.action-cell .dropdown-item {
+      padding: 0.6rem 1rem;
+      font-size: 14px;
+      color: #1f2937;
+      text-decoration: none;
+    }
+    .sale-order-table tbody td.action-cell .dropdown-item:hover {
+      background: #e0f2fe;
+      color: #0f172a;
+      font-weight: 700;
+    }
+    .sale-order-table tbody td.action-cell .dropdown-divider {
+      margin: 0.35rem 0;
+    }
+    .sale-order-table tbody td.action-cell {
+      white-space: nowrap;
+    }
+
+    /* Main sale-order table wrapper should not clip menus or force an inner scroll */
+    .sale-order-main-wrapper {
+      overflow: visible !important;
+      max-height: none !important;
+      position: relative;
+    }
+    .invoice-preview-frame {
+      width: 100%;
+      height: calc(100vh - 170px);
+      border: 0;
+      background: #fff;
+    }
+    .sale-order-preview-footer {
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    .sale-order-preview-action {
+      appearance: none;
+      border: 1.5px solid #ef233c;
+      background: #fff;
+      color: #ef233c;
+      border-radius: 999px;
+      padding: 0.58rem 1.15rem;
+      font-weight: 700;
+      line-height: 1;
+      transition: background-color .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+    }
+    .sale-order-preview-action:hover,
+    .sale-order-preview-action:focus {
+      background: #ef233c;
+      color: #fff;
+      border-color: #ef233c;
+      box-shadow: 0 8px 18px rgba(239, 35, 60, 0.22);
+      transform: translateY(-1px);
+    }
+    .sale-order-preview-action:focus {
+      outline: none;
+    }
   </style>
 
   <script>
@@ -230,7 +356,7 @@
           </div>
         </div>
 
-        <div class="table-responsive small-table table-wrapper">
+        <div class="table-responsive small-table table-wrapper sale-order-main-wrapper">
           <table class="table sale-order-table align-middle mb-0 txn-table">
             <thead>
               <tr>
@@ -243,7 +369,7 @@
                   </div>
                   <div class="column-filter-dropdown">
                     <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Party">
-                    <div class="d-flex justify-content-end gap-2 mt-2">
+                    <div class="d-flex justify-content-end gap-2 mt-2 column-filter-actions">
                       <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="1">Clear</button>
                       <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="1">Apply</button>
                     </div>
@@ -257,7 +383,7 @@
                   </div>
                   <div class="column-filter-dropdown">
                     <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter No.">
-                    <div class="d-flex justify-content-end gap-2 mt-2">
+                    <div class="d-flex justify-content-end gap-2 mt-2 column-filter-actions">
                       <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="2">Clear</button>
                       <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="2">Apply</button>
                     </div>
@@ -270,8 +396,15 @@
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
                   </div>
                   <div class="column-filter-dropdown">
-                    <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Date">
-                    <div class="d-flex justify-content-end gap-2 mt-2">
+                    <label class="column-filter-label">Select Category</label>
+                    <select class="form-select form-select-sm column-filter-operator">
+                      <option value="eq">Equal To</option>
+                      <option value="before">Before</option>
+                      <option value="after">After</option>
+                    </select>
+                    <label class="column-filter-label mt-2">Select Date</label>
+                    <input type="text" class="form-control form-control-sm column-filter-input" placeholder="DD/MM/YYYY" inputmode="numeric">
+                    <div class="d-flex justify-content-end gap-2 mt-2 column-filter-actions">
                       <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="3">Clear</button>
                       <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="3">Apply</button>
                     </div>
@@ -284,22 +417,29 @@
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
                   </div>
                   <div class="column-filter-dropdown">
-                    <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Due Date">
-                    <div class="d-flex justify-content-end gap-2 mt-2">
+                    <label class="column-filter-label">Select Category</label>
+                    <select class="form-select form-select-sm column-filter-operator">
+                      <option value="eq">Equal To</option>
+                      <option value="before">Before</option>
+                      <option value="after">After</option>
+                    </select>
+                    <label class="column-filter-label mt-2">Select Date</label>
+                    <input type="text" class="form-control form-control-sm column-filter-input" placeholder="DD/MM/YYYY" inputmode="numeric">
+                    <div class="d-flex justify-content-end gap-2 mt-2 column-filter-actions">
                       <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="4">Clear</button>
                       <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="4">Apply</button>
                     </div>
                   </div>
                 </th>
 
-                <th class="text-end">
+                <th class="text-end" style="width: 155px;">
                   <div class="column-filter-header justify-content-end">
-                    <span class="me-2">Total Amount</span>
+                    <span class="me-3">Total Amount</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
                   </div>
                   <div class="column-filter-dropdown text-start">
                     <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Total">
-                    <div class="d-flex justify-content-end gap-2 mt-2">
+                    <div class="d-flex justify-content-end gap-2 mt-2 column-filter-actions">
                       <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="5">Clear</button>
                       <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="5">Apply</button>
                     </div>
@@ -313,7 +453,7 @@
                   </div>
                   <div class="column-filter-dropdown text-start">
                     <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Balance">
-                    <div class="d-flex justify-content-end gap-2 mt-2">
+                    <div class="d-flex justify-content-end gap-2 mt-2 column-filter-actions">
                       <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="6">Clear</button>
                       <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="6">Apply</button>
                     </div>
@@ -327,21 +467,21 @@
                   </div>
                   <div class="column-filter-dropdown">
                     <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Type">
-                    <div class="d-flex justify-content-end gap-2 mt-2">
+                    <div class="d-flex justify-content-end gap-2 mt-2 column-filter-actions">
                       <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="7">Clear</button>
                       <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="7">Apply</button>
                     </div>
                   </div>
                 </th>
 
-                <th>
+                <th style="width: 150px;">
                   <div class="column-filter-header">
                     <span>Status</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
                   </div>
                   <div class="column-filter-dropdown">
                     <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Status">
-                    <div class="d-flex justify-content-end gap-2 mt-2">
+                    <div class="d-flex justify-content-end gap-2 mt-2 column-filter-actions">
                       <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="8">Clear</button>
                       <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="8">Apply</button>
                     </div>
@@ -349,6 +489,7 @@
                 </th>
 
                 <th style="width: 220px;">Action</th>
+                <th style="width: 56px;"></th>
               </tr>
             </thead>
             <tbody>
@@ -360,7 +501,7 @@
                   $convertedInvoiceNumber = $convertedInvoiceNumbers[$saleOrder->id] ?? null;
                   $convertedInvoiceId = $convertedInvoiceIds[$saleOrder->id] ?? null;
                 @endphp
-                <tr>
+                <tr data-edit-url="{{ route('sale-order.edit', $saleOrder->id) }}">
                   <td>
                     <input type="checkbox"
                            class="sale-order-select"
@@ -385,35 +526,41 @@
                       {{ $statusLabel }}
                     </span>
                   </td>
-                  <td>
+                  <td class="action-cell">
                     @if($isCompleted)
-                      <a href="{{ route('sale.edit', $saleOrder->id) }}" class="converted-link">
-                        Converted To Invoice No.{{ $convertedInvoiceNumber }}
+                      @php
+                        $invoiceLabel = $convertedInvoiceNumber ?: ($convertedInvoiceId ? 'ID '.$convertedInvoiceId : null);
+                        $invoiceRouteId = $convertedInvoiceId ?: $saleOrder->id;
+                      @endphp
+                      <a href="{{ route('invoice', ['sale_id' => $invoiceRouteId]) }}" class="converted-link" title="View Invoice No.{{ $invoiceLabel }}">
+                        Invoice No.{{ $invoiceLabel }}
                       </a>
                     @else
                       <a href="{{ route('sale-orders.convert-to-sale', $saleOrder->id) }}" class="btn convert-btn btn-sm">
                         CONVERT TO SALE
                       </a>
                     @endif
-                    <div class="dropdown d-inline ms-2">
+                  </td>
+                  <td class="action-menu-cell">
+                    <div class="dropdown d-inline">
                       <button class="btn btn-sm action-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
                         <i class="fas fa-ellipsis-v"></i>
                       </button>
-                      <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#" onclick="return transactionPasscodeNavigate('{{ route('sale.edit', $saleOrder->id) }}');"><i class="fas fa-edit me-2"></i>View/Edit</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="previewSaleOrder('{{ route('invoice', ['sale_id' => $saleOrder->id]) }}'); return false;"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="printSaleOrder('{{ route('invoice', ['sale_id' => $saleOrder->id, 'print' => 1]) }}'); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="duplicateSaleOrder('{{ route('sale-order.create', ['duplicate_sale_id' => $saleOrder->id]) }}'); return false;"><i class="fas fa-copy me-2"></i>Duplicate</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="viewSaleOrderHistory('{{ $convertedInvoiceId ? route('sale.bank-history', $convertedInvoiceId) : '' }}'); return false;"><i class="fas fa-clock-rotate-left me-2"></i>View History</a></li>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" onclick="return transactionPasscodeNavigate('{{ route('sale-order.edit', $saleOrder->id) }}');">View/Edit</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="previewSaleOrder('{{ route('sale-orders.preview', $saleOrder->id) }}', '{{ route('sale-orders.pdf', $saleOrder->id) }}'); return false;">Preview</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="printSaleOrder('{{ route('sale-orders.print', $saleOrder->id) }}'); return false;">Print</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="duplicateSaleOrder('{{ route('sale-order.create', ['duplicate_sale_id' => $saleOrder->id]) }}'); return false;">Duplicate</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="viewSaleOrderHistory('{{ $convertedInvoiceId ? route('sale.bank-history', $convertedInvoiceId) : '' }}'); return false;">View History</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="#" onclick="return transactionPasscodeExecute('deleteSaleOrder','{{ route('sale.destroy', $saleOrder->id) }}');"><i class="fas fa-trash me-2"></i>Delete</a></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="return transactionPasscodeExecute('deleteSaleOrder','{{ route('sale.destroy', $saleOrder->id) }}');">Delete</a></li>
                       </ul>
                     </div>
                   </td>
                 </tr>
               @empty
                 <tr>
-                  <td colspan="10" class="text-center text-muted py-4">No sale orders found.</td>
+                  <td colspan="11" class="text-center text-muted py-4">No sale orders found.</td>
                 </tr>
               @endforelse
             </tbody>
@@ -497,6 +644,27 @@
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
+  </div>
+</div>
+
+  <div class="modal fade" id="saleOrderPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 96vw;">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header">
+          <h5 class="modal-title">Sale Order Preview</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-0">
+          <iframe id="saleOrderPreviewFrame" class="invoice-preview-frame" title="Invoice Preview"></iframe>
+        </div>
+        <div class="modal-footer sale-order-preview-footer">
+          <button type="button" class="sale-order-preview-action" id="saleOrderOpenPdfBtn">Open PDF</button>
+          <button type="button" class="sale-order-preview-action" id="saleOrderPrintBtn">Print</button>
+          <button type="button" class="sale-order-preview-action" id="saleOrderSavePdfBtn">Save PDF</button>
+          <button type="button" class="sale-order-preview-action" id="saleOrderEmailPdfBtn">Email PDF</button>
+          <button type="button" class="btn btn-danger rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -510,10 +678,122 @@
     const bulkConvertUrl = "{{ route('sale-orders.bulk-convert') }}";
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-    function previewSaleOrder(url) { window.open(url, '_blank'); }
-    function printSaleOrder(url) { window.open(url, '_blank'); }
-    function openSaleOrderPdf(url) { window.open(url, '_blank'); }
+    function appendSaleOrderThemeParams(url) {
+      try {
+        const match = String(url || '').match(/\/sale-orders\/(\d+)\//);
+        const saleId = match ? match[1] : null;
+        if (!saleId || !window.localStorage) {
+          return url;
+        }
+
+        const raw = window.localStorage.getItem(`saleInvoiceTheme:${saleId}`) || window.localStorage.getItem('saleInvoiceTheme:draft');
+        if (!raw) {
+          return url;
+        }
+
+        const theme = JSON.parse(raw);
+        const params = new URLSearchParams();
+        const mode = String(theme?.mode || '').trim();
+        const regularThemeId = Number(theme?.regularThemeId || 0);
+        const thermalThemeId = Number(theme?.thermalThemeId || 0);
+        const activeThemeId = mode === 'thermal' ? thermalThemeId : regularThemeId;
+
+        if (mode) params.set('mode', mode);
+        if (activeThemeId > 0) params.set('theme_id', String(activeThemeId));
+        if (theme?.accent) params.set('accent', String(theme.accent));
+        if (theme?.accent2) params.set('accent2', String(theme.accent2));
+        params.set('theme_applied', '1');
+        const signatureImage = window.localStorage.getItem('vyapar_signature_image');
+        if (signatureImage) params.set('signature_image', signatureImage);
+
+        if (!params.toString()) {
+          return url;
+        }
+
+        return url + (String(url).includes('?') ? '&' : '?') + params.toString();
+      } catch (error) {
+        return url;
+      }
+    }
+
+    function getSaleOrderPreviewData(modalEl) {
+      const frame = document.getElementById('saleOrderPreviewFrame');
+      const previewUrl = String(modalEl?.dataset?.previewUrl || frame?.src || '');
+      const pdfUrl = String(modalEl?.dataset?.pdfUrl || previewUrl.replace('/preview', '/pdf'));
+      return { previewUrl, pdfUrl };
+    }
+
+    function previewSaleOrder(url, pdfUrl) {
+      const modalEl = document.getElementById('saleOrderPreviewModal');
+      const frame = document.getElementById('saleOrderPreviewFrame');
+      const themedUrl = appendSaleOrderThemeParams(url);
+      const themedPdfUrl = appendSaleOrderThemeParams(pdfUrl || String(url).replace('/preview', '/pdf'));
+
+      if (!modalEl || !frame) {
+        window.open(themedUrl, '_blank');
+        return;
+      }
+
+      frame.src = themedUrl;
+      modalEl.dataset.previewUrl = themedUrl;
+      modalEl.dataset.pdfUrl = themedPdfUrl;
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+    function printSaleOrder(url) {
+      window.open(appendSaleOrderThemeParams(url), '_blank');
+    }
+    function openSaleOrderPdf(url) {
+      window.open(appendSaleOrderThemeParams(url), '_blank');
+    }
     function duplicateSaleOrder(url) { window.open(url, '_blank'); }
+
+    function openSaleOrderPreviewPdf() {
+      const modalEl = document.getElementById('saleOrderPreviewModal');
+      const { pdfUrl } = getSaleOrderPreviewData(modalEl);
+      if (!pdfUrl) return;
+      window.open(pdfUrl, '_blank', 'noopener');
+    }
+
+    function saveSaleOrderPreviewPdf() {
+      const modalEl = document.getElementById('saleOrderPreviewModal');
+      const { pdfUrl } = getSaleOrderPreviewData(modalEl);
+      if (!pdfUrl) return;
+      const downloadUrl = appendSaleOrderThemeParams(pdfUrl) + (String(pdfUrl).includes('?') ? '&' : '?') + 'download=1';
+      window.open(downloadUrl, '_blank', 'noopener');
+    }
+
+    function printSaleOrderPreview() {
+      const frame = document.getElementById('saleOrderPreviewFrame');
+      if (!frame || !frame.contentWindow) return;
+      frame.contentWindow.focus();
+      frame.contentWindow.print();
+    }
+
+    function emailSaleOrderPreview() {
+      const modalEl = document.getElementById('saleOrderPreviewModal');
+      const { pdfUrl } = getSaleOrderPreviewData(modalEl);
+      const subject = encodeURIComponent('Sale Order PDF');
+      const body = encodeURIComponent(`Please find the sale order PDF here: ${pdfUrl || window.location.href}`);
+      window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${subject}&body=${body}`, '_blank', 'noopener');
+    }
+
+    function bindSaleOrderPreviewButtons() {
+      const openPdfBtn = document.getElementById('saleOrderOpenPdfBtn');
+      const printBtn = document.getElementById('saleOrderPrintBtn');
+      const savePdfBtn = document.getElementById('saleOrderSavePdfBtn');
+      const emailPdfBtn = document.getElementById('saleOrderEmailPdfBtn');
+
+      if (openPdfBtn) openPdfBtn.addEventListener('click', openSaleOrderPreviewPdf);
+      if (printBtn) printBtn.addEventListener('click', printSaleOrderPreview);
+      if (savePdfBtn) savePdfBtn.addEventListener('click', saveSaleOrderPreviewPdf);
+      if (emailPdfBtn) emailPdfBtn.addEventListener('click', emailSaleOrderPreview);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bindSaleOrderPreviewButtons, { once: true });
+    } else {
+      bindSaleOrderPreviewButtons();
+    }
 
     function viewSaleOrderHistory(historyUrl) {
       if (!historyUrl) {
@@ -655,9 +935,41 @@
     document.addEventListener('DOMContentLoaded', function () {
       const searchInput = document.querySelector('.sale-order-search input');
       const columnFilters = {};
+      const dateFilterColumns = new Set(['3', '4']);
 
       function normalizeText(text) {
         return text.toString().toLowerCase().trim().replace(/\s+/g, ' ');
+      }
+
+      function parseDateText(text) {
+        const match = String(text || '').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+        if (!match) return null;
+
+        const [, dd, mm, yyyy] = match;
+        const parsed = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+      }
+
+      function matchesDateFilter(cellText, filterValue) {
+        const cellDate = parseDateText(cellText);
+        if (!cellDate || !filterValue) return false;
+
+        if (String(filterValue.value || '').length < 10) return true;
+
+        const targetDate = parseDateText(filterValue.value);
+        if (!targetDate) return false;
+
+        const cellTime = cellDate.setHours(0, 0, 0, 0);
+        const targetTime = targetDate.setHours(0, 0, 0, 0);
+
+        switch (filterValue.operator) {
+          case 'before':
+            return cellTime < targetTime;
+          case 'after':
+            return cellTime > targetTime;
+          default:
+            return cellTime === targetTime;
+        }
       }
 
       function applySalesTableFilters() {
@@ -679,7 +991,13 @@
             }
 
             if (columnFilters[index] !== undefined) {
-              if (!cellText.includes(columnFilters[index])) {
+              const filterValue = columnFilters[index];
+
+              if (dateFilterColumns.has(String(index))) {
+                if (!matchesDateFilter(cell.textContent || cell.innerText, filterValue)) {
+                  matchesColumnFilters = false;
+                }
+              } else if (!cellText.includes(filterValue)) {
                 matchesColumnFilters = false;
               }
             }
@@ -695,6 +1013,7 @@
           event.preventDefault();
           event.stopPropagation();
 
+          const th = this.closest('th');
           const dropdown = this.closest('.column-filter-header')?.nextElementSibling;
           if (!dropdown) return;
 
@@ -702,7 +1021,23 @@
             if (openDropdown !== dropdown) openDropdown.classList.remove('show');
           });
 
-          dropdown.classList.toggle('show');
+          const rect = th ? th.getBoundingClientRect() : null;
+          if (rect) {
+            dropdown.style.left = 'auto';
+            dropdown.style.right = 'auto';
+            dropdown.style.top = `${th.offsetHeight + 10}px`;
+            dropdown.style.position = 'fixed';
+            dropdown.style.zIndex = '1080';
+            dropdown.style.minWidth = '220px';
+
+            const left = Math.min(Math.max(8, rect.left), window.innerWidth - 232);
+            const rightAligned = rect.right > window.innerWidth - 232;
+            dropdown.style.left = rightAligned ? 'auto' : `${left}px`;
+            dropdown.style.right = rightAligned ? `${Math.max(8, window.innerWidth - rect.right)}px` : 'auto';
+            dropdown.style.top = `${Math.min(rect.bottom + 8, window.innerHeight - 16)}px`;
+          }
+
+          dropdown.classList.add('show');
         });
       });
 
@@ -713,8 +1048,22 @@
           const columnIndex = this.dataset.columnIndex;
           const dropdown = this.closest('.column-filter-dropdown');
           const input = dropdown?.querySelector('.column-filter-input');
+          const operator = dropdown?.querySelector('.column-filter-operator')?.value || 'eq';
+          const normalizedValue = normalizeText(input?.value || '');
 
-          columnFilters[columnIndex] = normalizeText(input?.value || '');
+          if (dateFilterColumns.has(String(columnIndex))) {
+            if (normalizedValue) {
+              columnFilters[columnIndex] = { type: 'date', operator, value: normalizedValue };
+            } else {
+              delete columnFilters[columnIndex];
+            }
+          } else {
+            if (normalizedValue) {
+              columnFilters[columnIndex] = normalizedValue;
+            } else {
+              delete columnFilters[columnIndex];
+            }
+          }
           dropdown?.classList.remove('show');
           applySalesTableFilters();
         });
@@ -726,12 +1075,40 @@
           const dropdown = this.closest('.column-filter-dropdown');
           const applyButton = dropdown?.querySelector('.column-filter-apply');
           const columnIndex = applyButton?.dataset.columnIndex;
+          const operator = dropdown?.querySelector('.column-filter-operator')?.value || 'eq';
 
           if (columnIndex === undefined) return;
           const normalizedValue = normalizeText(this.value || '');
 
+          if (dateFilterColumns.has(String(columnIndex))) {
+            if (normalizedValue) {
+              columnFilters[columnIndex] = { type: 'date', operator, value: normalizedValue };
+            } else {
+              delete columnFilters[columnIndex];
+            }
+          } else {
+            if (normalizedValue) {
+              columnFilters[columnIndex] = normalizedValue;
+            } else {
+              delete columnFilters[columnIndex];
+            }
+          }
+          applySalesTableFilters();
+        });
+      });
+
+      document.querySelectorAll('.column-filter-operator').forEach((select) => {
+        select.addEventListener('change', function () {
+          const dropdown = this.closest('.column-filter-dropdown');
+          const applyButton = dropdown?.querySelector('.column-filter-apply');
+          const columnIndex = applyButton?.dataset.columnIndex;
+          const input = dropdown?.querySelector('.column-filter-input');
+
+          if (!dateFilterColumns.has(String(columnIndex))) return;
+
+          const normalizedValue = normalizeText(input?.value || '');
           if (normalizedValue) {
-            columnFilters[columnIndex] = normalizedValue;
+            columnFilters[columnIndex] = { type: 'date', operator: this.value || 'eq', value: normalizedValue };
           } else {
             delete columnFilters[columnIndex];
           }
@@ -746,8 +1123,10 @@
           const columnIndex = this.dataset.columnIndex;
           const dropdown = this.closest('.column-filter-dropdown');
           const input = dropdown?.querySelector('.column-filter-input');
+          const operator = dropdown?.querySelector('.column-filter-operator');
 
           if (input) input.value = '';
+          if (operator) operator.value = 'eq';
           delete columnFilters[columnIndex];
           dropdown?.classList.remove('show');
           applySalesTableFilters();
@@ -761,18 +1140,35 @@
         if (!event.target.closest('.column-filter-dropdown') && !event.target.closest('.filter-icon-btn')) {
           document.querySelectorAll('.column-filter-dropdown.show').forEach((dropdown) => {
             dropdown.classList.remove('show');
+            dropdown.removeAttribute('style');
           });
         }
       });
 
       /* ─── COLUMN DRAG & RESIZE WORKFLOW ─── */
+      document.querySelectorAll('.sale-order-table tbody tr[data-edit-url]').forEach((row) => {
+        row.addEventListener('dblclick', function (event) {
+          const target = event.target;
+          if (!target) return;
+
+          if (target.closest('a, button, input, .dropdown, .dropdown-menu, .action-cell, .action-menu-cell')) {
+            return;
+          }
+
+          const editUrl = row.dataset.editUrl;
+          if (editUrl) {
+            window.location.href = editUrl;
+          }
+        });
+      });
+
       let isResizing = false, startX = 0, startW = 0, thEl = null;
 
       function initResizeHandles() {
         document.querySelectorAll('.custom-table thead th, .sale-order-table thead th').forEach(function (th) {
           if (th.querySelector('.col-rh')) return;
           th.style.position = 'relative';
-          th.style.overflow = 'hidden';
+          th.style.overflow = 'visible';
           th.style.width = th.getBoundingClientRect().width + 'px';
 
           const handle = document.createElement('div');

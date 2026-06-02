@@ -129,6 +129,7 @@
   @if (!empty($reactJs))
     <div id="root"></div>
     <script>
+      window.docType = @json($documentType ?? null);
       window.invoiceAppData = {
         invoiceData: @json($invoicePreviewData ?? null),
         saleId: @json($sale->id ?? null),
@@ -137,6 +138,7 @@
         initialColor2: @json($initialAccent2 ?? '#ff981f'),
         browserTabLabel: @json($browserTabLabel ?? 'Invoice Preview'),
         saveCloseUrl: @json($saveCloseUrl ?? '/dashboard/sales'),
+        type: @json($documentType ?? null),
         initialRegularThemeId: @json($initialRegularThemeId ?? 1),
         initialThermalThemeId: @json($initialThermalThemeId ?? 1),
         debugInfo: @json($debugInfo ?? null),

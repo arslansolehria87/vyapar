@@ -95,7 +95,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/estimates/{sale}/preview', [SaleController::class, 'previewEstimate'])->name('estimates.preview');
     Route::get('/estimates/{sale}/print', [SaleController::class, 'printEstimate'])->name('estimates.print');
     Route::get('/estimates/{sale}/pdf', [SaleController::class, 'pdfEstimate'])->name('estimates.pdf');
-    Route::get('/sale-orders/{sale}/convert-to-sale', [SaleController::class, 'createFromSaleOrder'])->name('sale-orders.convert-to-sale');
+    Route::get('/sale-orders/{sale}/convert-to-sale', [SaleOrderController::class, 'createFromSaleOrder'])->name('sale-orders.convert-to-sale');
     Route::post('/sale-orders/bulk-convert', [SaleController::class, 'bulkConvertSaleOrders'])->name('sale-orders.bulk-convert');
     Route::get('/delivery-challans/{sale}/convert-to-sale', [SaleController::class, 'createFromDeliveryChallan'])->name('delivery-challans.convert-to-sale');
     Route::get('/sale-orders/{sale}/preview', [SaleController::class, 'previewSaleOrder'])->name('sale-orders.preview');
@@ -154,11 +154,14 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('delivery-challan/{sale}/pdf', [DeliveryController::class, 'pdf'])->name('delivery-challan.pdf');
     Route::get('delivery-challan/{sale}/duplicate', [DeliveryController::class, 'duplicate'])->name('delivery-challan.duplicate');
 
-Route::get('delivery-challan/next-number', [DeliveryController::class, 'getNextNumber'])->name('delivery-challan.next-number');
+    Route::get('delivery-challan/next-number', [DeliveryController::class, 'getNextNumber'])->name('delivery-challan.next-number');
 
     // Sale Orders
     Route::get('sale-order', [SaleOrderController::class, 'saleOrder'])->name('sale-order');
     Route::get('sale-order/create', [SaleOrderController::class, 'create'])->name('sale-order.create');
+    Route::post('sale-order', [SaleOrderController::class, 'store'])->name('sale-order.store');
+    Route::put('sale-order/{sale}', [SaleOrderController::class, 'update'])->name('sale-order.update');
+    Route::get('sale-order/{sale}/edit', [SaleOrderController::class, 'edit'])->name('sale-order.edit');
     Route::get('estimates/{sale}/convert-to-sale-order', [SaleOrderController::class, 'createFromEstimate'])->name('estimates.convert-to-sale-order');
 
     // Invoice
@@ -182,27 +185,29 @@ Route::get('delivery-challan/next-number', [DeliveryController::class, 'getNextN
     Route::get('/loan-accounts/{loanAccount}/edit', [LoanAccountController::class, 'edit'])->name('loan-accounts.edit');
     Route::put('/loan-accounts/{loanAccount}', [LoanAccountController::class, 'update'])->name('loan-accounts.update');
     Route::delete('/loan-accounts/{loanAccount}', [LoanAccountController::class, 'destroy'])->name('loan-accounts.destroy');
+    Route::post('/loan-accounts/{loanAccount}/transactions', [LoanAccountController::class, 'storeTransaction'])->name('loan-accounts.transactions.store');
+    Route::put('/loan-accounts/{loanAccount}/transactions/{transaction}', [LoanAccountController::class, 'updateTransaction'])->name('loan-accounts.transactions.update');
 
     // Bank Accounts
     Route::get('/bank-accounts', [BankAccountController::class, 'index'])->name('bank-accounts');
     Route::post('/bank-accounts', [BankAccountController::class, 'store'])->name('bank-accounts.store');
     Route::post('/bank-accounts/transfer', [BankAccountController::class, 'transfer'])->name('bank-accounts.transfer');
-   Route::get('cash-in-hand', [BankAccountController::class, 'cashInHand'])->name('cash-in-hand');
-Route::post('cash-in-hand/adjust', [BankAccountController::class, 'adjustCash'])->name('cash-in-hand.adjust');
+    Route::get('cash-in-hand', [BankAccountController::class, 'cashInHand'])->name('cash-in-hand');
+    Route::post('cash-in-hand/adjust', [BankAccountController::class, 'adjustCash'])->name('cash-in-hand.adjust');
     Route::get('/bank-accounts/{bankAccount}', [BankAccountController::class, 'show'])->name('bank-accounts.show');
     Route::get('/bank-accounts/{bankAccount}/edit', [BankAccountController::class, 'edit'])->name('bank-accounts.edit');
     Route::put('/bank-accounts/{bankAccount}', [BankAccountController::class, 'update'])->name('bank-accounts.update');
     Route::delete('/bank-accounts/{bankAccount}', [BankAccountController::class, 'destroy'])->name('bank-accounts.destroy');
-     // ─── Cheques ───────────────────────────────────────────────
-   Route::get('/cheques',                    [ChequeController::class, 'index'])        ->name('cheques.index');
-Route::post('/cheques',                   [ChequeController::class, 'store'])        ->name('cheques.store');
-Route::get('/cheques/{cheque}',           [ChequeController::class, 'show'])         ->name('cheques.show');
-Route::put('/cheques/{cheque}',           [ChequeController::class, 'update'])       ->name('cheques.update');
-Route::patch('/cheques/{cheque}',         [ChequeController::class, 'update']);       // alias
-Route::delete('/cheques/{cheque}',        [ChequeController::class, 'destroy'])      ->name('cheques.destroy');
-Route::post('/cheques/{cheque}/deposit',  [ChequeController::class, 'deposit'])      ->name('cheques.deposit');
-Route::post('/cheques/{cheque}/status',   [ChequeController::class, 'updateStatus']) ->name('cheques.status');
-Route::get('/cheques/{cheque}/history',   [ChequeController::class, 'history'])      ->name('cheques.history');
+    // ─── Cheques ───────────────────────────────────────────────
+    Route::get('/cheques',                    [ChequeController::class, 'index'])->name('cheques.index');
+    Route::post('/cheques',                   [ChequeController::class, 'store'])->name('cheques.store');
+    Route::get('/cheques/{cheque}',           [ChequeController::class, 'show'])->name('cheques.show');
+    Route::put('/cheques/{cheque}',           [ChequeController::class, 'update'])->name('cheques.update');
+    Route::patch('/cheques/{cheque}',         [ChequeController::class, 'update']);       // alias
+    Route::delete('/cheques/{cheque}',        [ChequeController::class, 'destroy'])->name('cheques.destroy');
+    Route::post('/cheques/{cheque}/deposit',  [ChequeController::class, 'deposit'])->name('cheques.deposit');
+    Route::post('/cheques/{cheque}/status',   [ChequeController::class, 'updateStatus'])->name('cheques.status');
+    Route::get('/cheques/{cheque}/history',   [ChequeController::class, 'history'])->name('cheques.history');
 
 
     // Purchase & Expenses
@@ -325,88 +330,88 @@ Route::get('/cheques/{cheque}/history',   [ChequeController::class, 'history']) 
 
 
 
-Route::get('reports', [ReportController::class, 'index'])->name('reports');
-Route::get('reports', [ReportController::class, 'index'])->name('reports');
-Route::get('/reports/sale', [ReportController::class, 'saleReport'])->name('reports.sale');
-Route::get('reports/all-transactions', [ReportController::class, 'allTransactions'])->name('reports.all-transactions');
-Route::get('/reports/purchase', [ReportController::class, 'purchaseReport'])->name('reports.purchase');
+    Route::get('reports', [ReportController::class, 'index'])->name('reports');
+    Route::get('reports', [ReportController::class, 'index'])->name('reports');
+    Route::get('/reports/sale', [ReportController::class, 'saleReport'])->name('reports.sale');
+    Route::get('reports/all-transactions', [ReportController::class, 'allTransactions'])->name('reports.all-transactions');
+    Route::get('/reports/purchase', [ReportController::class, 'purchaseReport'])->name('reports.purchase');
 
-// Cash Flow
-Route::get('/reports/cash-flow', [ReportController::class, 'cashFlow']);
-Route::get('/reports/cash-flow/export', [ReportController::class, 'cashFlowExport']);
+    // Cash Flow
+    Route::get('/reports/cash-flow', [ReportController::class, 'cashFlow']);
+    Route::get('/reports/cash-flow/export', [ReportController::class, 'cashFlowExport']);
 
-Route::get('reports/item-wise-discount', [ReportController::class, 'itemWiseDiscount'])->name('reports.item-wise-discount');
-Route::get('reports/party-statement', [ReportController::class, 'partyStatement']);
-Route::get('reports/party-statement/{partyId}', [ReportController::class, 'partyStatement']);
-Route::get('reports/all-parties', [ReportController::class, 'allParties']);
-Route::get('reports/party-report-by-items', [ReportController::class, 'partyReportByItems']);
-Route::get('reports/sale-purchase-by-party', [ReportController::class, 'salePurchaseByParty']);
-Route::get('reports/sale-purchase-by-party-group', [ReportController::class, 'salePurchaseByPartyGroup']);
-Route::get('/reports/profit-loss', [ReportController::class, 'profitAndLoss']);
-Route::get('/reports/profit-loss/export', [ReportController::class, 'profitAndLossExport']);
-Route::get('/reports/bill-wise-profit', [ReportController::class, 'billWiseProfit']);
-Route::get('/reports/bill-wise-profit/export', [ReportController::class, 'billWiseProfitExport']);
-Route::get('/reports/bill-wise-profit/{id}/items', [ReportController::class, 'billWiseProfitItems']);
-Route::get('/reports/bank-statement', [ReportController::class, 'bankStatement']);
-Route::get('/reports/bank-statement/export', [ReportController::class, 'bankStatementExport']);
-Route::get('/reports/discount-report', [ReportController::class, 'discountReport']);
-Route::get('/reports/discount-report/export', [ReportController::class, 'discountReportExport']);
-Route::get('/reports/tax-report', [ReportController::class, 'taxReport']);
-Route::get('/reports/tax-report/export', [ReportController::class, 'taxReportExport']);
-Route::get('/reports/tax-rate-report', [ReportController::class, 'taxRateReport']);
-Route::get('/reports/tax-rate-report/export', [ReportController::class, 'taxRateReportExport']);
-Route::get('/reports/expense', [ReportController::class, 'expenseReport']);
-Route::get('/reports/expense/export', [ReportController::class, 'expenseReportExport']);
-Route::get('/reports/expense-category-report', [ReportController::class, 'expenseCategoryReport']);
-Route::get('/reports/expense-category-report/export', [ReportController::class, 'expenseCategoryReportExport']);
-Route::get('/reports/expense-item-report', [ReportController::class, 'expenseItemReport']);
-Route::get('/reports/expense-item-report/export', [ReportController::class, 'expenseItemReportExport']);
-Route::get('/reports/sale-order-items', [ReportController::class, 'saleOrderItems'])->name('reports.sale-order-items');
-Route::get('/reports/unreceived-invoices/pdf', [ReportController::class, 'unreceivedInvoicePdf'])->name('reports.unreceived-invoices.pdf');
+    Route::get('reports/item-wise-discount', [ReportController::class, 'itemWiseDiscount'])->name('reports.item-wise-discount');
+    Route::get('reports/party-statement', [ReportController::class, 'partyStatement']);
+    Route::get('reports/party-statement/{partyId}', [ReportController::class, 'partyStatement']);
+    Route::get('reports/all-parties', [ReportController::class, 'allParties']);
+    Route::get('reports/party-report-by-items', [ReportController::class, 'partyReportByItems']);
+    Route::get('reports/sale-purchase-by-party', [ReportController::class, 'salePurchaseByParty']);
+    Route::get('reports/sale-purchase-by-party-group', [ReportController::class, 'salePurchaseByPartyGroup']);
+    Route::get('/reports/profit-loss', [ReportController::class, 'profitAndLoss']);
+    Route::get('/reports/profit-loss/export', [ReportController::class, 'profitAndLossExport']);
+    Route::get('/reports/bill-wise-profit', [ReportController::class, 'billWiseProfit']);
+    Route::get('/reports/bill-wise-profit/export', [ReportController::class, 'billWiseProfitExport']);
+    Route::get('/reports/bill-wise-profit/{id}/items', [ReportController::class, 'billWiseProfitItems']);
+    Route::get('/reports/bank-statement', [ReportController::class, 'bankStatement']);
+    Route::get('/reports/bank-statement/export', [ReportController::class, 'bankStatementExport']);
+    Route::get('/reports/discount-report', [ReportController::class, 'discountReport']);
+    Route::get('/reports/discount-report/export', [ReportController::class, 'discountReportExport']);
+    Route::get('/reports/tax-report', [ReportController::class, 'taxReport']);
+    Route::get('/reports/tax-report/export', [ReportController::class, 'taxReportExport']);
+    Route::get('/reports/tax-rate-report', [ReportController::class, 'taxRateReport']);
+    Route::get('/reports/tax-rate-report/export', [ReportController::class, 'taxRateReportExport']);
+    Route::get('/reports/expense', [ReportController::class, 'expenseReport']);
+    Route::get('/reports/expense/export', [ReportController::class, 'expenseReportExport']);
+    Route::get('/reports/expense-category-report', [ReportController::class, 'expenseCategoryReport']);
+    Route::get('/reports/expense-category-report/export', [ReportController::class, 'expenseCategoryReportExport']);
+    Route::get('/reports/expense-item-report', [ReportController::class, 'expenseItemReport']);
+    Route::get('/reports/expense-item-report/export', [ReportController::class, 'expenseItemReportExport']);
+    Route::get('/reports/sale-order-items', [ReportController::class, 'saleOrderItems'])->name('reports.sale-order-items');
+    Route::get('/reports/unreceived-invoices/pdf', [ReportController::class, 'unreceivedInvoicePdf'])->name('reports.unreceived-invoices.pdf');
 
-// Loan Statement JSON
-Route::get('/loan-accounts-json', [LoanAccountController::class, 'allJson'])->name('loan-accounts.json');
-Route::get('reports/item-wise-discount', [ReportController::class, 'itemWiseDiscount'])
-    ->name('reports.item-wise-discount');
-Route::get('reports/party-statement',             [ReportController::class, 'partyStatement']);
-Route::get('reports/party-statement/{partyId}',   [ReportController::class, 'partyStatement']);
-Route::get('reports/all-parties',                  [ReportController::class, 'allParties']);
-Route::get('reports/party-report-by-items',        [ReportController::class, 'partyReportByItems']);
-Route::get('reports/sale-purchase-by-party',       [ReportController::class, 'salePurchaseByParty']);
-Route::get('reports/sale-purchase-by-party-group', [ReportController::class, 'salePurchaseByPartyGroup']);
-// Company management — inside the dashboard middleware group
-Route::get('/company',                       [CompanyController::class, 'index'])         ->name('company.index');
-Route::post('/company',                      [CompanyController::class, 'store'])         ->name('company.store');
-Route::post('/company/{company}/switch',     [CompanyController::class, 'switchCompany'])->name('company.switch');
-Route::put('/company/{company}/rename',      [CompanyController::class, 'rename'])       ->name('company.rename');
-Route::post('/company/{company}/rename',     [CompanyController::class, 'rename']);
-Route::delete('/company/{company}',          [CompanyController::class, 'destroy'])      ->name('company.destroy');
-Route::get('/company/current',               [CompanyController::class, 'currentCompany'])->name('company.current');
-Route::put('/company/{company}/rename', [CompanyController::class, 'rename'])->name('company.rename');
+    // Loan Statement JSON
+    Route::get('/loan-accounts-json', [LoanAccountController::class, 'allJson'])->name('loan-accounts.json');
+    Route::get('reports/item-wise-discount', [ReportController::class, 'itemWiseDiscount'])
+        ->name('reports.item-wise-discount');
+    Route::get('reports/party-statement',             [ReportController::class, 'partyStatement']);
+    Route::get('reports/party-statement/{partyId}',   [ReportController::class, 'partyStatement']);
+    Route::get('reports/all-parties',                  [ReportController::class, 'allParties']);
+    Route::get('reports/party-report-by-items',        [ReportController::class, 'partyReportByItems']);
+    Route::get('reports/sale-purchase-by-party',       [ReportController::class, 'salePurchaseByParty']);
+    Route::get('reports/sale-purchase-by-party-group', [ReportController::class, 'salePurchaseByPartyGroup']);
+    // Company management — inside the dashboard middleware group
+    Route::get('/company',                       [CompanyController::class, 'index'])->name('company.index');
+    Route::post('/company',                      [CompanyController::class, 'store'])->name('company.store');
+    Route::post('/company/{company}/switch',     [CompanyController::class, 'switchCompany'])->name('company.switch');
+    Route::put('/company/{company}/rename',      [CompanyController::class, 'rename'])->name('company.rename');
+    Route::post('/company/{company}/rename',     [CompanyController::class, 'rename']);
+    Route::delete('/company/{company}',          [CompanyController::class, 'destroy'])->name('company.destroy');
+    Route::get('/company/current',               [CompanyController::class, 'currentCompany'])->name('company.current');
+    Route::put('/company/{company}/rename', [CompanyController::class, 'rename'])->name('company.rename');
 
-// ═══════════════════════════════════════
-// ADD THESE ROUTES inside the auth middleware group in web.php
-// Replace the two existing expense routes:
-//   Route::get('expense', [ExpenseCreateController::class, 'expense'])->name('expense');
-//   Route::get('expense/create', [ExpenseCreateController::class, 'createExpense'])->name('expense.create');
-// WITH THESE:
-// ═══════════════════════════════════════
+    // ═══════════════════════════════════════
+    // ADD THESE ROUTES inside the auth middleware group in web.php
+    // Replace the two existing expense routes:
+    //   Route::get('expense', [ExpenseCreateController::class, 'expense'])->name('expense');
+    //   Route::get('expense/create', [ExpenseCreateController::class, 'createExpense'])->name('expense.create');
+    // WITH THESE:
+    // ═══════════════════════════════════════
 
-Route::get('expense', [ExpenseCreateController::class, 'expense'])->name('expense');
+    Route::get('expense', [ExpenseCreateController::class, 'expense'])->name('expense');
 
-// Expense Categories
-Route::post('expense/categories', [ExpenseCreateController::class, 'storeCategory'])->name('expense.categories.store');
-Route::delete('expense/categories/{id}', [ExpenseCreateController::class, 'destroyCategory'])->name('expense.categories.destroy');
-Route::put('expense/categories/{id}', [ExpenseCreateController::class, 'updateCategory'])->name('expense.categories.update');
+    // Expense Categories
+    Route::post('expense/categories', [ExpenseCreateController::class, 'storeCategory'])->name('expense.categories.store');
+    Route::delete('expense/categories/{id}', [ExpenseCreateController::class, 'destroyCategory'])->name('expense.categories.destroy');
+    Route::put('expense/categories/{id}', [ExpenseCreateController::class, 'updateCategory'])->name('expense.categories.update');
 
-// Expense Items
-Route::post('expense/items', [ExpenseCreateController::class, 'storeItem'])->name('expense.items.store');
-Route::put('expense/items/{id}', [ExpenseCreateController::class, 'updateItem'])->name('expense.items.update');
-Route::delete('expense/items/{id}', [ExpenseCreateController::class, 'destroyItem'])->name('expense.items.destroy');
+    // Expense Items
+    Route::post('expense/items', [ExpenseCreateController::class, 'storeItem'])->name('expense.items.store');
+    Route::put('expense/items/{id}', [ExpenseCreateController::class, 'updateItem'])->name('expense.items.update');
+    Route::delete('expense/items/{id}', [ExpenseCreateController::class, 'destroyItem'])->name('expense.items.destroy');
 
-// Expenses
-Route::post('expense/save', [ExpenseCreateController::class, 'storeExpense'])->name('expense.save');
-Route::delete('expense/{id}', [ExpenseCreateController::class, 'destroyExpense'])->name('expense.destroy');
+    // Expenses
+    Route::post('expense/save', [ExpenseCreateController::class, 'storeExpense'])->name('expense.save');
+    Route::delete('expense/{id}', [ExpenseCreateController::class, 'destroyExpense'])->name('expense.destroy');
 
 
 
@@ -417,7 +422,7 @@ Route::delete('expense/{id}', [ExpenseCreateController::class, 'destroyExpense']
     Route::get('/items', [ItemController::class, 'index'])->name('items');
     Route::get('/items/services', [ItemController::class, 'services'])->name('items.services');
     Route::get('/items/create', [ItemController::class, 'create'])->name('items.create');
-Route::post('/items', [ItemController::class, 'store'])->name('items.store');
+    Route::post('/items', [ItemController::class, 'store'])->name('items.store');
 
 
 
@@ -433,10 +438,10 @@ Route::post('/items', [ItemController::class, 'store'])->name('items.store');
     Route::put('/items/units/{id}', [ItemController::class, 'updateUnit'])->name('items.units.update');
     Route::delete('/items/units/{id}', [ItemController::class, 'destroyUnit'])->name('items.units.destroy');
 
- Route::post('/items/{id}/adjust', [ItemController::class, 'adjust'])->name('items.adjust');
-Route::post('/items/bulk-status', [ItemController::class, 'bulkStatus'])->name('items.bulk-status');
-Route::get('/items/{id}/transactions', [ItemController::class, 'transactions'])->name('items.transactions');
-Route::get('/items/{id}', [ItemController::class, 'show'])->name('items.show');
+    Route::post('/items/{id}/adjust', [ItemController::class, 'adjust'])->name('items.adjust');
+    Route::post('/items/bulk-status', [ItemController::class, 'bulkStatus'])->name('items.bulk-status');
+    Route::get('/items/{id}/transactions', [ItemController::class, 'transactions'])->name('items.transactions');
+    Route::get('/items/{id}', [ItemController::class, 'show'])->name('items.show');
     Route::get('/items/{id}/edit', [ItemController::class, 'edit'])->name('items.edit');
     Route::put('/items/{id}', [ItemController::class, 'update'])->name('items.update');
     Route::delete('/items/{id}', [ItemController::class, 'destroy'])->name('items.destroy');
@@ -454,12 +459,12 @@ Route::get('/items/{id}', [ItemController::class, 'show'])->name('items.show');
     Route::get('/parties/{party}', [PartyController::class, 'show'])->name('parties.show');
     Route::put('/parties/{party}', [PartyController::class, 'update'])->name('parties.update');
     Route::delete('/parties/{id}', [PartyController::class, 'destroy'])->name('parties.destroy');
-Route::get('parties/{party}/transactions', [PartyController::class, 'transactions'])->name('parties.transactions');
-Route::get('parties/{party}/ledger', [PartyController::class, 'ledger'])->name('parties.ledger');
-Route::get('parties/{party}/statement-pdf', [PartyController::class, 'statementPdf'])->name('parties.statement-pdf');
-Route::get('parties/{party}/transfer-history', [PartyController::class, 'transferHistory'])->name('parties.transfer-history');
+    Route::get('parties/{party}/transactions', [PartyController::class, 'transactions'])->name('parties.transactions');
+    Route::get('parties/{party}/ledger', [PartyController::class, 'ledger'])->name('parties.ledger');
+    Route::get('parties/{party}/statement-pdf', [PartyController::class, 'statementPdf'])->name('parties.statement-pdf');
+    Route::get('parties/{party}/transfer-history', [PartyController::class, 'transferHistory'])->name('parties.transfer-history');
     Route::post('parties/transfer', [PartyController::class, 'storeTransfer'])->name('parties.transfer.store');
- Route::get('/parties/create', [PartyController::class, 'create'])->name('parties.create');
+    Route::get('/parties/create', [PartyController::class, 'create'])->name('parties.create');
     // Brokers
     Route::get('/brokers', [BrokerController::class, 'index'])->name('brokers.index');
     Route::get('/brokers/{broker}/history', [BrokerController::class, 'history'])->name('brokers.history');
@@ -469,14 +474,14 @@ Route::get('parties/{party}/transfer-history', [PartyController::class, 'transfe
     Route::post('/warehouses', [WarehouseController::class, 'store'])->name('warehouses.store');
     Route::post('/bank-accounts/bulk-status', [BankAccountController::class, 'bulkStatus'])->name('bank-accounts.bulk-status');
     // payment-in
-Route::post('/payments-in', [PaymentInController::class, 'store'])->name('payments-in.store');
-Route::get('/payments-in/{paymentIn}/edit', [PaymentInController::class, 'edit'])->name('payments-in.edit');
-Route::put('/payments-in/{paymentIn}', [PaymentInController::class, 'update'])->name('payments-in.update');
-Route::delete('/payments-in/{paymentIn}', [PaymentInController::class, 'destroy'])->name('payments-in.destroy');
-Route::get('/payments-in/{paymentIn}/print', [PaymentInController::class, 'print'])->name('payments-in.print');
-Route::get('/payments-in/{paymentIn}/pdf', [PaymentInController::class, 'pdf'])->name('payments-in.pdf');
-Route::get('/payments-in/{paymentIn}/history', [PaymentInController::class, 'getHistory'])->name('payments-in.history');
-Route::get('/payments-in/linkable-sales/{party}', [PaymentInController::class, 'linkableSales'])->name('payments-in.linkable-sales');
+    Route::post('/payments-in', [PaymentInController::class, 'store'])->name('payments-in.store');
+    Route::get('/payments-in/{paymentIn}/edit', [PaymentInController::class, 'edit'])->name('payments-in.edit');
+    Route::put('/payments-in/{paymentIn}', [PaymentInController::class, 'update'])->name('payments-in.update');
+    Route::delete('/payments-in/{paymentIn}', [PaymentInController::class, 'destroy'])->name('payments-in.destroy');
+    Route::get('/payments-in/{paymentIn}/print', [PaymentInController::class, 'print'])->name('payments-in.print');
+    Route::get('/payments-in/{paymentIn}/pdf', [PaymentInController::class, 'pdf'])->name('payments-in.pdf');
+    Route::get('/payments-in/{paymentIn}/history', [PaymentInController::class, 'getHistory'])->name('payments-in.history');
+    Route::get('/payments-in/linkable-sales/{party}', [PaymentInController::class, 'linkableSales'])->name('payments-in.linkable-sales');
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -501,16 +506,15 @@ Route::get('/payments-in/linkable-sales/{party}', [PaymentInController::class, '
         return view('dashboard.test_user_sidebar');
     })->name('test.user_sidebar');
 
-      Route::get('/theme', function () {
+    Route::get('/theme', function () {
         return view('themes.index');
     })->name('theme');
-
 });
 
 
 
 
 
- Route::post('/items/bulk-update', [ItemController::class, 'bulkUpdate'])->name('items.bulk-update');
+Route::post('/items/bulk-update', [ItemController::class, 'bulkUpdate'])->name('items.bulk-update');
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

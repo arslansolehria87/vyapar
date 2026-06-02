@@ -3723,7 +3723,7 @@ textarea.meta-control,
     window.sourceProformaId = null;
 
     // Optional doc type (avoid JS error)
-   window.docType = @json($initialDocType ?? 'invoice');
+   window.docType = @json($type ?? request()->query('type', $initialDocType ?? 'invoice'));
 
     @if(isset($editSaleData))
         window.editSaleData = @json($editSaleData);

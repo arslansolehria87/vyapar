@@ -204,14 +204,51 @@
     <script>
         const regularThemes = @json($regularThemes), thermalThemes = @json($thermalThemes), invoiceData = @json($invoicePreviewData);
         const initialMode = @json($initialMode), initialRegularThemeId = Number(@json($initialRegularThemeId)), initialThermalThemeId = Number(@json($initialThermalThemeId)), initialAccent = @json($initialAccent), initialAccent2 = @json($initialAccent2), invoicePdfBaseUrl = @json(isset($sale) ? route('sale.invoice-pdf', $sale) : null), autoDownload = @json($autoDownload), saleId = @json(isset($sale) ? $sale->id : null);
-        let currentMode = "regular", activeRegularId = 1, activeThermalId = 1;
+        const storedThemeState = (() => {
+            const keys = [];
+            if (saleId) keys.push(`saleInvoiceTheme:${saleId}`);
+            keys.push('saleInvoiceTheme:draft');
+
+            for (const key of keys) {
+                try {
+                    const raw = window.localStorage.getItem(key);
+                    if (!raw) continue;
+                    const parsed = JSON.parse(raw);
+                    if (parsed && typeof parsed === 'object') {
+                        return parsed;
+                    }
+                } catch (error) {}
+            }
+
+            return null;
+        })();
+
+        let currentMode = (storedThemeState?.mode === 'thermal' || storedThemeState?.mode === 'regular')
+            ? storedThemeState.mode
+            : (initialMode === 'thermal' ? 'thermal' : 'regular');
+        let activeRegularId = Number(storedThemeState?.regularThemeId || initialRegularThemeId || 1);
+        let activeThermalId = Number(storedThemeState?.thermalThemeId || initialThermalThemeId || 1);
         const root = document.querySelector('.invoice-theme-layout'), invoiceCanvas = document.getElementById('invoiceCanvas'), regularThemeSections = document.getElementById('regularThemeSections'), thermalThemeSection = document.getElementById('thermalThemeSection'), modeButtons = Array.from(document.querySelectorAll('.theme-mode-btn')), themeButtons = Array.from(document.querySelectorAll('.theme-list-button')), colorButtons = Array.from(document.querySelectorAll('.theme-color-dot')), themeHint = document.getElementById('themeHint'), sheet = document.getElementById('invoiceSheet'), downloadPdfBtn = document.getElementById('downloadPdfBtn'), normalPrintBtn = document.getElementById('normalPrintBtn'), thermalPrintBtn = document.getElementById('thermalPrintBtn'), shareWhatsappBtn = document.getElementById('shareWhatsappBtn'), shareGmailBtn = document.getElementById('shareGmailBtn'), customAccentPicker = document.getElementById('customAccentPicker'), doubleDivineSecondPicker = document.getElementById('doubleDivineSecondPicker'), openPreviewModalBtn = document.getElementById('openPreviewModal'), invoicePreviewModal = document.getElementById('invoicePreviewModal'), closePreviewModalBtn = document.getElementById('closePreviewModal'), modalInvoiceCanvas = document.getElementById('modalInvoiceCanvas');
         document.querySelectorAll('[data-dropdown]').forEach(function (d) { const t = d.querySelector('[data-toggle]'); if (t) t.addEventListener('click', function () { d.classList.toggle('closed'); }); });
         function fmt(n){ return `Rs ${(Math.round(Number(n)*100)/100).toFixed(2)}`; }
         function getRegularThemeById(id){ return regularThemes.find(t => Number(t.id)===Number(id)) || regularThemes[0]; }
         function getThermalThemeById(id){ return thermalThemes.find(t => Number(t.id)===Number(id)) || thermalThemes[0]; }
         function setActiveButton(kind,id){ themeButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.kind===kind && Number(btn.dataset.themeId)===Number(id))); }
-        function persistThemeSelection(){ if(!saleId){ return; } try { window.localStorage.setItem(`saleInvoiceTheme:${saleId}`, JSON.stringify({ mode: currentMode, regularThemeId: activeRegularId, thermalThemeId: activeThermalId, accent: customAccentPicker ? customAccentPicker.value : initialAccent, accent2: doubleDivineSecondPicker ? doubleDivineSecondPicker.value : initialAccent2 })); } catch (error) {} }
+        function persistThemeSelection(){
+            try {
+                const payload = JSON.stringify({
+                    mode: currentMode,
+                    regularThemeId: activeRegularId,
+                    thermalThemeId: activeThermalId,
+                    accent: customAccentPicker ? customAccentPicker.value : initialAccent,
+                    accent2: doubleDivineSecondPicker ? doubleDivineSecondPicker.value : initialAccent2
+                });
+                window.localStorage.setItem('saleInvoiceTheme:draft', payload);
+                if (saleId) {
+                    window.localStorage.setItem(`saleInvoiceTheme:${saleId}`, payload);
+                }
+            } catch (error) {}
+        }
         function setAccent(color){ root.style.setProperty('--accent', color); invoiceCanvas.style.setProperty('--inv-accent', color); if(customAccentPicker) customAccentPicker.value = color; }
         function setSecondAccent(color){ root.style.setProperty('--accent-2', color); invoiceCanvas.style.setProperty('--inv-accent-2', color); if(doubleDivineSecondPicker) doubleDivineSecondPicker.value = color; }
         function renderRegularPreview(theme){
@@ -361,7 +398,7 @@
                 filename:`invoice-${invoiceData.invoiceNo || 'preview'}.pdf`,
                 image:{ type:'jpeg', quality:.98 },
                 html2canvas:{ scale:2, useCORS:true, backgroundColor:'#ffffff' },
-                jsPDF:{ unit:'mm', format:'a4', orientation:'portrait' }
+                jsPDF:{ unit:'mm', format:'a4', orientation: 'portrait' }
             }).from(exportTarget.node).save().then(() => exportTarget.cleanup()).catch(() => {
                 exportTarget.cleanup();
                 window.print();
@@ -397,11 +434,11 @@
         if(openPreviewModalBtn) openPreviewModalBtn.addEventListener('click', function(){ syncModalPreview(); invoicePreviewModal.classList.add('open'); });
         if(closePreviewModalBtn) closePreviewModalBtn.addEventListener('click', function(){ invoicePreviewModal.classList.remove('open'); });
         if(invoicePreviewModal) invoicePreviewModal.addEventListener('click', function(e){ if(e.target === invoicePreviewModal) invoicePreviewModal.classList.remove('open'); });
-        activeRegularId = initialRegularThemeId || 1;
-        activeThermalId = initialThermalThemeId || 1;
-        setAccent(initialAccent || '#1f4e79');
-        setSecondAccent(initialAccent2 || '#ff981f');
-        setMode(initialMode || 'regular');
+        activeRegularId = Number(storedThemeState?.regularThemeId || activeRegularId || 1);
+        activeThermalId = Number(storedThemeState?.thermalThemeId || activeThermalId || 1);
+        setAccent(storedThemeState?.accent || initialAccent || '#1f4e79');
+        setSecondAccent(storedThemeState?.accent2 || initialAccent2 || '#ff981f');
+        setMode(currentMode || initialMode || 'regular');
         if(document.body.classList.contains('pdf-export-page') && autoDownload){
             setTimeout(function(){
                 if(triggerServerPdfDownload()) return;
@@ -411,4 +448,3 @@
     </script>
 </body>
 </html>
-

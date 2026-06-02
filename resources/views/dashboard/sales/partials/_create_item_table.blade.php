@@ -26,8 +26,8 @@
                 <th class="col-mfg-date d-none">MFG. DATE</th>
                 <th class="col-mrp d-none">MRP</th>
                 <th class="col-size d-none">SIZE</th>
-                <th class="col-tafseel">TAFSEEL</th>
-                <th class="col-tadaat">TADAAT</th>
+                <th class="col-tafseel">DETAIL</th>
+                <th class="col-tadaat">QUANTITY</th>
                 <th class="col-free-qty d-none">FREE QTY</th>
                 <th class="col-gross-w">GROSS W</th>
                 <th class="col-net-w">NET W</th>
@@ -172,7 +172,7 @@
                 <td class="col-mfg-date d-none"><input type="date" class="item-mfg-date-input"></td>
                 <td class="col-mrp d-none"><input type="number" class="item-mrp-input" value="0" min="0" step="0.01"></td>
                 <td class="col-size d-none"><input type="text" class="item-size-input" placeholder="Size"></td>
-                <td class="col-tafseel"><input type="text" class="item-tafseel" placeholder="Tafseel"></td>
+                <td class="col-tafseel"><input type="text" class="item-tafseel" placeholder="Detail"></td>
                 <td class="col-tadaat"><input type="number" class="item-qty tadaat-input" value="1"></td>
                 <td class="col-free-qty d-none"><input type="number" class="item-free-qty" value="0" min="0" step="1"></td>
                 <td class="col-gross-w"><input type="number" class="gross-w-input" value="0" min="0" step="0.01"></td>
@@ -248,7 +248,7 @@
                 <td class="col-size d-none"></td>
                 <td class="col-tafseel"></td>
                 <td class="col-tadaat">
-                    <span class="column-total-label">Total Tadaat</span>
+                    <span class="column-total-label">Total Quantity</span>
                     <span class="column-total-value total-qty">0</span>
                 </td>
                 <td class="col-free-qty d-none">

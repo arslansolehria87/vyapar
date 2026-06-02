@@ -35,6 +35,11 @@ class BankAccountController extends Controller
 
                 return (object) [
                     'bank_account_id' => $payment->bank_account_id,
+                    'source_id' => $payment->sale?->id,
+                    'source_type' => $payment->sale?->type,
+                    'source_url' => $payment->sale ? $this->transactionEditUrl('sale', $payment->sale) : null,
+                    'delete_url' => $payment->sale ? $this->transactionDeleteUrl('sale', $payment->sale) : null,
+                    'history_url' => $payment->sale ? $this->transactionHistoryUrl('sale', $payment->sale) : null,
                     'type_label' => $typeLabel,
                     'invoice_no' => $payment->sale?->bill_number ?? '-',
                     'party_name' => $payment->sale?->display_party_name ?? '-',
@@ -42,6 +47,7 @@ class BankAccountController extends Controller
                     'payment_type' => $payment->payment_type ?? '-',
                     'created_at' => $payment->created_at,
                     'amount' => (float) ($payment->amount ?? 0),
+                    'direction' => $payment->sale?->type === 'sale_return' ? 'out' : 'in',
                 ];
             });
 
@@ -60,6 +66,11 @@ class BankAccountController extends Controller
 
                 return (object) [
                     'bank_account_id' => $payment->bank_account_id,
+                    'source_id' => $payment->purchase?->id,
+                    'source_type' => $payment->purchase?->type,
+                    'source_url' => $payment->purchase ? $this->transactionEditUrl('purchase', $payment->purchase) : null,
+                    'delete_url' => $payment->purchase ? $this->transactionDeleteUrl('purchase', $payment->purchase) : null,
+                    'history_url' => $payment->purchase ? $this->transactionHistoryUrl('purchase', $payment->purchase) : null,
                     'type_label' => $typeLabel,
                     'invoice_no' => $payment->purchase?->bill_number ?? '-',
                     'party_name' => $payment->purchase?->party?->name
@@ -69,15 +80,150 @@ class BankAccountController extends Controller
                     'payment_type' => $payment->payment_type ?? '-',
                     'created_at' => $payment->created_at,
                     'amount' => (float) ($payment->amount ?? 0),
+                    'direction' => $payment->purchase?->type === 'purchase_return' ? 'in' : 'out',
                 ];
+            });
+
+        $transferTransactions = BankTransaction::with(['fromBankAccount', 'toBankAccount'])
+            ->whereIn('type', [
+                'bank_to_bank',
+                'bank_transfer_out',
+                'bank_transfer_in',
+                'bank_to_cash',
+                'cash_to_bank',
+                'adjust_balance',
+                'bank_adjust_in',
+                'bank_adjust_out',
+                'opening_balance',
+            ])
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('id')
+            ->get()
+            ->flatMap(function ($transaction) {
+                $meta = $transaction->meta ?? [];
+                $rows = collect();
+                $base = [
+                    'source_id' => $transaction->id,
+                    'source_type' => $transaction->type,
+                    'source_url' => null,
+                    'delete_url' => null,
+                    'history_url' => null,
+                    'invoice_no' => '-',
+                    'party_name' => '-',
+                    'payment_type' => 'Bank Transfer',
+                    'created_at' => $transaction->transaction_date ?? $transaction->created_at,
+                    'amount' => (float) ($transaction->amount ?? 0),
+                ];
+
+                if ($transaction->type === 'bank_to_bank') {
+                    if ($transaction->from_bank_account_id) {
+                        $rows->push((object) array_merge($base, [
+                            'bank_account_id' => $transaction->from_bank_account_id,
+                            'type_label' => 'Bank Transfer Out',
+                            'bank_name' => $transaction->fromBankAccount?->display_name ?? $meta['from_bank_name'] ?? '-',
+                            'party_name' => $transaction->toBankAccount?->display_name ?? $meta['to_bank_name'] ?? '-',
+                            'direction' => 'out',
+                        ]));
+                    }
+                    if ($transaction->to_bank_account_id) {
+                        $rows->push((object) array_merge($base, [
+                            'bank_account_id' => $transaction->to_bank_account_id,
+                            'type_label' => 'Bank Transfer In',
+                            'bank_name' => $transaction->toBankAccount?->display_name ?? $meta['to_bank_name'] ?? '-',
+                            'party_name' => $transaction->fromBankAccount?->display_name ?? $meta['from_bank_name'] ?? '-',
+                            'direction' => 'in',
+                        ]));
+                    }
+
+                    return $rows;
+                }
+
+                $isOut = (bool) $transaction->from_bank_account_id;
+                if ($transaction->type === 'cash_to_bank') {
+                    $isOut = false;
+                }
+                $bank = $isOut ? $transaction->fromBankAccount : $transaction->toBankAccount;
+                $otherBank = $isOut ? $transaction->toBankAccount : $transaction->fromBankAccount;
+
+                return collect([(object) array_merge($base, [
+                    'bank_account_id' => $isOut ? $transaction->from_bank_account_id : $transaction->to_bank_account_id,
+                    'type_label' => match ($transaction->type) {
+                        'bank_transfer_out' => 'Bank Transfer Out',
+                        'bank_transfer_in' => 'Bank Transfer In',
+                        'bank_to_cash' => 'Bank To Cash',
+                        'cash_to_bank' => 'Cash To Bank',
+                        'adjust_balance' => 'Bank Adjustment',
+                        'bank_adjust_in' => 'Bank Adjustment In',
+                        'bank_adjust_out' => 'Bank Adjustment Out',
+                        'opening_balance' => 'Opening Balance',
+                        default => ucwords(str_replace('_', ' ', $transaction->type)),
+                    },
+                    'bank_name' => $bank?->display_name ?? '-',
+                    'party_name' => $otherBank?->display_name ?? $transaction->description ?? '-',
+                    'direction' => $isOut ? 'out' : 'in',
+                ])]);
             });
 
         $bankTransactions = $saleTransactions
             ->concat($purchaseTransactions)
+            ->concat($transferTransactions)
             ->sortByDesc(fn ($transaction) => $transaction->created_at?->timestamp ?? 0)
             ->values();
 
         return view('dashboard.accounts.bank', compact('bankAccounts', 'bankTransactions'));
+    }
+
+    private function transactionEditUrl(string $source, object $record): string
+    {
+        if ($source === 'purchase') {
+            return match ($record->type) {
+                'purchase_return' => route('purchase-return.edit', $record),
+                'purchase_order' => route('purchase-orders.edit', $record),
+                default => route('purchase-bills.edit', $record),
+            };
+        }
+
+        return match ($record->type) {
+            'estimate' => route('estimates.edit', $record),
+            'proforma' => route('proforma-invoice.edit', $record),
+            'delivery_challan' => route('delivery-challan.edit', $record),
+            'sale_return' => route('sale-return.edit', $record),
+            default => route('sale.edit', $record),
+        };
+    }
+
+    private function transactionDeleteUrl(string $source, object $record): string
+    {
+        if ($source === 'purchase') {
+            return match ($record->type) {
+                'purchase_return' => route('purchase-return.destroy', $record),
+                'purchase_order' => route('purchase-orders.destroy', $record),
+                default => route('purchase-bills.destroy', $record),
+            };
+        }
+
+        return match ($record->type) {
+            'estimate' => route('estimates.destroy', $record),
+            'proforma' => route('proforma-invoice.destroy', $record),
+            'delivery_challan' => route('delivery-challan.destroy', $record),
+            'sale_return' => route('sale-return.destroy', $record),
+            default => route('sale.destroy', $record),
+        };
+    }
+
+    private function transactionHistoryUrl(string $source, object $record): string
+    {
+        if ($source === 'purchase') {
+            return $record->type === 'purchase_order'
+                ? route('purchase-orders.history', $record)
+                : $this->transactionEditUrl($source, $record);
+        }
+
+        return match ($record->type) {
+            'invoice' => route('sale.bank-history', $record),
+            'sale_return' => route('sale-return.bank-history', $record),
+            default => $this->transactionEditUrl($source, $record),
+        };
     }
 
     public function store(Request $request)
@@ -97,7 +243,26 @@ class BankAccountController extends Controller
         $data['print_on_invoice'] = $request->has('print_on_invoice');
         $data['is_active'] = $request->boolean('is_active', true);
 
-        $bankAccount = BankAccount::create($data);
+        $bankAccount = DB::transaction(function () use ($data) {
+            $bankAccount = BankAccount::create($data);
+            $openingBalance = (float) ($bankAccount->opening_balance ?? 0);
+
+            if ($openingBalance != 0.0) {
+                BankTransaction::create([
+                    'from_bank_account_id' => $openingBalance < 0 ? $bankAccount->id : null,
+                    'to_bank_account_id' => $openingBalance >= 0 ? $bankAccount->id : null,
+                    'type' => 'opening_balance',
+                    'amount' => abs($openingBalance),
+                    'transaction_date' => $bankAccount->as_of_date ?? now()->toDateString(),
+                    'description' => 'Opening balance',
+                    'meta' => [
+                        'bank_name' => $bankAccount->display_name,
+                    ],
+                ]);
+            }
+
+            return $bankAccount;
+        });
 
         if ($request->expectsJson() || $request->wantsJson() || $request->ajax()) {
             $bankAccount->refresh();
@@ -172,52 +337,159 @@ class BankAccountController extends Controller
         $data = $request->validate([
             'mode' => 'required|in:bank_to_bank,bank_to_cash,cash_to_bank,adjust_balance',
             'from_bank_id' => 'nullable|exists:bank_accounts,id',
-            'to_bank_id' => 'nullable|exists:bank_accounts,id|different:from_bank_id',
+            'to_bank_id' => 'nullable|exists:bank_accounts,id',
             'amount' => 'required|numeric|min:0.01',
+            'date' => 'nullable|date',
+            'description' => 'nullable|string|max:500',
+            'adjust_type' => 'nullable|in:increase,decrease',
         ]);
 
-        if ($data['mode'] !== 'bank_to_bank') {
+        if ($data['mode'] === 'bank_to_bank' && (int) ($data['from_bank_id'] ?? 0) === (int) ($data['to_bank_id'] ?? 0)) {
             return response()->json([
-                'message' => 'Only bank to bank transfer is active right now.',
+                'message' => 'Source and destination bank must be different.',
             ], 422);
         }
 
-        $fromBank = BankAccount::findOrFail($data['from_bank_id']);
-        $toBank = BankAccount::findOrFail($data['to_bank_id']);
         $amount = (float) $data['amount'];
+        $date = $data['date'] ?? now()->toDateString();
+        $description = $data['description'] ?? null;
 
-        if ((float) ($fromBank->opening_balance ?? 0) < $amount) {
+        if ($data['mode'] === 'bank_to_bank') {
+            $fromBank = BankAccount::findOrFail($data['from_bank_id']);
+            $toBank = BankAccount::findOrFail($data['to_bank_id']);
+
+            if ((float) ($fromBank->opening_balance ?? 0) < $amount) {
+                return response()->json([
+                    'message' => 'Insufficient balance in source bank.',
+                ], 422);
+            }
+
+            DB::transaction(function () use ($fromBank, $toBank, $amount, $date, $description) {
+                $fromBank->opening_balance = (float) ($fromBank->opening_balance ?? 0) - $amount;
+                $toBank->opening_balance = (float) ($toBank->opening_balance ?? 0) + $amount;
+
+                $fromBank->save();
+                $toBank->save();
+                $transferGroup = 'bank-transfer-' . now()->format('YmdHis') . '-' . uniqid();
+
+                BankTransaction::create([
+                    'from_bank_account_id' => $fromBank->id,
+                    'to_bank_account_id' => null,
+                    'type' => 'bank_transfer_out',
+                    'amount' => $amount,
+                    'transaction_date' => $date,
+                    'description' => $description ?: 'Bank to bank transfer sent',
+                    'meta' => [
+                        'from_bank_name' => $fromBank->display_name,
+                        'to_bank_name' => $toBank->display_name,
+                        'transfer_group' => $transferGroup,
+                    ],
+                ]);
+
+                BankTransaction::create([
+                    'from_bank_account_id' => null,
+                    'to_bank_account_id' => $toBank->id,
+                    'type' => 'bank_transfer_in',
+                    'amount' => $amount,
+                    'transaction_date' => $date,
+                    'description' => $description ?: 'Bank to bank transfer received',
+                    'meta' => [
+                        'from_bank_name' => $fromBank->display_name,
+                        'to_bank_name' => $toBank->display_name,
+                        'transfer_group' => $transferGroup,
+                    ],
+                ]);
+            });
+
             return response()->json([
-                'message' => 'Insufficient balance in source bank.',
-            ], 422);
+                'message' => 'Bank to bank transfer completed successfully.',
+                'from_bank_balance' => $fromBank->fresh()->opening_balance,
+                'to_bank_balance' => $toBank->fresh()->opening_balance,
+            ]);
         }
 
-        DB::transaction(function () use ($fromBank, $toBank, $amount) {
-            $fromBank->opening_balance = (float) ($fromBank->opening_balance ?? 0) - $amount;
-            $toBank->opening_balance = (float) ($toBank->opening_balance ?? 0) + $amount;
+        if ($data['mode'] === 'bank_to_cash') {
+            $fromBank = BankAccount::findOrFail($data['from_bank_id']);
+            $cashAccount = BankAccount::cashAccount();
 
-            $fromBank->save();
-            $toBank->save();
+            if ((float) ($fromBank->opening_balance ?? 0) < $amount) {
+                return response()->json(['message' => 'Insufficient balance in source bank.'], 422);
+            }
+
+            DB::transaction(function () use ($fromBank, $cashAccount, $amount, $date, $description) {
+                $fromBank->opening_balance = (float) ($fromBank->opening_balance ?? 0) - $amount;
+                $cashAccount->opening_balance = (float) ($cashAccount->opening_balance ?? 0) + $amount;
+                $fromBank->save();
+                $cashAccount->save();
+
+                BankTransaction::create([
+                    'from_bank_account_id' => $fromBank->id,
+                    'to_bank_account_id' => $cashAccount->id,
+                    'type' => 'bank_to_cash',
+                    'amount' => $amount,
+                    'transaction_date' => $date,
+                    'description' => $description ?: 'Bank to cash transfer',
+                ]);
+            });
+
+            return response()->json(['message' => 'Bank to cash transfer completed successfully.']);
+        }
+
+        if ($data['mode'] === 'cash_to_bank') {
+            $cashAccount = BankAccount::cashAccount();
+            $toBank = BankAccount::findOrFail($data['to_bank_id']);
+
+            if ((float) ($cashAccount->opening_balance ?? 0) < $amount) {
+                return response()->json(['message' => 'Insufficient cash balance.'], 422);
+            }
+
+            DB::transaction(function () use ($cashAccount, $toBank, $amount, $date, $description) {
+                $cashAccount->opening_balance = (float) ($cashAccount->opening_balance ?? 0) - $amount;
+                $toBank->opening_balance = (float) ($toBank->opening_balance ?? 0) + $amount;
+                $cashAccount->save();
+                $toBank->save();
+
+                BankTransaction::create([
+                    'from_bank_account_id' => $cashAccount->id,
+                    'to_bank_account_id' => $toBank->id,
+                    'type' => 'cash_to_bank',
+                    'amount' => $amount,
+                    'transaction_date' => $date,
+                    'description' => $description ?: 'Cash to bank transfer',
+                ]);
+            });
+
+            return response()->json(['message' => 'Cash to bank transfer completed successfully.']);
+        }
+
+        $adjustBankId = $data['to_bank_id'] ?? $data['from_bank_id'] ?? null;
+        if (!$adjustBankId) {
+            return response()->json(['message' => 'Please select a bank account.'], 422);
+        }
+        $bank = BankAccount::findOrFail($adjustBankId);
+        $isIncrease = ($data['adjust_type'] ?? 'increase') === 'increase';
+
+        if (!$isIncrease && (float) ($bank->opening_balance ?? 0) < $amount) {
+            return response()->json(['message' => 'Bank balance cannot go below zero.'], 422);
+        }
+
+        DB::transaction(function () use ($bank, $amount, $date, $description, $isIncrease) {
+            $bank->opening_balance = $isIncrease
+                ? (float) ($bank->opening_balance ?? 0) + $amount
+                : (float) ($bank->opening_balance ?? 0) - $amount;
+            $bank->save();
 
             BankTransaction::create([
-                'from_bank_account_id' => $fromBank->id,
-                'to_bank_account_id' => $toBank->id,
-                'type' => 'bank_to_bank',
+                'from_bank_account_id' => $isIncrease ? null : $bank->id,
+                'to_bank_account_id' => $isIncrease ? $bank->id : null,
+                'type' => $isIncrease ? 'bank_adjust_in' : 'bank_adjust_out',
                 'amount' => $amount,
-                'transaction_date' => now()->toDateString(),
-                'description' => 'Bank to bank transfer',
-                'meta' => [
-                    'from_bank_name' => $fromBank->display_name,
-                    'to_bank_name' => $toBank->display_name,
-                ],
+                'transaction_date' => $date,
+                'description' => $description ?: ($isIncrease ? 'Bank balance increased' : 'Bank balance decreased'),
             ]);
         });
 
-        return response()->json([
-            'message' => 'Bank to bank transfer completed successfully.',
-            'from_bank_balance' => $fromBank->fresh()->opening_balance,
-            'to_bank_balance' => $toBank->fresh()->opening_balance,
-        ]);
+        return response()->json(['message' => 'Bank adjustment saved successfully.']);
     }
 
     public function cashInHand()

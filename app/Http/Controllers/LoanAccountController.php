@@ -12,10 +12,21 @@ class LoanAccountController extends Controller
 {
     public function index()
     {
+        BankAccount::cashAccount();
+
         $loanAccounts = LoanAccount::with(['lenderBank', 'receivedInBank', 'processingFeeBank'])->orderByDesc('created_at')->get();
         $banks = BankAccount::active()->orderBy('display_name')->get();
+        $loanIds = $loanAccounts->pluck('id');
+        $loanTransactions = BankTransaction::with(['toBankAccount', 'fromBankAccount'])
+            ->where('reference_type', LoanAccount::class)
+            ->whereIn('reference_id', $loanIds)
+            ->whereIn('type', ['loan_more', 'loan_adjustment', 'loan_charge', 'emi_pay'])
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('reference_id');
 
-        return view('dashboard.accounts.loan', compact('loanAccounts', 'banks'));
+        return view('dashboard.accounts.loan', compact('loanAccounts', 'banks', 'loanTransactions'));
     }
 
     public function show(LoanAccount $loanAccount)
@@ -202,5 +213,211 @@ class LoanAccountController extends Controller
         });
 
         return redirect()->route('loan-accounts')->with('success', 'Loan account deleted successfully.');
+    }
+
+    public function storeTransaction(Request $request, LoanAccount $loanAccount)
+    {
+        $data = $request->validate([
+            'entry_type' => 'required|in:loan_more,loan_adjustment,loan_charge,emi_pay',
+            'amount' => 'required|numeric|min:0',
+            'principal_amount' => 'nullable|required_if:entry_type,emi_pay|numeric|min:0',
+            'interest_amount' => 'nullable|required_if:entry_type,emi_pay|numeric|min:0',
+            'transaction_date' => 'required|date',
+            'bank_account_id' => 'nullable|required_unless:entry_type,loan_charge|exists:bank_accounts,id',
+            'details' => 'nullable|string|max:255',
+        ]);
+
+        $transaction = DB::transaction(function () use ($data, $loanAccount) {
+            $principal = (float) ($data['principal_amount'] ?? 0);
+            $interest = (float) ($data['interest_amount'] ?? 0);
+            $amount = $data['entry_type'] === 'emi_pay'
+                ? $principal + $interest
+                : (float) $data['amount'];
+            $bankId = $data['bank_account_id'] ?? null;
+
+            $balanceDelta = match ($data['entry_type']) {
+                'emi_pay' => -$principal,
+                default => $amount,
+            };
+            $loanAccount->current_balance = (float) ($loanAccount->current_balance ?? 0) + $balanceDelta;
+            $loanAccount->save();
+
+            if (in_array($data['entry_type'], ['loan_more', 'loan_adjustment'], true) && $bankId) {
+                $bank = BankAccount::lockForUpdate()->find($bankId);
+                if ($bank) {
+                    $bank->opening_balance = (float) ($bank->opening_balance ?? 0) + $amount;
+                    $bank->save();
+                }
+            }
+            if ($data['entry_type'] === 'emi_pay' && $bankId) {
+                $bank = BankAccount::lockForUpdate()->find($bankId);
+                if ($bank) {
+                    $bank->opening_balance = (float) ($bank->opening_balance ?? 0) - $amount;
+                    $bank->save();
+                }
+            }
+
+            return BankTransaction::create([
+                'to_bank_account_id' => in_array($data['entry_type'], ['loan_more', 'loan_adjustment'], true) ? $bankId : null,
+                'from_bank_account_id' => $data['entry_type'] === 'emi_pay' ? $bankId : null,
+                'type' => $data['entry_type'],
+                'amount' => $amount,
+                'transaction_date' => $data['transaction_date'],
+                'reference_type' => LoanAccount::class,
+                'reference_id' => $loanAccount->id,
+                'description' => $data['details'] ?: match ($data['entry_type']) {
+                    'loan_more' => 'Loan Adjustment',
+                    'loan_adjustment' => 'Loan Adjustment',
+                    'emi_pay' => 'EMI Pay',
+                    default => 'Charges on loan',
+                },
+                'meta' => [
+                    'details' => $data['details'] ?? '',
+                    'principal' => $data['entry_type'] === 'emi_pay'
+                        ? $principal
+                        : (in_array($data['entry_type'], ['loan_more', 'loan_adjustment'], true) ? $amount : 0),
+                    'charges' => $data['entry_type'] === 'emi_pay'
+                        ? $interest
+                        : ($data['entry_type'] === 'loan_charge' ? $amount : 0),
+                    'total_amount' => $amount,
+                ],
+            ]);
+        });
+
+        $transaction->load(['toBankAccount', 'fromBankAccount']);
+
+        return response()->json([
+            'message' => 'Loan transaction saved successfully.',
+            'loan' => $loanAccount->fresh(['lenderBank', 'receivedInBank', 'processingFeeBank']),
+            'transaction' => $this->formatLoanTransaction($transaction),
+        ]);
+    }
+
+    public function updateTransaction(Request $request, LoanAccount $loanAccount, BankTransaction $transaction)
+    {
+        abort_unless($transaction->reference_type === LoanAccount::class && (int) $transaction->reference_id === (int) $loanAccount->id, 404);
+
+        $data = $request->validate([
+            'amount' => 'required|numeric|min:0',
+            'principal_amount' => 'nullable|numeric|min:0',
+            'interest_amount' => 'nullable|numeric|min:0',
+            'transaction_date' => 'required|date',
+            'bank_account_id' => 'nullable|exists:bank_accounts,id',
+            'details' => 'nullable|string|max:255',
+        ]);
+
+        DB::transaction(function () use ($data, $loanAccount, $transaction) {
+            $oldAmount = (float) ($transaction->amount ?? 0);
+            $isLoanMore = in_array($transaction->type, ['loan_more', 'loan_adjustment'], true);
+            $isEmiPay = $transaction->type === 'emi_pay';
+            $oldMeta = $transaction->meta ?? [];
+            $oldPrincipal = $isEmiPay ? (float) ($oldMeta['principal'] ?? 0) : $oldAmount;
+            $newPrincipal = $isEmiPay ? (float) ($data['principal_amount'] ?? 0) : (float) $data['amount'];
+            $newInterest = $isEmiPay ? (float) ($data['interest_amount'] ?? 0) : 0;
+            $newAmount = $isEmiPay ? $newPrincipal + $newInterest : (float) $data['amount'];
+            $delta = $newAmount - $oldAmount;
+            $balanceDelta = $isEmiPay ? -($newPrincipal - $oldPrincipal) : $delta;
+
+            $loanAccount->current_balance = (float) ($loanAccount->current_balance ?? 0) + $balanceDelta;
+            $loanAccount->save();
+
+            $oldBankId = $isEmiPay ? $transaction->from_bank_account_id : $transaction->to_bank_account_id;
+            $newBankId = $data['bank_account_id'] ?: $oldBankId;
+
+            if ($isLoanMore) {
+                if ($oldBankId && (int) $oldBankId !== (int) $newBankId) {
+                    $oldBank = BankAccount::lockForUpdate()->find($oldBankId);
+                    if ($oldBank) {
+                        $oldBank->opening_balance = (float) ($oldBank->opening_balance ?? 0) - $oldAmount;
+                        $oldBank->save();
+                    }
+                    $newBank = BankAccount::lockForUpdate()->find($newBankId);
+                    if ($newBank) {
+                        $newBank->opening_balance = (float) ($newBank->opening_balance ?? 0) + $newAmount;
+                        $newBank->save();
+                    }
+                } elseif ($newBankId) {
+                    $bank = BankAccount::lockForUpdate()->find($newBankId);
+                    if ($bank) {
+                        $bank->opening_balance = (float) ($bank->opening_balance ?? 0) + $delta;
+                        $bank->save();
+                    }
+                }
+
+                $transaction->to_bank_account_id = $newBankId;
+            } elseif ($isEmiPay) {
+                if ($oldBankId && (int) $oldBankId !== (int) $newBankId) {
+                    $oldBank = BankAccount::lockForUpdate()->find($oldBankId);
+                    if ($oldBank) {
+                        $oldBank->opening_balance = (float) ($oldBank->opening_balance ?? 0) + $oldAmount;
+                        $oldBank->save();
+                    }
+                    $newBank = BankAccount::lockForUpdate()->find($newBankId);
+                    if ($newBank) {
+                        $newBank->opening_balance = (float) ($newBank->opening_balance ?? 0) - $newAmount;
+                        $newBank->save();
+                    }
+                } elseif ($newBankId) {
+                    $bank = BankAccount::lockForUpdate()->find($newBankId);
+                    if ($bank) {
+                        $bank->opening_balance = (float) ($bank->opening_balance ?? 0) - $delta;
+                        $bank->save();
+                    }
+                }
+
+                $transaction->from_bank_account_id = $newBankId;
+                $transaction->to_bank_account_id = null;
+            } else {
+                $transaction->to_bank_account_id = $newBankId;
+            }
+
+            $transaction->amount = $newAmount;
+            $transaction->transaction_date = $data['transaction_date'];
+            $transaction->description = $data['details'] ?: ($isLoanMore ? 'Loan Adjustment' : ($isEmiPay ? 'EMI Pay' : 'Charges on loan'));
+            $transaction->meta = [
+                'details' => $data['details'] ?? '',
+                'principal' => $isEmiPay ? $newPrincipal : ($isLoanMore ? $newAmount : 0),
+                'charges' => $isEmiPay ? $newInterest : ($isLoanMore ? 0 : $newAmount),
+                'total_amount' => $newAmount,
+            ];
+            $transaction->save();
+        });
+
+        $transaction->refresh()->load(['toBankAccount', 'fromBankAccount']);
+
+        return response()->json([
+            'message' => 'Loan transaction updated successfully.',
+            'loan' => $loanAccount->fresh(['lenderBank', 'receivedInBank', 'processingFeeBank']),
+            'transaction' => $this->formatLoanTransaction($transaction),
+        ]);
+    }
+
+    private function formatLoanTransaction(BankTransaction $transaction): array
+    {
+        $meta = $transaction->meta ?? [];
+        $isLoanMore = in_array($transaction->type, ['loan_more', 'loan_adjustment'], true);
+        $isEmiPay = $transaction->type === 'emi_pay';
+        $amount = (float) ($transaction->amount ?? 0);
+
+        return [
+            'id' => $transaction->id,
+            'loan_id' => $transaction->reference_id,
+            'type' => $transaction->type,
+            'label' => match ($transaction->type) {
+                'loan_more' => 'Loan Adjustment',
+                'loan_adjustment' => 'Loan Adjustment',
+                'loan_charge' => 'Charges on Loan',
+                'emi_pay' => 'EMI Pay',
+                default => 'Processing Fee',
+            },
+            'details' => $meta['details'] ?? $transaction->description,
+            'date' => optional($transaction->transaction_date)->format('d/m/Y'),
+            'date_value' => optional($transaction->transaction_date)->format('Y-m-d'),
+            'principal' => $isEmiPay ? (float) ($meta['principal'] ?? 0) : ($isLoanMore ? $amount : 0),
+            'charges' => $isEmiPay ? (float) ($meta['charges'] ?? 0) : ($isLoanMore ? 0 : $amount),
+            'total_amount' => $amount,
+            'bank_account_id' => $transaction->to_bank_account_id ?: $transaction->from_bank_account_id,
+            'bank_name' => $transaction->toBankAccount?->display_with_account ?: $transaction->fromBankAccount?->display_with_account ?: '-',
+        ];
     }
 }

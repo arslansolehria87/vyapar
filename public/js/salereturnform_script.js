@@ -3,6 +3,7 @@ function initializeForm(context) {
     const docType = window.docType || 'sale_return';
     const docLabel = docType === 'purchase_return' ? 'purchase return' : 'sale return';
     const docLabelTitle = docType === 'purchase_return' ? 'Purchase return' : 'Sale return';
+    const isDuplicateSaleReturnMode = Boolean(window.isDuplicateSaleReturnMode);
     const hasCustomPartyDropdown = $ctx.find('.party-id').length > 0;
     const $paidInput = $ctx.find('.received-amount, .advance-amount').first();
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -16,6 +17,60 @@ function initializeForm(context) {
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
     const todayValue = `${yyyy}-${mm}-${dd}`;
+    let selectedImages = [];
+    let selectedDocuments = [];
+    const imageObjectUrls = new Set();
+
+    function revokeImageUrls() {
+        imageObjectUrls.forEach(url => URL.revokeObjectURL(url));
+        imageObjectUrls.clear();
+    }
+
+    function renderImagePreviews() {
+        const $list = $ctx.find('.image-files-list');
+        if (!$list.length) return;
+
+        revokeImageUrls();
+        if (!selectedImages.length) {
+            $list.empty();
+            return;
+        }
+
+        const html = selectedImages.map((file, index) => {
+            const url = URL.createObjectURL(file);
+            imageObjectUrls.add(url);
+            return `
+                <div class="position-relative border rounded p-1 bg-white" style="width: 110px;">
+                    <img src="${url}" alt="${file.name}" class="img-fluid rounded" style="width: 100%; height: 80px; object-fit: cover;">
+                    <div class="small text-truncate mt-1" title="${file.name}">${file.name}</div>
+                    <button type="button" class="btn btn-sm btn-light position-absolute top-0 end-0 remove-selected-image" data-index="${index}" style="width: 22px; height: 22px; line-height: 1; padding: 0;">&times;</button>
+                </div>
+            `;
+        }).join('');
+
+        $list.html(html);
+    }
+
+    function renderDocumentPreviews() {
+        const $list = $ctx.find('.document-files-list');
+        if (!$list.length) return;
+
+        if (!selectedDocuments.length) {
+            $list.empty();
+            return;
+        }
+
+        const html = selectedDocuments.map((file, index) => `
+            <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
+                <div class="text-truncate me-2" style="max-width: calc(100% - 36px);" title="${file.name}">
+                    <i class="fa-solid fa-file-lines me-2 text-secondary"></i>${file.name}
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-selected-document" data-index="${index}" style="width: 28px; height: 28px; padding: 0; line-height: 1;">&times;</button>
+            </div>
+        `).join('');
+
+        $list.html(html);
+    }
 
     $ctx.find('.order-date').val(todayValue);
     $ctx.find('.due-date').val(todayValue);
@@ -165,10 +220,13 @@ function initializeForm(context) {
             $row.find('.item-category').val(item.item_category || '');
             $row.find('.item-code').val(item.item_code || '');
             $row.find('.item-desc').val(item.item_description || '');
+            $row.find('.item-tafseel').val(item.tafseel || '');
             $row.find('.item-discount').val(item.discount || 0);
             $row.find('.item-qty').val(item.quantity || 1);
+            $row.find('.gross-w-input').val(item.gross_w || 0);
+            $row.find('.net-w-input').val(item.net_w || 0);
             ensureUnitOption($row.find('.item-unit'), item.unit || 'NONE');
-            $row.find('.item-price').val(item.unit_price || 0);
+            $row.find('.item-rate').val(item.unit_price || 0);
             $row.find('.item-amount').val(item.amount || 0);
             collapseSelectedItemLabel($row.find('.item-name'));
         });
@@ -188,11 +246,8 @@ function initializeForm(context) {
 
     function addRow() {
         const rowCount = $ctx.find('.item-rows tr').length + 1;
-        const settings = window.getItemColumnSettings ? window.getItemColumnSettings() : { category: false, code: false, description: false, discount: false };
-        const isCatVisible = settings.category;
-        const isCodeVisible = settings.code;
-        const isDescVisible = settings.description;
-        const isDiscVisible = settings.discount;
+        const optionsHtml = itemOptionsHtml;
+        const unitOptionsHtml = `<option value="">Select Unit</option><option value="PCS">PCS (Pieces)</option><option value="BOX">BOX</option><option value="PACK">PACK</option><option value="SET">SET</option><option value="KG">KG (Kilogram)</option><option value="G">Gram</option><option value="M">Meter</option><option value="FT">Feet</option><option value="L">Liter</option><option value="ML">Milliliter</option><option value="__add_unit__">+ Add Unit</option>`;
 
         const newRow = `
             <tr class="item-row">
@@ -200,22 +255,58 @@ function initializeForm(context) {
                     <span class="row-index-text">${rowCount}</span>
                     <div class="delete-row-icon"><i class="fa-solid fa-trash-can"></i></div>
                 </td>
-                <td>
-                    <select class="form-select item-name">
-                        <option value="" selected disabled>Select Item</option>
-                        ${itemOptionsHtml}
-                    </select>
+                <td class="col-item-name">
+                    <div class="item-picker">
+                        <input type="text" class="item-picker-input" placeholder="Search Item" style="position: relative; z-index: 10;">
+                        <div class="item-picker-panel">
+                            <div class="item-picker-add" style="display: flex; align-items: center; gap: 8px; padding: 12px 18px; color: #2563eb; font-weight: 600; cursor: pointer; border-bottom: 1px solid #e1e8ed;"><i class="fa-regular fa-square-plus"></i> Add Item</div>
+                            <div class="item-picker-head" style="display: grid; grid-template-columns: minmax(0, 2fr) 100px 110px 80px 80px; gap: 12px; padding: 10px 18px; font-size: 12px; font-weight: 700; color: #97a3b6; text-transform: uppercase; background: #f8fbff; border-bottom: 1px solid #e1e8ed;">
+                                <span>Item</span>
+                                <span>Sale Price</span>
+                                <span>Purchase Price</span>
+                                <span>Stock</span>
+                                <span>Weight</span>
+                            </div>
+                            <div class="item-picker-list" style="max-height: 280px; overflow-y: auto;"></div>
+                        </div>
+                        <select class="form-select item-name d-none">
+                            <option value="" selected disabled>Select Item</option>
+                            ${optionsHtml}
+                        </select>
+                    </div>
                 </td>
-                <td class="col-category ${isCatVisible ? '' : 'd-none'}"><select class="item-category"><option value="">Select Category</option></select></td>
-                <td class="col-item-code ${isCodeVisible ? '' : 'd-none'}"><input type="text" class="item-code" placeholder="Item Code" readonly></td>
-                <td class="col-description ${isDescVisible ? '' : 'd-none'}"><input type="text" class="item-desc" placeholder="Description" readonly></td>
-                <td class="col-discount ${isDiscVisible ? '' : 'd-none'}"><div class="item-discount-fields"><input type="number" class="item-discount-pct" value="" min="0" step="0.01" placeholder="%"><input type="number" class="item-discount" value="0" min="0" step="0.01" placeholder="Amount"></div></td>
-                <td><input type="number" class="item-qty" value="1"></td>
-                <td>
-                    <select class="item-unit"><option value="">Select Unit</option><option value="PCS">PCS (Pieces)</option><option value="BOX">BOX</option><option value="PACK">PACK</option><option value="SET">SET</option><option value="KG">KG (Kilogram)</option><option value="G">Gram</option><option value="M">Meter</option><option value="FT">Feet</option><option value="L">Liter</option><option value="ML">Milliliter</option></select>
+                <td class="col-serial-no d-none"><input type="text" class="item-serial-input" placeholder="Serial No."></td>
+                <td class="col-description d-none"><input type="text" class="item-desc" placeholder="Description" readonly></td>
+                <td class="col-count d-none"><input type="number" class="item-count-input" value="0" min="0" step="1"></td>
+                <td class="col-batch-no d-none"><input type="text" class="item-batch-no-input" placeholder="Batch No."></td>
+                <td class="col-model-no d-none"><input type="text" class="item-model-no-input" placeholder="Model No."></td>
+                <td class="col-exp-date d-none"><input type="date" class="item-exp-date-input"></td>
+                <td class="col-mfg-date d-none"><input type="date" class="item-mfg-date-input"></td>
+                <td class="col-mrp d-none"><input type="number" class="item-mrp-input" value="0" min="0" step="0.01"></td>
+                <td class="col-size d-none"><input type="text" class="item-size-input" placeholder="Size"></td>
+                <td class="col-tafseel"><input type="text" class="item-tafseel" placeholder="Detail"></td>
+                <td class="col-tadaat"><input type="number" class="item-qty tadaat-input" value="1"></td>
+                <td class="col-free-qty d-none"><input type="number" class="item-free-qty" value="0" min="0" step="1"></td>
+                <td class="col-gross-w"><input type="number" class="gross-w-input" value="0" min="0" step="0.01"></td>
+                <td class="col-net-w"><input type="number" class="net-w-input" value="0" min="0" step="0.01"></td>
+                <td class="custom-size-td">
+                    <div class="item-unit-wrapper d-flex align-items-center gap-1">
+                        <select class="item-unit">${unitOptionsHtml}</select>
+                        <button type="button" class="btn btn-sm btn-outline-primary open-add-unit-from-selector" title="Add Unit"><i class="fa-solid fa-plus"></i></button>
+                    </div>
                 </td>
-                <td><input type="number" class="item-price" value="0"></td>
-                <td class="col-amount"><input type="text" class="item-amount" value="0" readonly></td>
+                <td class="col-rate"><input type="number" class="item-rate" value="0" min="0" step="0.01"></td>
+                <td class="col-amount"><input type="number" class="item-amount" value="0" min="0" step="0.01" readonly></td>
+                <td class="col-category d-none"><select class="item-category"><option value="">Select Category</option></select></td>
+                <td class="col-item-code d-none"><input type="text" class="item-code" placeholder="Item Code" readonly></td>
+                <td class="col-discount d-none"><div class="item-discount-fields"><input type="number" class="item-discount-pct" value="" min="0" step="0.01" placeholder="%"><input type="number" class="item-discount" value="0" min="0" step="0.01" placeholder="Amount"></div></td>
+                <td class="col-item-tax d-none"><div class="item-tax-fields"><input type="number" class="item-tax-pct" value="" min="0" step="0.01" placeholder="%"><input type="number" class="item-tax-amount" value="0" min="0" step="0.01" placeholder="Amount"></div></td>
+                <td class="custom-item-field col-custom-field-1 d-none"><input type="text" class="item-custom-field-input item-custom-field-1-input" placeholder="Custom Field 1"></td>
+                <td class="custom-item-field col-custom-field-2 d-none"><input type="text" class="item-custom-field-input item-custom-field-2-input" placeholder="Custom Field 2"></td>
+                <td class="custom-item-field col-custom-field-3 d-none"><input type="text" class="item-custom-field-input item-custom-field-3-input" placeholder="Custom Field 3"></td>
+                <td class="custom-item-field col-custom-field-4 d-none"><input type="text" class="item-custom-field-input item-custom-field-4-input" placeholder="Custom Field 4"></td>
+                <td class="custom-item-field col-custom-field-5 d-none"><input type="text" class="item-custom-field-input item-custom-field-5-input" placeholder="Custom Field 5"></td>
+                <td class="custom-item-field col-custom-field-6 d-none"><input type="text" class="item-custom-field-input item-custom-field-6-input" placeholder="Custom Field 6"></td>
                 <td class="add-col"></td>
             </tr>
         `;
@@ -293,12 +384,18 @@ function initializeForm(context) {
         let totalQty = 0;
         let totalBaseAmount = 0;
 
-        $ctx.find('.item-qty').each(function() {
-            totalQty += parseFloat($(this).val()) || 0;
-        });
+        $ctx.find('.item-row').each(function() {
+            const $row = $(this);
+            const qty = parseFloat($row.find('.item-qty').val()) || 0;
+            const rate = parseFloat($row.find('.item-rate').val()) || 0;
+            const netW = parseFloat($row.find('.net-w-input').val()) || 0;
+            const discount = parseFloat($row.find('.item-discount').val()) || 0;
+            const baseQty = netW > 0 ? netW : qty;
+            const amount = Math.max((baseQty * rate) - discount, 0);
 
-        $ctx.find('.item-amount').each(function() {
-            totalBaseAmount += parseFloat($(this).val()) || 0;
+            totalQty += qty;
+            totalBaseAmount += amount;
+            $row.find('.item-amount').val(amount.toFixed(2));
         });
 
         $ctx.find('.total-qty').text(totalQty);
@@ -316,9 +413,12 @@ function initializeForm(context) {
                 item_category: $row.find('.item-category').val() || '',
                 item_code: $row.find('.item-code').val() || '',
                 item_description: $row.find('.item-desc').val() || '',
+                tafseel: $row.find('.item-tafseel').val() || '',
                 quantity: parseInt($row.find('.item-qty').val() || 0, 10) || 0,
+                gross_w: parseFloat($row.find('.gross-w-input').val() || 0) || 0,
+                net_w: parseFloat($row.find('.net-w-input').val() || 0) || 0,
                 unit: $row.find('.item-unit').val() || '',
-                unit_price: parseFloat($row.find('.item-price').val() || 0) || 0,
+                unit_price: parseFloat($row.find('.item-rate').val() || 0) || 0,
                 discount: parseFloat($row.find('.item-discount').val() || 0) || 0,
                 amount: parseFloat($row.find('.item-amount').val() || 0) || 0,
             };
@@ -369,7 +469,7 @@ function initializeForm(context) {
         return {
             _token: csrfToken,
             type: docType,
-            source_sale_id: $ctx.find('.source-sale-id').val() || null,
+            source_sale_id: isDuplicateSaleReturnMode ? null : ($ctx.find('.source-sale-id').val() || null),
             party_id: $ctx.find('.party-id').val() || $ctx.find('.party-select').val() || null,
             party_name: ($ctx.find('#partyDropdownBtn').text() || '').trim() === 'Select Party' ? '' : ($ctx.find('#partyDropdownBtn').text() || '').trim(),
             phone: $ctx.find('.phone-input').val() || '',
@@ -502,7 +602,7 @@ const partyRecord = {
         const $row = $(this).closest('tr');
         $row.find('input').val('');
         $row.find('.item-qty').val('1');
-        $row.find('.item-price, .item-amount, .item-discount').val('0');
+        $row.find('.gross-w-input, .net-w-input, .item-rate, .item-amount, .item-discount').val('0');
         calculateTotals();
     });
 
@@ -558,10 +658,13 @@ const partyRecord = {
         const discount = $selected.data('discount');
 
         $row.find('.item-qty').val(1);
-        $row.find('.item-price').val(price.toFixed(2));
+        $row.find('.gross-w-input').val('0');
+        $row.find('.net-w-input').val('0');
+        $row.find('.item-rate').val(price.toFixed(2));
         $row.find('.item-category').val(category);
         $row.find('.item-code').val(itemCode);
         $row.find('.item-desc').val(description);
+        $row.find('.item-tafseel').val('');
         if (discount !== undefined && discount !== null && discount !== '') {
             const currentDiscount = parseFloat($row.find('.item-discount').val() || 0) || 0;
             if (currentDiscount === 0) {
@@ -575,12 +678,14 @@ const partyRecord = {
         $row.find('.item-qty').trigger('change');
     });
 
-    $ctx.on('keyup change', '.item-qty, .item-price, .item-discount', function() {
+    $ctx.on('keyup change', '.item-qty, .gross-w-input, .net-w-input, .item-rate, .item-discount', function() {
         const $row = $(this).closest('tr');
         const qty = parseFloat($row.find('.item-qty').val()) || 0;
-        const price = parseFloat($row.find('.item-price').val()) || 0;
+        const rate = parseFloat($row.find('.item-rate').val()) || 0;
+        const netW = parseFloat($row.find('.net-w-input').val()) || 0;
         const discount = parseFloat($row.find('.item-discount').val()) || 0;
-        const amount = (qty * price) - discount;
+        const baseQty = netW > 0 ? netW : qty;
+        const amount = Math.max((baseQty * rate) - discount, 0);
 
         $row.find('.item-amount').val(amount.toFixed(2));
         calculateTotals();
@@ -650,35 +755,39 @@ const partyRecord = {
     });
 
     $ctx.on('change', '.image-input', function() {
-        const file = this.files?.[0];
-        const $preview = $ctx.find('.image-preview');
-        const $img = $preview.find('.image-preview-img');
-
-        if (!file) {
-            $preview.addClass('d-none');
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            $img.attr('src', e.target.result);
-            $preview.removeClass('d-none');
-        };
-        reader.readAsDataURL(file);
+        selectedImages = Array.from(this.files || []);
+        renderImagePreviews();
     });
 
     $ctx.on('click', '.image-placeholder, .replace-image', function() {
         $ctx.find('.image-input').trigger('click');
     });
 
-    $ctx.on('click', '.remove-image', function() {
-        $ctx.find('.image-input').val('');
-        $ctx.find('.image-preview').addClass('d-none');
+    $ctx.on('click', '.remove-selected-image', function() {
+        const index = parseInt($(this).data('index'), 10);
+        if (Number.isNaN(index)) return;
+        selectedImages.splice(index, 1);
+        renderImagePreviews();
+        const dt = new DataTransfer();
+        selectedImages.forEach(file => dt.items.add(file));
+        const input = $ctx.find('.image-input').get(0);
+        if (input) input.files = dt.files;
     });
 
     $ctx.on('change', '.document-input', function() {
-        const fileName = this.files?.[0]?.name || '';
-        $ctx.find('.selected-document-name').text(fileName ? 'Document: ' + fileName : '');
+        selectedDocuments = Array.from(this.files || []);
+        renderDocumentPreviews();
+    });
+
+    $ctx.on('click', '.remove-selected-document', function() {
+        const index = parseInt($(this).data('index'), 10);
+        if (Number.isNaN(index)) return;
+        selectedDocuments.splice(index, 1);
+        renderDocumentPreviews();
+        const dt = new DataTransfer();
+        selectedDocuments.forEach(file => dt.items.add(file));
+        const input = $ctx.find('.document-input').get(0);
+        if (input) input.files = dt.files;
     });
 
     function submitSaleReturn(btn, options = {}) {

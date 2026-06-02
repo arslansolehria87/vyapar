@@ -8,6 +8,7 @@ use App\Models\Item;
 use App\Models\Party;
 use App\Models\Sale;
 use App\Support\TransactionNumberPrefix;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -37,7 +38,16 @@ class SaleReturnController extends Controller
     public function salereturncreate(Request $request)
     {
         $sourceSale = null;
+        $duplicateSaleReturn = null;
         $prefilledSaleReturnData = null;
+
+        if ($request->filled('duplicate_sale_id')) {
+            $duplicateSaleReturn = Sale::with(['items', 'payments', 'party', 'details'])
+                ->where('type', 'sale_return')
+                ->findOrFail($request->integer('duplicate_sale_id'));
+
+            return $this->renderSaleReturnForm(null, $duplicateSaleReturn);
+        }
 
         if ($request->filled('sale_id')) {
             $sourceSale = Sale::with(['items', 'payments', 'party', 'details'])
@@ -93,7 +103,7 @@ class SaleReturnController extends Controller
     {
         abort_unless($sale->type === 'sale_return', 404);
 
-        $sale->load(['items', 'payments']);
+        $sale->load(['items', 'payments', 'party', 'details']);
 
         return $this->renderSaleReturnForm($sale);
     }
@@ -102,7 +112,7 @@ class SaleReturnController extends Controller
     {
         abort_unless($sale->type === 'sale_return', 404);
 
-        $sale->load(['items', 'payments']);
+        $sale->load(['items', 'payments', 'party', 'details']);
 
         return $this->renderSaleReturnForm(null, $sale);
     }
@@ -110,6 +120,14 @@ class SaleReturnController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateSaleReturnRequest($request);
+        $existingBill = Sale::where('bill_number', $data['bill_number'])->exists();
+
+        if ($existingBill) {
+            return response()->json([
+                'message' => 'Invoice ID already exists. Please enter a unique Invoice ID.',
+            ], 422);
+        }
+
         $receivedAmount = $this->calculateReceivedAmount($data['payments'] ?? []);
         $grandTotal = (float) ($data['grand_total'] ?? 0);
 
@@ -137,8 +155,14 @@ class SaleReturnController extends Controller
             'success' => true,
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
-            'redirect_url' => route('invoice', ['sale_id' => $sale->id]),
-            'share_url' => route('invoice', ['sale_id' => $sale->id]),
+            'redirect_url' => route('invoice', [
+                'sale_id' => $sale->id,
+                'type' => 'return-order',
+            ]),
+            'share_url' => route('invoice', [
+                'sale_id' => $sale->id,
+                'type' => 'return-order',
+            ]),
         ]);
     }
 
@@ -169,8 +193,14 @@ class SaleReturnController extends Controller
             'success' => true,
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
-            'redirect_url' => route('invoice', ['sale_id' => $sale->id]),
-            'share_url' => route('invoice', ['sale_id' => $sale->id]),
+            'redirect_url' => route('invoice', [
+                'sale_id' => $sale->id,
+                'type' => 'return-order',
+            ]),
+            'share_url' => route('invoice', [
+                'sale_id' => $sale->id,
+                'type' => 'return-order',
+            ]),
         ]);
     }
 
@@ -207,9 +237,41 @@ class SaleReturnController extends Controller
     public function pdf(Sale $sale)
     {
         abort_unless($sale->type === 'sale_return', 404);
-        $sale->load(['items', 'payments', 'party']);
+        $sale->loadMissing(['items', 'payments.bankAccount', 'party', 'details']);
 
-        return view('dashboard.sales.sale-return-preview', ['sale' => $sale, 'pdfMode' => true]);
+        $themeMode = (string) request()->query('mode', 'regular');
+        $themeId = (int) request()->query('theme_id', 1);
+        $themeConfig = $this->resolveSaleReturnThemeConfig($themeMode, $themeId);
+        $previewData = $this->mapSaleReturnToThemePreviewData($sale);
+        $signatureImage = (string) request()->query('signature_image', '');
+
+        $payload = [
+            'sale' => $sale,
+            'invoicePreviewData' => $previewData,
+            'themeConfig' => $themeConfig,
+            'saleOrderThemeApplied' => false,
+            'accent' => '#1f4e79',
+            'accent2' => '#ff981f',
+            'signatureImage' => $signatureImage,
+            'pageTitle' => 'Sale Return PDF',
+            'browserTabLabel' => 'Sale Return #' . ($sale->bill_number ?: $sale->id),
+            'saveCloseUrl' => route('sale-return'),
+        ];
+
+        $fileName = 'sale-return-' . ($sale->bill_number ?: $sale->id) . '.pdf';
+        $pdf = Pdf::loadView('themes.sales_invoice_pdf_document', $payload);
+
+        if (($themeConfig['mode'] ?? 'regular') === 'thermal') {
+            $pdf->setPaper([0, 0, 226.77, 841.89], 'portrait');
+        } else {
+            $pdf->setPaper('a4', 'portrait');
+        }
+
+        if (request()->boolean('download')) {
+            return $pdf->download($fileName);
+        }
+
+        return $pdf->stream($fileName);
     }
 
     public function bankHistory(Sale $sale)
@@ -252,7 +314,7 @@ class SaleReturnController extends Controller
         ]);
     }
 
-   private function renderSaleReturnForm(
+    private function renderSaleReturnForm(
     ?Sale $saleReturn = null,
     ?Sale $duplicateSaleReturn = null,
     ?Sale $sourceSale = null,
@@ -264,8 +326,7 @@ class SaleReturnController extends Controller
     $parties = Party::orderBy('name')->get();
     $brokers = Party::where('party_type', 'broker')->orderBy('name')->get();
     $partyGroups = \App\Models\PartyGroup::orderBy('name')->get();
-    $nextSaleId = (Sale::max('id') ?? 0) + 1;
-    $nextInvoiceNumber = TransactionNumberPrefix::format('credit_note', $nextSaleId);
+    $nextInvoiceNumber = $this->generateUniqueSaleReturnInvoiceNumber();
 
     return view('dashboard.sales.create-sale-return', compact(
         'bankAccounts',
@@ -280,6 +341,19 @@ class SaleReturnController extends Controller
         'prefilledSaleReturnData'
     ));
 }
+
+    private function generateUniqueSaleReturnInvoiceNumber(): string
+    {
+        $nextSaleId = (Sale::max('id') ?? 0) + 1;
+        $candidate = TransactionNumberPrefix::format('credit_note', $nextSaleId);
+
+        while (Sale::where('bill_number', $candidate)->exists()) {
+            $nextSaleId++;
+            $candidate = TransactionNumberPrefix::format('credit_note', $nextSaleId);
+        }
+
+        return $candidate;
+    }
 
     private function validateSaleReturnRequest(Request $request): array
     {
@@ -470,12 +544,158 @@ class SaleReturnController extends Controller
             return now()->format('d/m/Y');
         }
     }
+
+    private function formatAmountInWords(float $amount): string
+    {
+        if (class_exists(\NumberFormatter::class)) {
+            $formatter = new \NumberFormatter('en', \NumberFormatter::SPELLOUT);
+            $whole = (int) floor(abs($amount));
+            $fraction = (int) round((abs($amount) - $whole) * 100);
+
+            $words = ucfirst((string) $formatter->format($whole)) . ' Rupees';
+
+            if ($fraction > 0) {
+                $words .= ' and ' . (string) $formatter->format($fraction) . ' Paisa';
+            }
+
+            return trim($words) . ' only';
+        }
+
+        return 'Rupees ' . number_format($amount, 2);
+    }
+
+    private function mapSaleReturnToThemePreviewData(Sale $sale): array
+    {
+        $items = $sale->items->map(function ($item) use ($sale) {
+            $amount = (float) ($item->amount ?? 0);
+            $rate = (float) ($item->unit_price ?? 0);
+            $quantity = (float) ($item->quantity ?? 0);
+
+            if ($amount <= 0 && $quantity > 0 && $rate > 0) {
+                $amount = round($quantity * $rate, 2);
+            }
+
+            return [
+                'name' => $item->item_name ?: 'Item',
+                'hsn' => (string) ($item->item_code ?: ''),
+                'qty' => (string) ($item->quantity ?? 0),
+                'gross_w' => (float) ($item->gross_w ?? 0),
+                'net_w' => (float) ($item->net_w ?? 0),
+                'unit' => (string) ($item->unit ?: ''),
+                'rate' => $rate,
+                'disc' => number_format((float) ($item->discount ?? 0), 2, '.', ''),
+                'gst' => $this->formatPercentValue($sale->tax_pct),
+                'amt' => $amount,
+                'amount' => $amount,
+            ];
+        })->values()->all();
+
+        if (empty($items)) {
+            $items[] = [
+                'name' => 'Item',
+                'hsn' => '',
+                'qty' => '0',
+                'gross_w' => 0,
+                'net_w' => 0,
+                'unit' => '',
+                'rate' => 0,
+                'disc' => '0.00',
+                'gst' => $this->formatPercentValue($sale->tax_pct),
+                'amt' => 0,
+                'amount' => 0,
+            ];
+        }
+
+        $invoiceDate = $this->formatPreviewDate($sale->invoice_date ?: $sale->created_at);
+        $dueDate = $this->formatPreviewDate($sale->due_date ?: $sale->invoice_date ?: $sale->created_at);
+        $createdAt = $sale->created_at instanceof Carbon ? $sale->created_at : Carbon::parse($sale->created_at);
+        $businessName = trim((string) config('app.name', 'My Company')) ?: 'My Company';
+        $partyName = $sale->display_party_name !== '-' ? $sale->display_party_name : 'Walk-in Customer';
+        $subtotal = (float) ($sale->total_amount ?? collect($items)->sum('amt'));
+        $totalAmount = (float) ($sale->grand_total ?? max($subtotal + (float) ($sale->tax_amount ?? 0) - (float) ($sale->discount_rs ?? 0), 0));
+        $receivedAmount = (float) ($sale->received_amount ?? 0);
+        $balance = (float) ($sale->balance ?? max($totalAmount - $receivedAmount, 0));
+
+        return [
+            'title' => 'Sale Return',
+            'businessName' => $businessName,
+            'phone' => (string) ($sale->phone ?: ($sale->party?->phone ?: '')),
+            'invoiceNo' => (string) ($sale->bill_number ?: $sale->id),
+            'date' => $invoiceDate,
+            'time' => $createdAt->format('h:i A'),
+            'dueDate' => $dueDate,
+            'billTo' => $partyName,
+            'billAddress' => (string) ($sale->billing_address ?: ''),
+            'billPhone' => (string) ($sale->phone ?: ($sale->party?->phone ?: '')),
+            'shipTo' => (string) ($sale->shipping_address ?: $sale->billing_address ?: ''),
+            'items' => $items,
+            'description' => (string) ($sale->description ?: 'Thanks for doing business with us!'),
+            'subtotal' => $subtotal,
+            'discount' => (float) ($sale->discount_rs ?? 0),
+            'taxAmount' => (float) ($sale->tax_amount ?? 0),
+            'total' => $totalAmount,
+            'received' => $receivedAmount,
+            'balance' => $balance,
+            'totalInWords' => $this->formatAmountInWords($totalAmount),
+            'termsText' => trim((string) ($sale->details?->terms_condition_text ?: $sale->description ?: 'Thanks for doing business with us!')),
+            'signatureText' => 'Authorized Signatory',
+        ];
+    }
+
+    private function formatPercentValue($value): string
+    {
+        $numeric = (float) ($value ?? 0);
+        $formatted = number_format($numeric, 2, '.', '');
+        $formatted = rtrim(rtrim($formatted, '0'), '.');
+
+        return ($formatted === '' ? '0' : $formatted) . '%';
+    }
+
+    private function resolveSaleReturnThemeConfig(string $mode, int $themeId): array
+    {
+        $mode = $mode === 'thermal' ? 'thermal' : 'regular';
+
+        $themes = $mode === 'thermal'
+            ? [
+                1 => ['name' => 'Thermal Theme 1', 'variant' => 'thermal1'],
+                2 => ['name' => 'Thermal Theme 2', 'variant' => 'thermal2'],
+                3 => ['name' => 'Thermal Theme 3', 'variant' => 'thermal3'],
+                4 => ['name' => 'Thermal Theme 4', 'variant' => 'thermal4'],
+                5 => ['name' => 'Thermal Theme 5', 'variant' => 'thermal5'],
+            ]
+            : [
+                1 => ['name' => 'Telly Theme', 'variant' => 'classicA'],
+                2 => ['name' => 'Landscape Theme 1', 'variant' => 'purpleA'],
+                3 => ['name' => 'Landscape Theme 2', 'variant' => 'classicB'],
+                4 => ['name' => 'Tax Theme 1', 'variant' => 'purpleB'],
+                5 => ['name' => 'Tax Theme 2', 'variant' => 'classicC'],
+                6 => ['name' => 'Tax Theme 3', 'variant' => 'modernPurple'],
+                7 => ['name' => 'Tax Theme 4', 'variant' => 'purpleC'],
+                8 => ['name' => 'Tax Theme 5', 'variant' => 'classicSale'],
+                9 => ['name' => 'Tax Theme 6', 'variant' => 'taxTheme6'],
+                10 => ['name' => 'Double Divine', 'variant' => 'doubleDivine'],
+                11 => ['name' => 'French Elite', 'variant' => 'frenchElite'],
+                12 => ['name' => 'Theme 1', 'variant' => 'theme1'],
+                13 => ['name' => 'Theme 2', 'variant' => 'theme2'],
+                14 => ['name' => 'Theme 3', 'variant' => 'theme3'],
+                15 => ['name' => 'Theme 4', 'variant' => 'theme4'],
+            ];
+
+        $theme = $themes[$themeId] ?? reset($themes);
+
+        return [
+            'id' => $themeId,
+            'mode' => $mode,
+            'name' => $theme['name'],
+            'variant' => $theme['variant'],
+        ];
+    }
+
     public function nextInvoiceNumber()
-{
-    $nextSaleId = (Sale::max('id') ?? 0) + 1;
-    return response()->json([
-        'number' => TransactionNumberPrefix::format('credit_note', $nextSaleId)
-    ]);
-}
+    {
+        return response()->json([
+            'number' => $this->generateUniqueSaleReturnInvoiceNumber(),
+        ]);
+    }
 
 }

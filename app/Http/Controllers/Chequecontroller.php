@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Cheque;
 use App\Models\BankAccount;
+use App\Models\BankTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -90,18 +91,40 @@ class ChequeController extends Controller
         $request->validate(['bank_account_id' => 'nullable|exists:bank_accounts,id']);
 
         DB::transaction(function () use ($cheque, $request) {
+            $cashAccount = BankAccount::cashAccount();
+            $amount = (float) $cheque->amount;
+
             $cheque->update([
                 'status'          => 'deposited',
                 'deposited_at'    => now(),
                 'bank_account_id' => $request->bank_account_id ?? $cheque->bank_account_id,
             ]);
 
-            if ($cheque->bank_account_id && class_exists(\App\Models\BankTransaction::class)) {
+            $cashAccount->opening_balance = (float) ($cashAccount->opening_balance ?? 0) - $amount;
+            $cashAccount->save();
+
+            BankTransaction::create([
+                'from_bank_account_id' => $cashAccount->id,
+                'to_bank_account_id'   => null,
+                'type'                 => 'cheque_payment',
+                'amount'               => $amount,
+                'transaction_date'     => $cheque->cheque_date ?? $cheque->transaction_date ?? now()->toDateString(),
+                'reference_type'       => 'cheque',
+                'reference_id'         => $cheque->id,
+                'description'          => 'Cheque payment: ' . ($cheque->ref_no ?: $cheque->name),
+                'meta'                 => [
+                    'cheque_status' => 'deposited',
+                    'party_name' => $cheque->name,
+                    'cheque_ref_no' => $cheque->ref_no,
+                ],
+            ]);
+
+            if ($cheque->bank_account_id) {
                 try {
-                    \App\Models\BankTransaction::create([
+                    BankTransaction::create([
                         'to_bank_account_id' => $cheque->bank_account_id,
                         'type'               => 'cheque_deposit',
-                        'amount'             => $cheque->amount,
+                        'amount'             => $amount,
                         'transaction_date'   => now()->toDateString(),
                         'description'        => 'Cheque deposit: ' . ($cheque->ref_no ?? $cheque->name),
                         'reference_id'       => $cheque->id,

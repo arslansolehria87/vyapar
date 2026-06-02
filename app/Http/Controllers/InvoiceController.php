@@ -39,6 +39,7 @@ class InvoiceController extends Controller
 
     public function index(Request $request)
     {
+        // return $request->all();
         return view('invoice.index', $this->buildInvoiceViewData($request));
     }
 
@@ -104,16 +105,28 @@ class InvoiceController extends Controller
 
     private function buildInvoiceViewData(Request $request): array
     {
+        $type = $request->query('type');
         $selectedTheme = (string) $request->query('theme', 'tally');
         $selectedColor = (string) $request->query('color', '#707070');
         $selectedColor2 = (string) $request->query('color2', '#ff981f');
         $reactAssets = $this->resolveReactInvoiceAssets();
 
+        $saveCloseUrl = route('sale.index');
+        if ($type === 'sale_order') {
+            $saveCloseUrl = route('sale-order');
+        } elseif ($type === 'return-order') {
+            $saveCloseUrl = route('sale-return');
+        }
+
         $viewData = [
             'invoicePreviewData' => [],
             'pageTitle' => 'Preview',
             'browserTabLabel' => 'Invoice Preview',
-            'saveCloseUrl' => route('sale.index'),
+            'saveCloseUrl' => $saveCloseUrl,
+            'documentType' => $type,
+            // 'saveCloseUrl' => route('sale.index'),
+            // 'saveCloseUrl' => route('sale-order'),
+
             'initialMode' => $selectedTheme,
             'initialRegularThemeId' => (int) $request->query('theme_id', 1),
             'initialThermalThemeId' => (int) $request->query('theme_id', 1),
@@ -129,6 +142,7 @@ class InvoiceController extends Controller
 
             $docType = $request->query('doc');
             $invoiceSource = $sale;
+            $savedTheme = $this->resolveSavedSaleThemeState($sale);
 
             if ($docType === 'delivery_challan') {
                 if ($sale->type === 'delivery_challan') {
@@ -146,7 +160,23 @@ class InvoiceController extends Controller
 
             $viewData['sale'] = $sale;
             $viewData['invoicePreviewData'] = $this->mapSaleToThemePreviewData($invoiceSource);
-            $viewData['browserTabLabel'] = ($invoiceSource->type === 'delivery_challan' ? 'Delivery Challan' : 'Invoice') . ' #' . ($invoiceSource->bill_number ?: $invoiceSource->id);
+            $viewData['browserTabLabel'] = match ($type) {
+                'return-order' => 'Return Order #' . ($invoiceSource->bill_number ?: $invoiceSource->id),
+                default => ($invoiceSource->type === 'delivery_challan' ? 'Delivery Challan' : 'Invoice') . ' #' . ($invoiceSource->bill_number ?: $invoiceSource->id),
+            };
+
+            if ($savedTheme) {
+                $selectedTheme = $savedTheme['mode'] === 'thermal' ? 'thermal' : 'regular';
+                $themeId = $selectedTheme === 'thermal'
+                    ? (int) ($savedTheme['thermalThemeId'] ?? 1)
+                    : (int) ($savedTheme['regularThemeId'] ?? 1);
+
+                $viewData['initialMode'] = $selectedTheme;
+                $viewData['initialRegularThemeId'] = $selectedTheme === 'regular' ? $themeId : (int) ($savedTheme['regularThemeId'] ?? 1);
+                $viewData['initialThermalThemeId'] = $selectedTheme === 'thermal' ? $themeId : (int) ($savedTheme['thermalThemeId'] ?? 1);
+                $viewData['initialAccent'] = $savedTheme['accent'] ?? $selectedColor;
+                $viewData['initialAccent2'] = $savedTheme['accent2'] ?? $selectedColor2;
+            }
         } elseif ($request->filled('payment_in')) {
             $paymentInRecord = PaymentIn::with(['party', 'bankAccount'])
                 ->findOrFail($request->integer('payment_in'));
@@ -157,6 +187,33 @@ class InvoiceController extends Controller
         }
 
         return $viewData;
+    }
+
+    private function resolveSavedSaleThemeState(Sale $sale): ?array
+    {
+        $extraFields = $sale->details?->invoice_extra_fields;
+
+        if (!is_array($extraFields)) {
+            return null;
+        }
+
+        $mode = (string) ($extraFields['theme_mode'] ?? '');
+        if (!in_array($mode, ['regular', 'thermal'], true)) {
+            return null;
+        }
+
+        $regularThemeId = (int) ($extraFields['theme_regular_theme_id'] ?? 0);
+        $thermalThemeId = (int) ($extraFields['theme_thermal_theme_id'] ?? 0);
+        $accent = trim((string) ($extraFields['theme_accent'] ?? ''));
+        $accent2 = trim((string) ($extraFields['theme_accent2'] ?? ''));
+
+        return [
+            'mode' => $mode,
+            'regularThemeId' => $regularThemeId > 0 ? $regularThemeId : 1,
+            'thermalThemeId' => $thermalThemeId > 0 ? $thermalThemeId : 1,
+            'accent' => $accent !== '' ? $accent : '#1f4e79',
+            'accent2' => $accent2 !== '' ? $accent2 : '#ff981f',
+        ];
     }
 
     private function resolveChromeExecutable(): ?string

@@ -1,13 +1,15 @@
 @php
-$invoice=$invoicePreviewData??[];$theme=$themeConfig??['mode'=>'regular','variant'=>'classicA','name'=>'Telly Theme'];$variant=$theme['variant']??'classicA';$accent=$accent??'#1f4e79';$accent2=$accent2??'#ff981f';$items=collect($invoice['items']??[])->values()->all();$subtotal=(float)($invoice['subtotal']??collect($items)->sum('amt'));$discount=(float)($invoice['discount']??0);$tax=(float)($invoice['taxAmount']??0);$total=(float)($invoice['total']??max($subtotal+$tax-$discount,0));$received=(float)($invoice['received']??0);$balance=(float)($invoice['balance']??max($total-$received,0));$totalQty=collect($items)->sum(fn($item)=>(float)($item['qty']??0));$title=$invoice['title']??'Invoice';$isThermal=($theme['mode']??'regular')==='thermal';$isDoubleDivine=$variant==='doubleDivine';$isFrenchElite=$variant==='frenchElite';$isPurple=in_array($variant,['purpleA','purpleB','purpleC','taxTheme6','theme2'],true);$isModern=in_array($variant,['modernPurple','theme3'],true);$isSaleClassic=in_array($variant,['classicSale','theme4'],true);
+$invoice=$invoicePreviewData??[];$theme=$themeConfig??['mode'=>'regular','variant'=>'classicA','name'=>'Telly Theme'];$variant=$theme['variant']??'classicA';$accent=$accent??'#1f4e79';$accent2=$accent2??'#ff981f';$items=collect($invoice['items']??[])->values()->all();$subtotal=(float)($invoice['subtotal']??collect($items)->sum('amt'));$discount=(float)($invoice['discount']??0);$tax=(float)($invoice['taxAmount']??0);$total=(float)($invoice['total']??max($subtotal+$tax-$discount,0));$received=(float)($invoice['received']??0);$balance=(float)($invoice['balance']??max($total-$received,0));$totalQty=collect($items)->sum(fn($item)=>(float)($item['qty']??0));$title=$invoice['title']??'Invoice';$isThermal=($theme['mode']??'regular')==='thermal';$isSaleOrder=isset($sale) && (($sale->type ?? '')==='sale_order') && !empty($saleOrderThemeApplied);$isDoubleDivine=$variant==='doubleDivine';$isFrenchElite=$variant==='frenchElite';$isPurple=in_array($variant,['purpleA','purpleB','purpleC','taxTheme6','theme2'],true);$isModern=in_array($variant,['modernPurple','theme3'],true);$isSaleClassic=in_array($variant,['classicSale','theme4'],true);$termsText=trim((string)($invoice['termsText'] ?? $invoice['description'] ?? 'Thanks for doing business with us!'));$footerTermsText=$termsText ?: 'Thanks for doing business with us!';$signatureText=trim((string)($invoice['signatureText'] ?? 'Authorized Signatory')) ?: 'Authorized Signatory';$signatureImage=trim((string)($signatureImage ?? ''));
 @endphp
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>{{ $invoice['invoiceNo'] ?? 'Invoice' }}</title>
 <style>
-@page{size:A4;margin:20px}
+@page{size:A4 portrait;margin:12px}
 html,body{width:100%;margin:0;padding:0;font-family:DejaVu Sans,sans-serif;font-size:12px;color:#1f2937;line-height:1.35;background:#fff}
-body{display:flex;justify-content:center;align-items:flex-start}
-.doc-wrap{width:100%;max-width:100%;display:flex;justify-content:center;box-sizing:border-box;padding:0 10px}
-.doc{display:block;width:900px;max-width:100%;margin:0;text-align:left;box-sizing:border-box}
+body{display:block}
+.doc-wrap{width:100%;max-width:100%;display:block;box-sizing:border-box;padding:0}
+.doc{display:block;width:100%;max-width:760px;margin:0 auto;text-align:left;box-sizing:border-box}
+.doc, .doc *{box-sizing:border-box;word-break:break-word;overflow-wrap:anywhere}
+.grid-2,.table,.totals,.classic-header,.purple-head,.modern-meta,.sale-classic-head,.double-head,.elite-banner,.double-meta-table,.thermal-table{table-layout:fixed}
 .text-right{text-align:right}.text-center{text-align:center}.mb-12{margin-bottom:12px}.mb-16{margin-bottom:16px}.section-head{margin:0 0 8px;font-size:13px;font-weight:700;text-transform:uppercase;color:{{ $accent }};letter-spacing:.4px}.box{border:1px solid #d7dfeb;background:#fff;border-radius:10px;padding:12px 14px}.grid-2,.table,.totals,.classic-header,.purple-head,.modern-meta,.sale-classic-head,.double-head,.elite-banner{width:100%;border-collapse:collapse}.grid-2 td{width:50%;vertical-align:top}.grid-2 td+td .box{margin-left:10px}.table th,.table td{border:1px solid #d7dfeb;padding:8px 7px;vertical-align:top}.table th{color:#fff;font-size:11px;font-weight:700;text-transform:uppercase}.table tbody tr:nth-child(even) td{background:#f8fbff}.summary-row td{font-weight:700;background:#eef5ff!important}.totals td{padding:8px 0;border-bottom:1px solid #e5ebf3}.totals tr:last-child td{border-bottom:0}.totals .grand td{padding:10px 12px;color:#fff;font-weight:700}.classic-brand{width:60%;background:{{ $accent }};color:#fff;border-radius:10px;padding:18px 20px}.classic-brand .title{margin:0 0 8px;font-size:28px;font-weight:700}.classic-brand .name{font-size:20px;font-weight:700;margin-bottom:6px}.classic-meta{padding-left:12px;width:40%}.classic-meta-card{border:1px solid #d7dfeb;border-radius:10px;padding:14px 16px;background:#f8fbff}.purple-title{text-align:center;font-size:30px;font-weight:700;color:{{ $accent }};margin:0 0 14px}.purple-head td,.sale-classic-head td{border:1px solid #d7dfeb;padding:10px;vertical-align:top}.modern-top{border-bottom:2px solid {{ $accent }};padding-bottom:12px;margin-bottom:14px}.modern-title{font-size:34px;font-weight:700;color:{{ $accent }};margin:0 0 10px;text-align:center}.modern-meta td{width:33.33%;padding:8px 10px;border:1px solid #d7dfeb;vertical-align:top}.sale-classic-title{text-align:center;font-size:30px;font-weight:700;color:#1f2937;margin:0 0 12px}.double-left{width:58%;background:{{ $accent }};color:#fff;border-top-left-radius:10px;border-bottom-right-radius:38px;padding:18px 22px}.double-right{width:42%;background:{{ $accent2 }};color:#fff;border-top-right-radius:10px;border-bottom-left-radius:44px;padding:18px 22px;text-align:right}.double-logo{width:56px;height:56px;background:rgba(255,255,255,.18);color:#fff;text-align:center;line-height:56px;font-weight:700;margin-bottom:12px}.double-company{font-size:20px;font-weight:700}.double-title{font-size:26px;margin:0 0 8px;color:#1f2937}.double-meta-table{width:100%;border-collapse:collapse}.double-meta-table td{padding:4px 0}.elite-banner td{background:{{ $accent }};color:#fff;padding:12px 16px;vertical-align:middle}.elite-banner .elite-tax{font-size:24px;font-weight:800;letter-spacing:1px}.elite-store{color:{{ $accent }};font-size:30px;font-weight:700;margin:6px 0 12px}.thermal{width:270px;margin:0 auto;border:1px solid #d7dfeb;padding:12px}.thermal-title{text-align:center;font-size:18px;font-weight:700;color:{{ $accent }};margin-bottom:8px}.thermal-line{border-top:1px dashed #94a3b8;margin:8px 0}.thermal-table{width:100%;border-collapse:collapse;font-size:11px}.thermal-table th,.thermal-table td{padding:5px 0}.thermal-table th{border-bottom:1px dashed #94a3b8;text-align:left}.footer-note{margin-top:14px;text-align:center;font-size:10px;color:#7a8598}
 </style></head><body><div class="doc-wrap">
 @if($isThermal)
@@ -62,7 +64,7 @@ body{display:flex;justify-content:center;align-items:flex-start}
 </table>
 @endif
 
-@php $headBg=$isDoubleDivine?$accent2:$accent; $showUnitColumn=!$isDoubleDivine && !$isModern && !$isPurple && !$isSaleClassic && !$isFrenchElite; $showClassicSimpleTable=!$isDoubleDivine && !$isFrenchElite && !$isPurple && !$isModern && !$isSaleClassic && !$isThermal; @endphp
+@php $headBg=$isDoubleDivine?$accent2:$accent; $showUnitColumn=false; $showClassicSimpleTable=!$isDoubleDivine && !$isFrenchElite && !$isPurple && !$isModern && !$isSaleClassic && !$isThermal; @endphp
 <table class="table mb-16 @if($isFrenchElite) elite-table @endif @if($isDoubleDivine) double-table @endif"><thead><tr>
 <th style="background:{{ $headBg }};">#</th><th style="background:{{ $headBg }};">Item Name</th>
 @if(!$isDoubleDivine && !$showClassicSimpleTable)<th style="background:{{ $headBg }};">HSN/SAC</th>@endif
@@ -86,15 +88,19 @@ body{display:flex;justify-content:center;align-items:flex-start}
 <tr class="summary-row"><td></td><td>Total</td>@if(!$isDoubleDivine && !$showClassicSimpleTable)<td></td>@endif<td class="text-right">{{ number_format($totalQty,2) }}</td>@if($showUnitColumn)<td></td>@endif<td></td>@if(!$isDoubleDivine && !$showClassicSimpleTable)<td class="text-right">{{ number_format($discount,2) }}</td><td class="text-right">{{ number_format($tax,2) }}</td>@endif<td class="text-right">@if($showClassicSimpleTable)Rs @endif {{ number_format($total,2) }}</td></tr>
 </tbody></table>
 
+@if($isDoubleDivine)
+<table class="grid-2"><tr><td style="width:50%;vertical-align:top;padding-right:10px;"><div class="box" style="min-height:140px;"><div class="section-head" style="color:{{ $accent2 }}">Order Amount In Words</div><div>{{ $invoice['totalInWords'] ?? 'Rupees Zero only' }}</div><div class="section-head" style="margin-top:14px;color:{{ $accent2 }}">Terms And Conditions</div><div>{{ $footerTermsText }}</div></div></td><td style="width:50%;vertical-align:top;padding-left:10px;"><div class="box"><table class="double-meta-table"><tr><td>Sub Total</td><td class="text-right">{{ number_format($subtotal,2) }}</td></tr><tr><td>Total</td><td class="text-right">{{ number_format($total,2) }}</td></tr><tr><td>Received</td><td class="text-right">{{ number_format($received,2) }}</td></tr><tr><td>Balance</td><td class="text-right">{{ number_format($balance,2) }}</td></tr></table></div></td></tr></table><div style="display:flex;justify-content:flex-end;margin-top:34px;"><div style="width:280px;text-align:center;"><div style="margin-bottom:12px;">For : {{ $invoice['businessName'] ?? 'My Company' }}</div>@if(!empty($signatureImage))<div style="margin:0 auto 10px;max-width:220px;"><img src="{{ $signatureImage }}" alt="Signature" style="max-width:220px;max-height:84px;object-fit:contain;"></div>@else<div style="height:50px;"></div>@endif<div style="border-top:1px solid #b8c2d1;padding-top:8px;font-weight:700;">{{ $signatureText }}</div></div></div>
+@endif
+
 @if($showClassicSimpleTable)
 <table style="width:100%;border-collapse:collapse;">
 <tr>
 <td style="width:50%;vertical-align:top;padding-right:10px;">
 <div class="box" style="min-height:140px;">
-<div style="margin-bottom:18px;">{{ $invoice['description'] ?? 'Thanks for doing business with us!' }}</div>
-<div>Bank Name: {{ $invoice['bankName'] ?? '' }}</div>
-<div>Account Holder: {{ $invoice['bankAccountHolder'] ?? '' }}</div>
-<div>Bank Account No: {{ $invoice['bankAccountNumber'] ?? '' }}</div>
+<div class="section-head">Order Amount In Words</div>
+<div style="margin-bottom:14px;">{{ $invoice['totalInWords'] ?? 'Rupees Zero only' }}</div>
+<div class="section-head">Terms And Conditions</div>
+<div>{{ $footerTermsText }}</div>
 </div>
 </td>
 <td style="width:50%;vertical-align:top;padding-left:10px;">
@@ -111,20 +117,36 @@ body{display:flex;justify-content:center;align-items:flex-start}
 </td>
 </tr>
 </table>
-@else
+@elseif(!$isDoubleDivine)
 <table class="grid-2"><tr><td><div class="box">
-<div class="section-head">@if($isDoubleDivine || $isSaleClassic || $isModern)Invoice Amount In Words@else Description @endif</div>
-<div>{{ $invoice['description'] ?? 'Thanks for doing business with us!' }}</div>
-@if(!$isModern && !$isDoubleDivine)<div class="section-head" style="margin-top:14px;">@if($isFrenchElite)Terms And Conditions@else Bank Details @endif</div>@endif
-@if(!$isFrenchElite && !$isModern && !$isDoubleDivine)<div>Bank Name: {{ $invoice['bankName'] ?? '' }}</div><div>Account Holder: {{ $invoice['bankAccountHolder'] ?? '' }}</div><div>Bank Account No: {{ $invoice['bankAccountNumber'] ?? '' }}</div>@endif
+<div class="section-head">Order Amount In Words</div>
+<div>{{ $invoice['totalInWords'] ?? 'Rupees Zero only' }}</div>
+<div class="section-head" style="margin-top:14px;">Terms And Conditions</div>
+<div>{{ $footerTermsText }}</div>
 </div></td><td><div class="box"><table class="totals">
 <tr><td>Sub Total</td><td class="text-right">{{ number_format($subtotal,2) }}</td></tr>
 @if(!$isDoubleDivine)<tr><td>Discount</td><td class="text-right">{{ number_format($discount,2) }}</td></tr><tr><td>Tax</td><td class="text-right">{{ number_format($tax,2) }}</td></tr>@endif
 <tr class="grand"><td style="background:{{ $headBg }};">Total</td><td style="background:{{ $headBg }};" class="text-right">{{ number_format($total,2) }}</td></tr>
 <tr><td>Received</td><td class="text-right">{{ number_format($received,2) }}</td></tr><tr><td>Balance</td><td class="text-right">{{ number_format($balance,2) }}</td></tr>
 </table></div></td></tr></table>
+<div style="display:flex;justify-content:flex-end;margin-top:34px;">
+<div style="width:280px;text-align:center;">
+<div style="margin-bottom:12px;">For : {{ $invoice['businessName'] ?? 'My Company' }}</div>
+@if(!empty($signatureImage))
+<div style="margin:0 auto 10px;max-width:220px;"><img src="{{ $signatureImage }}" alt="Signature" style="max-width:220px;max-height:84px;object-fit:contain;"></div>
+@else
+<div style="height:50px;"></div>
 @endif
-@if(!$isThermal)<div class="footer-note">This is a computer generated invoice.</div>@endif
+<div style="border-top:1px solid #b8c2d1;padding-top:8px;font-weight:700;">{{ $signatureText }}</div>
 </div>
+</div>
+@endif
+</div>
+@if(!empty($autoPrint))
+<script>
+window.addEventListener('load', function () {
+    window.print();
+});
+</script>
+@endif
 </body></html>
-

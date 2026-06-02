@@ -12,10 +12,168 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
   <link href="{{ asset('css/styles.css') }}" rel="stylesheet">
   <style>
+  /* ── Resizable column handle ── */
+  .col-rh {
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    z-index: 10;
+    background: transparent;
+  }
+  .col-rh:hover, .col-rh:active {
+    background: rgba(29, 140, 248, 0.35);
+    border-radius: 3px;
+  }
+
   .custom-table thead th {
     font-size: 13px; color: #6c757d; font-weight: 500;
     border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 5;
     background-color: #fafafa; white-space: nowrap; position: relative;
+  }
+  .column-filter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    position: relative;
+    min-width: 0;
+  }
+  .column-filter-header > span {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sale-return-sort-btn {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    font: inherit;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .sale-return-sort-btn:hover {
+    color: #334155;
+  }
+  .sale-return-sort-btn > span {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sale-return-sort-btn .sort-indicator {
+    font-size: 11px;
+    color: #94a3b8;
+    flex: 0 0 auto;
+  }
+  .filter-icon-btn {
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    padding: 0;
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+  }
+  .filter-icon-btn:hover {
+    color: #64748b;
+    background: #f8fafc;
+  }
+  .column-filter-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    min-width: 280px;
+    width: 320px;
+    max-width: 360px;
+    padding: 14px 16px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.16);
+    z-index: 20;
+  }
+  .column-filter-dropdown.align-end {
+    left: auto;
+    right: 0;
+  }
+  .column-filter-dropdown.show { display: block; }
+  .column-filter-dropdown .form-control,
+  .column-filter-dropdown .form-select { font-size: 12px; }
+  .column-filter-dropdown-options {
+    min-width: 320px;
+  }
+  .column-filter-label {
+    display: block;
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 6px;
+  }
+  .column-filter-option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-right: 4px;
+  }
+  .column-filter-option-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #1f2937;
+    user-select: none;
+  }
+  .column-filter-option-item input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    flex: 0 0 auto;
+  }
+  .column-filter-actions {
+    margin-top: 10px;
+  }
+  .column-filter-actions .btn {
+    font-size: 12px;
+    line-height: 1.1;
+    border-radius: 999px;
+    padding: 0.45rem 1rem;
+    min-width: 64px;
+  }
+  .column-filter-actions .column-filter-clear {
+    background: #f3f4f6;
+    border-color: #f3f4f6;
+    color: #6b7280;
+  }
+  .column-filter-actions .column-filter-clear:hover,
+  .column-filter-actions .column-filter-clear:focus {
+    background: #e5e7eb;
+    border-color: #e5e7eb;
+    color: #4b5563;
+  }
+  .column-filter-actions .column-filter-apply {
+    background: #f43f5e;
+    border-color: #f43f5e;
+    color: #fff;
+  }
+  .column-filter-actions .column-filter-apply:hover,
+  .column-filter-actions .column-filter-apply:focus {
+    background: #e11d48;
+    border-color: #e11d48;
+    color: #fff;
+    box-shadow: none;
   }
   .custom-table tbody td {
     font-size: 14px; padding: 14px 10px;
@@ -28,50 +186,27 @@
     overflow-x: auto; overflow-y: auto;
     max-height: 68vh; border: 1px solid #eef2f7; border-radius: 12px;
   }
+  .sale-return-main-wrapper {
+    overflow: visible !important;
+    max-height: none !important;
+    border: 1px solid #eef2f7;
+    border-radius: 12px;
+    position: relative;
+  }
   @media (max-width: 991px) {
     .table-wrapper { max-height: none; border-radius: 8px; }
     .custom-table thead th { font-size: 11px; padding: 8px 6px; }
     .custom-table tbody td { font-size: 12px; padding: 10px 6px; }
+    .sale-return-table thead th { font-size: 11px; padding: 8px 6px !important; }
+    .sale-return-table tbody td { font-size: 12px; padding: 10px 6px !important; }
   }
   @media (max-width: 575px) {
     .custom-table thead th { font-size: 10px; padding: 6px 4px; }
     .custom-table tbody td { font-size: 11px; padding: 8px 4px; }
+    .sale-return-table thead th { font-size: 10px; padding: 6px 4px !important; }
+    .sale-return-table tbody td { font-size: 11px; padding: 8px 4px !important; }
   }
 </style>
-  <script>
-  (function () {
-    var isResizing = false, startX = 0, startW = 0, thEl = null;
-    function init() {
-      document.querySelectorAll('.custom-table thead th').forEach(function (th) {
-        if (th.querySelector('.col-rh')) return;
-        th.style.position = 'relative';
-        var h = document.createElement('div');
-        h.className = 'col-rh';
-        h.style.cssText = 'position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:10;';
-        th.appendChild(h);
-      });
-    }
-    document.addEventListener('mousedown', function (e) {
-      if (!e.target.classList.contains('col-rh')) return;
-      e.preventDefault();
-      thEl = e.target.closest('th'); isResizing = true;
-      startX = e.clientX; startW = thEl.getBoundingClientRect().width;
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    });
-    document.addEventListener('mousemove', function (e) {
-      if (!isResizing || !thEl) return;
-      var w = Math.max(60, startW + (e.clientX - startX));
-      thEl.style.minWidth = w + 'px'; thEl.style.width = w + 'px';
-    });
-    document.addEventListener('mouseup', function () {
-      if (!isResizing) return;
-      isResizing = false; thEl = null;
-      document.body.style.cursor = ''; document.body.style.userSelect = '';
-    });
-    document.addEventListener('DOMContentLoaded', init);
-  })();
-</script>
   <style>
     .sale-return-page {
       padding: 1.25rem;
@@ -126,31 +261,40 @@
     }
 
     .sale-return-table {
-      min-width: 1180px;
+      table-layout: fixed;
+      min-width: 100%;
+      border-collapse: collapse;
+      width: 100%;
     }
-
     .sale-return-table thead th {
-      background: #f8fbff;
-      color: #334155;
-      font-size: 0.92rem;
-      font-weight: 700;
-      border-bottom: 1px solid #dbe4f0;
-      padding: 1rem 0.85rem;
-      vertical-align: middle;
-      white-space: nowrap;
+      position: relative;
+      overflow: visible;
+      background: #fafafa; color: #6c757d;
+      font-size: 13px; font-weight: 500;
+      border-bottom: 1px solid #eee;
+      padding: 12px 10px !important;
+      vertical-align: middle; white-space: nowrap;
     }
-
     .sale-return-table tbody td {
-      padding: 1rem 0.85rem;
-      border-bottom: 1px solid #edf2f7;
-      vertical-align: middle;
-      color: #0f172a;
+      padding: 14px 10px !important;
+      border-bottom: 1px solid #f1f1f1;
+      vertical-align: middle; color: #0f172a;
+      white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .sale-return-table tbody td.action-cell {
+      overflow: visible !important;
+      position: relative;
+    }
+    .sale-return-table tbody td.action-menu-cell {
+      overflow: visible !important;
+      position: relative;
+      text-align: center;
       white-space: nowrap;
     }
-
-    .sale-return-table tbody tr:hover {
-      background: #f8fbff;
-    }
+    .sale-return-table tbody tr:hover { background: #fafafa; }
+    .sale-return-table th, .sale-return-table td { border-right: 1px solid #e9ecef !important; }
+    .sale-return-table th:last-child, .sale-return-table td:last-child { border-right: none !important; }
 
     .status-pill {
       display: inline-flex;
@@ -194,6 +338,32 @@
     .action-menu-btn::after {
       display: none;
     }
+
+    .sale-return-table tbody td.action-cell .dropdown-menu {
+      min-width: 180px;
+      padding: 0.45rem 0;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+      z-index: 1090;
+    }
+
+    .sale-return-table tbody td.action-cell .dropdown-item {
+      padding: 0.6rem 1rem;
+      font-size: 14px;
+      color: #1f2937;
+      text-decoration: none;
+    }
+
+    .sale-return-table tbody td.action-cell .dropdown-item:hover {
+      background: #e0f2fe;
+      color: #0f172a;
+      font-weight: 700;
+    }
+
+    .sale-return-table tbody td.action-cell .dropdown-divider {
+      margin: 0.35rem 0;
+    }
   </style>
 
   <script>
@@ -231,21 +401,153 @@
           </button>
         </div>
 
-        <div class="table-wrapper">
-  <table class="table align-middle custom-table mb-0">
+        <div class="table-responsive small-table table-wrapper sale-return-main-wrapper">
+  @php
+    $saleReturnTypeFilterOptions = ['Credit Note', 'Debit Note', 'Sale', 'Purchase', 'Payment-In', 'Payment-Out'];
+    $saleReturnStatusFilterOptions = ['Paid', 'Partial', 'Unpaid'];
+  @endphp
+  <table class="table sale-return-table align-middle mb-0 txn-table">
             <thead>
               <tr>
                 <th>#</th>
-                <th>Date</th>
-                <th>Ref No.</th>
-                <th>Party Name</th>
-                <th>Type</th>
-                <th class="text-end">Total</th>
-                <th class="text-end">Received/Paid</th>
-                <th class="text-end">Balance</th>
-                <th>Status</th>
-                <th>Print / Share</th>
-                <th></th>
+                <th>
+                  <div class="column-filter-header">
+                    <span>Date</span>
+                    <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
+                  </div>
+                  <div class="column-filter-dropdown">
+                    <label class="column-filter-label">Select Category</label>
+                    <select class="form-select form-select-sm column-filter-operator">
+                      <option value="eq">Equal To</option>
+                      <option value="before">Before</option>
+                      <option value="after">After</option>
+                    </select>
+                    <label class="column-filter-label mt-2">Select Date</label>
+                    <input type="text" class="form-control form-control-sm column-filter-input" placeholder="DD/MM/YYYY" inputmode="numeric">
+                    <div class="d-flex justify-content-end gap-2 column-filter-actions">
+                      <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="1">Clear</button>
+                      <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="1">Apply</button>
+                    </div>
+                  </div>
+                </th>
+                <th>
+                  <div class="column-filter-header">
+                    <span>Ref No.</span>
+                    <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
+                  </div>
+                  <div class="column-filter-dropdown">
+                    <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Ref No.">
+                    <div class="d-flex justify-content-end gap-2 column-filter-actions">
+                      <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="2">Clear</button>
+                      <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="2">Apply</button>
+                    </div>
+                  </div>
+                </th>
+                <th>
+                  <div class="column-filter-header">
+                    <span>Party Name</span>
+                    <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
+                  </div>
+                  <div class="column-filter-dropdown">
+                    <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Party Name">
+                    <div class="d-flex justify-content-end gap-2 column-filter-actions">
+                      <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="3">Clear</button>
+                      <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="3">Apply</button>
+                    </div>
+                  </div>
+                </th>
+                <th>
+                  <div class="column-filter-header">
+                    <span>Type</span>
+                    <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
+                  </div>
+                  <div class="column-filter-dropdown column-filter-dropdown-options">
+                    <div class="column-filter-option-list">
+                      @foreach($saleReturnTypeFilterOptions as $option)
+                        <label class="column-filter-option-item">
+                          <input type="checkbox" class="column-filter-checkbox" value="{{ $option }}">
+                          <span>{{ $option }}</span>
+                        </label>
+                      @endforeach
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 column-filter-actions">
+                      <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="4">Clear</button>
+                      <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="4">Apply</button>
+                    </div>
+                  </div>
+                </th>
+                <th class="text-end">
+                  <div class="column-filter-header justify-content-end">
+                    <button type="button" class="sale-return-sort-btn" data-sort-column="5">
+                      <span>Total</span>
+                      <i class="fa-solid fa-sort sort-indicator"></i>
+                    </button>
+                    <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
+                  </div>
+                  <div class="column-filter-dropdown align-end text-start">
+                    <label class="column-filter-label">Select Category</label>
+                    <select class="form-select form-select-sm column-filter-operator">
+                      <option value="contains">Contains</option>
+                      <option value="eq">Equal To</option>
+                      <option value="gt">Greater Than</option>
+                      <option value="lt">Less Than</option>
+                    </select>
+                    <label class="column-filter-label mt-2">Select Amount</label>
+                    <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Total" inputmode="decimal">
+                    <div class="d-flex justify-content-end gap-2 column-filter-actions">
+                      <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="5">Clear</button>
+                      <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="5">Apply</button>
+                    </div>
+                  </div>
+                </th>
+                <th class="text-end">
+                  <div class="column-filter-header justify-content-end">
+                    <span class="me-2">Received/Paid</span>
+                    <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
+                  </div>
+                  <div class="column-filter-dropdown align-end text-start">
+                    <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Received/Paid">
+                    <div class="d-flex justify-content-end gap-2 column-filter-actions">
+                      <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="6">Clear</button>
+                      <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="6">Apply</button>
+                    </div>
+                  </div>
+                </th>
+                <th class="text-end">
+                  <div class="column-filter-header justify-content-end">
+                    <span class="me-2">Balance</span>
+                    <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
+                  </div>
+                  <div class="column-filter-dropdown align-end text-start">
+                    <input type="text" class="form-control form-control-sm column-filter-input" placeholder="Filter Balance">
+                    <div class="d-flex justify-content-end gap-2 column-filter-actions">
+                      <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="7">Clear</button>
+                      <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="7">Apply</button>
+                    </div>
+                  </div>
+                </th>
+                <th>
+                  <div class="column-filter-header">
+                    <span>Status</span>
+                    <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
+                  </div>
+                  <div class="column-filter-dropdown column-filter-dropdown-options">
+                    <div class="column-filter-option-list">
+                      @foreach($saleReturnStatusFilterOptions as $option)
+                        <label class="column-filter-option-item">
+                          <input type="checkbox" class="column-filter-checkbox" value="{{ $option }}">
+                          <span>{{ $option }}</span>
+                        </label>
+                      @endforeach
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 column-filter-actions">
+                      <button class="btn btn-sm btn-outline-secondary column-filter-clear" data-column-index="8">Clear</button>
+                      <button class="btn btn-sm btn-primary column-filter-apply" data-column-index="8">Apply</button>
+                    </div>
+                  </div>
+                </th>
+                <th style="width: 110px;">Print / Share</th>
+                <th style="width: 56px;">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -270,8 +572,8 @@
                   <td>
                     <span class="status-pill {{ $statusClass }}">{{ ucfirst($status) }}</span>
                   </td>
-                  <td>
-                    <a href="#" onclick="openSaleReturnPrint('{{ route('invoice', ['sale_id' => $saleReturn->id, 'print' => 1]) }}'); return false;" class="icon-action" title="Print">
+                  <td class="action-cell" style="width:110px;">
+                    <a href="#" onclick="openSaleReturnPrint('{{ route('invoice', ['sale_id' => $saleReturn->id, 'type' => 'return-order', 'print' => 1]) }}'); return false;" class="icon-action" title="Print">
                       <i class="fa-solid fa-print"></i>
                     </a>
                     <div class="dropdown d-inline">
@@ -279,22 +581,22 @@
                         <i class="fa-solid fa-share-nodes"></i>
                       </button>
                       <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#" onclick="shareSaleReturn('whatsapp', '{{ route('invoice', ['sale_id' => $saleReturn->id]) }}'); return false;"><i class="fa-brands fa-whatsapp me-2"></i>WhatsApp</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="shareSaleReturn('gmail', '{{ route('invoice', ['sale_id' => $saleReturn->id]) }}'); return false;"><i class="fa-solid fa-envelope me-2"></i>Gmail</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="shareSaleReturn('copy', '{{ route('invoice', ['sale_id' => $saleReturn->id]) }}'); return false;"><i class="fa-regular fa-copy me-2"></i>Copy Link</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="shareSaleReturn('whatsapp', '{{ route('invoice', ['sale_id' => $saleReturn->id, 'type' => 'return-order']) }}'); return false;"><i class="fa-brands fa-whatsapp me-2"></i>WhatsApp</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="shareSaleReturn('gmail', '{{ route('invoice', ['sale_id' => $saleReturn->id, 'type' => 'return-order']) }}'); return false;"><i class="fa-solid fa-envelope me-2"></i>Gmail</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="shareSaleReturn('copy', '{{ route('invoice', ['sale_id' => $saleReturn->id, 'type' => 'return-order']) }}'); return false;"><i class="fa-regular fa-copy me-2"></i>Copy Link</a></li>
                       </ul>
                     </div>
                   </td>
-                  <td class="text-center">
+                  <td class="action-menu-cell" style="width:56px;">
                     <div class="dropdown">
                       <button class="btn btn-sm action-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
                         <i class="fas fa-ellipsis-v"></i>
                       </button>
                       <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                         <li><a class="dropdown-item" href="#" onclick="return transactionPasscodeNavigate('{{ route('sale-return.edit', $saleReturn->id) }}');"><i class="fas fa-edit me-2"></i>View/Edit</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="openSaleReturnPdf('{{ route('invoice', ['sale_id' => $saleReturn->id]) }}'); return false;"><i class="fas fa-file-pdf me-2"></i>Open PDF</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="openSaleReturnPreview('{{ route('invoice', ['sale_id' => $saleReturn->id]) }}'); return false;"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="openSaleReturnPrint('{{ route('invoice', ['sale_id' => $saleReturn->id, 'print' => 1]) }}'); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openSaleReturnPdf('{{ route('sale-return.pdf', $saleReturn->id) }}'); return false;"><i class="fas fa-file-pdf me-2"></i>Open PDF</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openSaleReturnPrint('{{ route('invoice', ['sale_id' => $saleReturn->id, 'type' => 'return-order', 'print' => 1]) }}'); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="duplicateSaleReturn('{{ route('sale-return.duplicate', $saleReturn->id) }}'); return false;"><i class="fas fa-copy me-2"></i>Duplicate</a></li>
                         <li><a class="dropdown-item" href="#" onclick="viewSaleReturnHistory('{{ route('sale-return.bank-history', $saleReturn->id) }}'); return false;"><i class="fas fa-clock-rotate-left me-2"></i>View History</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger" href="#" onclick="return transactionPasscodeExecute('deleteSaleReturn','{{ route('sale-return.destroy', $saleReturn->id) }}');"><i class="fas fa-trash me-2"></i>Delete</a></li>
@@ -304,7 +606,7 @@
                 </tr>
               @empty
                 <tr>
-                  <td colspan="11" class="text-center text-muted py-5">No credit notes found.</td>
+                  <td colspan="12" class="text-center text-muted py-5">No credit notes found.</td>
                 </tr>
               @endforelse
             </tbody>
@@ -366,6 +668,10 @@
     }
 
     function openSaleReturnPrint(url) {
+      window.open(url, '_blank');
+    }
+
+    function duplicateSaleReturn(url) {
       window.open(url, '_blank');
     }
 
@@ -449,37 +755,365 @@
     }
   </script>
   <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const searchInput = document.querySelector('.sale-return-search input');
+      const columnFilters = {};
+      const dateFilterColumns = new Set(['1']);
+      const multiSelectFilterColumns = new Set(['4', '8']);
+      const numericFilterColumns = new Set(['5', '6', '7']);
+      const totalSortButton = document.querySelector('.sale-return-sort-btn[data-sort-column="5"]');
+      let totalSortDirection = null;
+
+      function normalizeText(text) {
+        return String(text || '').toLowerCase().trim().replace(/\s+/g, ' ');
+      }
+
+      function parseDateText(text) {
+        const match = String(text || '').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+        if (!match) return null;
+
+        const [, dd, mm, yyyy] = match;
+        return new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+      }
+
+      function matchesDateFilter(cellText, filter) {
+        const cellDate = parseDateText(cellText);
+        const filterDate = parseDateText(filter.value);
+
+        if (!cellDate || !filterDate) return false;
+
+        const cellTime = cellDate.setHours(0, 0, 0, 0);
+        const filterTime = filterDate.setHours(0, 0, 0, 0);
+
+        if (filter.operator === 'before') return cellTime < filterTime;
+        if (filter.operator === 'after') return cellTime > filterTime;
+        return cellTime === filterTime;
+      }
+
+      function parseNumericText(text) {
+        const normalized = normalizeText(text).replace(/[^0-9.-]/g, '');
+        const value = Number.parseFloat(normalized);
+        return Number.isNaN(value) ? null : value;
+      }
+
+      function normalizeOptionValue(value) {
+        return normalizeText(value).replace(/\s+/g, ' ');
+      }
+
+      function getCheckedValues(dropdown) {
+        return Array.from(dropdown?.querySelectorAll('.column-filter-checkbox:checked') || [])
+          .map((checkbox) => checkbox.value)
+          .filter(Boolean);
+      }
+
+      function setDropdownCheckboxes(dropdown, values) {
+        const normalized = new Set((values || []).map(normalizeOptionValue));
+        dropdown?.querySelectorAll('.column-filter-checkbox').forEach((checkbox) => {
+          checkbox.checked = normalized.has(normalizeOptionValue(checkbox.value));
+        });
+      }
+
+      function setColumnFilter(columnIndex, dropdown) {
+        const normalizedValue = normalizeText(dropdown?.querySelector('.column-filter-input')?.value || '');
+        const operator = dropdown?.querySelector('.column-filter-operator')?.value || 'eq';
+
+        if (dateFilterColumns.has(String(columnIndex))) {
+          if (normalizedValue) {
+            columnFilters[columnIndex] = { type: 'date', operator, value: normalizedValue };
+          } else {
+            delete columnFilters[columnIndex];
+          }
+          return;
+        }
+
+        if (multiSelectFilterColumns.has(String(columnIndex))) {
+          const values = getCheckedValues(dropdown);
+          if (values.length) {
+            columnFilters[columnIndex] = { type: 'multi', values };
+          } else {
+            delete columnFilters[columnIndex];
+          }
+          return;
+        }
+
+        if (numericFilterColumns.has(String(columnIndex))) {
+          if (normalizedValue) {
+            columnFilters[columnIndex] = {
+              type: 'number',
+              operator,
+              value: normalizedValue,
+            };
+          } else {
+            delete columnFilters[columnIndex];
+          }
+          return;
+        }
+
+        if (normalizedValue) {
+          columnFilters[columnIndex] = normalizedValue;
+        } else {
+          delete columnFilters[columnIndex];
+        }
+      }
+
+      function applySaleReturnTableFilters() {
+        const rows = document.querySelectorAll('.txn-table tbody tr');
+        const universalSearchQuery = searchInput ? normalizeText(searchInput.value) : '';
+
+        rows.forEach((row) => {
+          if (row.cells.length === 1) return;
+
+          let matchesUniversal = !universalSearchQuery;
+          let matchesColumnFilters = true;
+          const cells = row.querySelectorAll('td');
+
+          cells.forEach((cell, index) => {
+            const cellText = normalizeText(cell.textContent || cell.innerText);
+
+            if (universalSearchQuery && cellText.includes(universalSearchQuery)) {
+              matchesUniversal = true;
+            }
+
+            if (columnFilters[index] !== undefined) {
+              const filterValue = columnFilters[index];
+
+              if (dateFilterColumns.has(String(index))) {
+                if (!matchesDateFilter(cell.textContent || cell.innerText, filterValue)) {
+                  matchesColumnFilters = false;
+                }
+              } else if (filterValue && typeof filterValue === 'object' && filterValue.type === 'number') {
+                const cellNumber = parseNumericText(cell.textContent || cell.innerText);
+                const filterNumber = parseNumericText(filterValue.value);
+                if (cellNumber === null || filterNumber === null) {
+                  matchesColumnFilters = false;
+                } else if (filterValue.operator === 'contains') {
+                  const normalizedCellNumber = normalizeText(cell.textContent || cell.innerText);
+                  if (!normalizedCellNumber.includes(normalizeText(filterValue.value))) {
+                    matchesColumnFilters = false;
+                  }
+                } else if (filterValue.operator === 'gt') {
+                  if (!(cellNumber > filterNumber)) matchesColumnFilters = false;
+                } else if (filterValue.operator === 'lt') {
+                  if (!(cellNumber < filterNumber)) matchesColumnFilters = false;
+                } else if (!(cellNumber === filterNumber)) {
+                  matchesColumnFilters = false;
+                }
+              } else if (filterValue && typeof filterValue === 'object' && filterValue.type === 'multi') {
+                const normalizedCell = normalizeOptionValue(cell.textContent || cell.innerText);
+                const selectedValues = (filterValue.values || []).map(normalizeOptionValue);
+                const matched = selectedValues.some((value) => normalizedCell.includes(value));
+                if (!matched) {
+                  matchesColumnFilters = false;
+                }
+              } else if (!cellText.includes(filterValue)) {
+                matchesColumnFilters = false;
+              }
+            }
+          });
+
+          row.style.display = (matchesUniversal && matchesColumnFilters) ? '' : 'none';
+        });
+      }
+
+      function applyTotalSort() {
+        if (!totalSortDirection) return;
+
+        const tbody = document.querySelector('.txn-table tbody');
+        if (!tbody) return;
+
+        const rows = Array.from(tbody.querySelectorAll('tr')).filter((row) => row.cells.length > 1);
+        rows.sort((a, b) => {
+          const aValue = parseNumericText(a.cells[5]?.textContent || '');
+          const bValue = parseNumericText(b.cells[5]?.textContent || '');
+          const aNum = aValue === null ? 0 : aValue;
+          const bNum = bValue === null ? 0 : bValue;
+          return totalSortDirection === 'asc' ? aNum - bNum : bNum - aNum;
+        });
+
+        rows.forEach((row) => tbody.appendChild(row));
+
+        if (totalSortButton) {
+          const icon = totalSortButton.querySelector('.sort-indicator');
+          if (icon) {
+            icon.classList.remove('fa-sort', 'fa-sort-up', 'fa-sort-down');
+            icon.classList.add(totalSortDirection === 'asc' ? 'fa-sort-up' : 'fa-sort-down');
+          }
+        }
+      }
+
+      document.querySelectorAll('.filter-icon-btn').forEach((button) => {
+        button.addEventListener('click', function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const th = this.closest('th');
+          const dropdown = this.closest('.column-filter-header')?.nextElementSibling;
+          if (!dropdown) return;
+
+          document.querySelectorAll('.column-filter-dropdown.show').forEach((openDropdown) => {
+            if (openDropdown !== dropdown) {
+              openDropdown.classList.remove('show');
+              openDropdown.removeAttribute('style');
+            }
+          });
+
+          const rect = th ? th.getBoundingClientRect() : null;
+          if (rect) {
+            const availableRight = window.innerWidth - rect.left;
+            const needsRightAlign = availableRight < 340;
+            dropdown.style.left = needsRightAlign ? 'auto' : '0';
+            dropdown.style.right = needsRightAlign ? '0' : 'auto';
+          }
+
+          const currentFilterButton = dropdown.querySelector('.column-filter-apply');
+          const columnIndex = currentFilterButton?.dataset.columnIndex;
+          const currentValue = columnFilters[columnIndex];
+          const input = dropdown.querySelector('.column-filter-input');
+          const operatorSelect = dropdown.querySelector('.column-filter-operator');
+
+          if (input && typeof currentValue === 'object' && (currentValue?.type === 'date' || currentValue?.type === 'number')) {
+            input.value = currentValue.value || '';
+            if (operatorSelect) operatorSelect.value = currentValue.operator || 'eq';
+          } else if (input) {
+            input.value = typeof currentValue === 'string' ? currentValue : '';
+            if (operatorSelect) operatorSelect.value = 'eq';
+          }
+
+          if (currentValue && typeof currentValue === 'object' && currentValue.type === 'multi') {
+            setDropdownCheckboxes(dropdown, currentValue.values || []);
+          } else if (dropdown.querySelector('.column-filter-checkbox')) {
+            setDropdownCheckboxes(dropdown, []);
+          }
+
+          dropdown.classList.add('show');
+        });
+      });
+
+      totalSortButton?.addEventListener('click', function () {
+        totalSortDirection = totalSortDirection === 'asc' ? 'desc' : 'asc';
+        applyTotalSort();
+        applySaleReturnTableFilters();
+      });
+
+      document.querySelectorAll('.column-filter-apply').forEach((button) => {
+        button.addEventListener('click', function (event) {
+          event.preventDefault();
+          const columnIndex = this.dataset.columnIndex;
+          const dropdown = this.closest('.column-filter-dropdown');
+          const input = dropdown?.querySelector('.column-filter-input');
+          setColumnFilter(columnIndex, dropdown);
+
+          dropdown?.classList.remove('show');
+          applySaleReturnTableFilters();
+        });
+      });
+
+      document.querySelectorAll('.column-filter-input').forEach((input) => {
+        input.addEventListener('input', function () {
+          const dropdown = this.closest('.column-filter-dropdown');
+          const applyButton = dropdown?.querySelector('.column-filter-apply');
+          const columnIndex = applyButton?.dataset.columnIndex;
+
+          if (columnIndex === undefined) return;
+          setColumnFilter(columnIndex, dropdown);
+
+          applySaleReturnTableFilters();
+        });
+      });
+
+      document.querySelectorAll('.column-filter-operator').forEach((select) => {
+        select.addEventListener('change', function () {
+          const dropdown = this.closest('.column-filter-dropdown');
+          const applyButton = dropdown?.querySelector('.column-filter-apply');
+          const columnIndex = applyButton?.dataset.columnIndex;
+          const input = dropdown?.querySelector('.column-filter-input');
+
+          if (!dateFilterColumns.has(String(columnIndex)) && !numericFilterColumns.has(String(columnIndex))) return;
+
+          const normalizedValue = normalizeText(input?.value || '');
+          const type = dateFilterColumns.has(String(columnIndex)) ? 'date' : 'number';
+          if (normalizedValue) {
+            columnFilters[columnIndex] = { type, operator: this.value || 'eq', value: normalizedValue };
+          } else {
+            delete columnFilters[columnIndex];
+          }
+          applySaleReturnTableFilters();
+        });
+      });
+
+      document.querySelectorAll('.column-filter-clear').forEach((button) => {
+        button.addEventListener('click', function (event) {
+          event.preventDefault();
+          const columnIndex = this.dataset.columnIndex;
+          const dropdown = this.closest('.column-filter-dropdown');
+          const input = dropdown?.querySelector('.column-filter-input');
+          const operator = dropdown?.querySelector('.column-filter-operator');
+
+          if (input) input.value = '';
+          if (operator) operator.value = 'eq';
+          dropdown?.querySelectorAll('.column-filter-checkbox').forEach((checkbox) => {
+            checkbox.checked = false;
+          });
+          delete columnFilters[columnIndex];
+          dropdown?.classList.remove('show');
+          applySaleReturnTableFilters();
+        });
+      });
+
+      searchInput?.addEventListener('input', applySaleReturnTableFilters);
+
+      document.addEventListener('click', function (event) {
+        if (!event.target.closest('.column-filter-dropdown') && !event.target.closest('.filter-icon-btn')) {
+          document.querySelectorAll('.column-filter-dropdown.show').forEach((dropdown) => {
+            dropdown.classList.remove('show');
+            dropdown.removeAttribute('style');
+          });
+        }
+      });
+
+      applySaleReturnTableFilters();
+      applyTotalSort();
+    });
+  </script>
+  <script>
   (function () {
     var isResizing = false, startX = 0, startW = 0, thEl = null;
-    function init() {
-      document.querySelectorAll('.custom-table thead th').forEach(function (th) {
+    function initResizeHandles() {
+      document.querySelectorAll('.custom-table thead th, .sale-return-table thead th').forEach(function (th) {
         if (th.querySelector('.col-rh')) return;
         th.style.position = 'relative';
-        var h = document.createElement('div');
-        h.className = 'col-rh';
-        h.style.cssText = 'position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:10;';
-        th.appendChild(h);
+        th.style.overflow = 'visible';
+        th.style.width = th.getBoundingClientRect().width + 'px';
+
+        var handle = document.createElement('div');
+        handle.className = 'col-rh';
+        th.appendChild(handle);
       });
     }
     document.addEventListener('mousedown', function (e) {
       if (!e.target.classList.contains('col-rh')) return;
       e.preventDefault();
-      thEl = e.target.closest('th'); isResizing = true;
-      startX = e.clientX; startW = thEl.getBoundingClientRect().width;
+      thEl = e.target.closest('th');
+      isResizing = true;
+      startX = e.clientX;
+      startW = thEl.getBoundingClientRect().width;
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
     });
     document.addEventListener('mousemove', function (e) {
       if (!isResizing || !thEl) return;
-      var w = Math.max(60, startW + (e.clientX - startX));
-      thEl.style.minWidth = w + 'px'; thEl.style.width = w + 'px';
+      var widthCalc = Math.max(60, startW + (e.clientX - startX));
+      thEl.style.width = widthCalc + 'px';
+      thEl.style.minWidth = widthCalc + 'px';
     });
     document.addEventListener('mouseup', function () {
       if (!isResizing) return;
-      isResizing = false; thEl = null;
-      document.body.style.cursor = ''; document.body.style.userSelect = '';
+      isResizing = false;
+      thEl = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
     });
-    document.addEventListener('DOMContentLoaded', init);
+    initResizeHandles();
   })();
 </script>
 </body>

@@ -70,7 +70,7 @@ $(document).ready(function () {
     if (!saleId) return null;
 
     try {
-      const raw = window.localStorage.getItem(`saleInvoiceTheme:${saleId}`);
+      const raw = window.localStorage.getItem(`saleInvoiceTheme:${saleId}`) || window.localStorage.getItem('saleInvoiceTheme:draft');
       return raw ? JSON.parse(raw) : null;
     } catch (error) {
       return null;

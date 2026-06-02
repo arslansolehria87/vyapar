@@ -112,6 +112,93 @@ ul#partyDropdownMenu {
     text-align: right;
 }
 
+.party-selected-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    background: linear-gradient(180deg, #eefcf3 0%, #e0f7e8 100%);
+    border: 1.5px solid #22c55e;
+    border-radius: 8px;
+    padding: 8px 10px;
+    min-height: 34px;
+    width: calc(100% - 20px);
+    cursor: default;
+    box-sizing: border-box;
+}
+
+.party-selected-card.d-none {
+    display: none !important;
+}
+
+.party-selected-card .party-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+    line-height: 1.4;
+    flex: 1;
+    min-width: 0;
+}
+
+.party-selected-card .party-card-name {
+    font-weight: 700;
+    font-size: 13px;
+    color: #1e293b;
+}
+
+.party-selected-card .party-card-line {
+    color: #475569;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.party-selected-card .party-card-balance {
+    font-weight: 700;
+    font-size: 11px;
+    color: #166534;
+}
+
+.party-selected-card .party-card-clear {
+    background: #fff;
+    border: 1px solid rgba(22, 101, 52, 0.18);
+    color: #166534;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 6px;
+    line-height: 1;
+    flex-shrink: 0;
+    border-radius: 999px;
+    height: 22px;
+}
+
+.party-selected-card .party-card-clear:hover {
+    color: #0f5132;
+    background: #dcfce7;
+}
+
+.is-party-locked {
+    background-color: #e5e7eb !important;
+    color: #475569 !important;
+    border-color: #cbd5e1 !important;
+    cursor: not-allowed;
+    opacity: 1 !important;
+}
+
+.is-party-locked::placeholder {
+    color: #64748b !important;
+}
+
+.party-details .is-party-locked,
+.party-details input[readonly],
+.party-details textarea[readonly] {
+    background-color: #e5e7eb !important;
+    color: #475569 !important;
+    border-color: #cbd5e1 !important;
+}
+
 .item-picker {
     position: relative;
     min-width: 260px;
@@ -1689,7 +1776,7 @@ textarea.meta-control,
 }
 
 .header-right.w-25 .order-date-group {
-    grid-column: 2;
+    grid-column: 1;
 }
 
 .header-right.w-25 .deal-days-group {
@@ -2131,14 +2218,8 @@ textarea.meta-control,
                                 </div>
                                 </div>
                                <div class="party-meta-grid billing-name-group">
-<div class="party-meta-field billing-name-field compact-header-field">
-    <div class="floating-input-wrapper">
-            <input type="text" id="billingNameInput" name="billing_name" class="meta-control billing-name-input" placeholder=" ">
-            <label>Billing Name (Optional)</label>
-        </div>
-        <div class="cash-party-link-wrap d-none">
-            <button type="button" class="cash-party-link-btn show-party-selector-btn">Show Party</button>
-        </div>
+    <div class="cash-party-link-wrap d-none">
+        <button type="button" class="cash-party-link-btn show-party-selector-btn">Show Party</button>
     </div>
 </div>
                                 <div class="party-meta-grid party-details d-none">
@@ -2200,16 +2281,13 @@ textarea.meta-control,
                                         <input type="text" class="input-control underline-input bill-number" value="{{ $nextInvoiceNumber ?? 'Auto' }}">
                                     </div>
                                 </div>
-                                <div class="input-group date-wrapper invoice-date-group">
-                                    <span>Invoice Date</span>
-                                    <input type="date" class="input-control underline-input invoice-date">
-                                </div>
-                                <div class="input-group date-wrapper transaction-time-group d-none">
-                                    <span>Invoice Time</span>
-                                    <input type="text" class="input-control underline-input transaction-time-display" placeholder="03:45 PM" readonly>
+                                <div class="input-group date-wrapper order-date-group">
+                                    <span>Order Date</span>
+                                    <input type="date" class="input-control underline-input order-date">
+                                    <input type="hidden" class="invoice-date">
                                 </div>
 
-                                <div class="input-group date-wrapper deal-days-group">
+                                <div class="input-group date-wrapper deal-days-group d-none">
                                     <span>Deal Days</span>
                                     <select class="input-control underline-input due-days-select">
                                         <option value="0">0 Days</option>
@@ -2224,7 +2302,7 @@ textarea.meta-control,
                                 </div>
                                 <div class="input-group date-wrapper final-due-date-group">
                                     <span>Due Date</span>
-                                    <input type="date" class="input-control underline-input due-date" readonly>
+                                    <input type="date" class="input-control underline-input due-date">
                                 </div>
 
                             </div>
@@ -2802,7 +2880,11 @@ textarea.meta-control,
         unitsStore: "{{ url('dashboard/items/units') }}"
     };
 
-    window.saleStoreUrl = "{{ route('sale.store') }}";
+    @php
+        $isDuplicateSaleMode = request()->filled('duplicate_sale_id');
+    @endphp
+
+    window.saleStoreUrl = "{{ route('sale-order.store') }}";
     window.saleMethod = 'POST';
     window.nextInvoiceNumber = "{{ $nextInvoiceNumber ?? '' }}";
 
@@ -2812,23 +2894,34 @@ textarea.meta-control,
     window.sourceSaleOrderId = null;
     window.sourceChallanId = null;
     window.sourceProformaId = null;
+    window.isDuplicateSaleMode = @json($isDuplicateSaleMode);
 
     // Optional doc type (avoid JS error)
-  window.docType = "sale_order";
+  window.docType = @json($isDuplicateSaleMode ? 'sale_order' : (isset($convertedSaleData['source_sale_order_id']) ? 'invoice' : request()->query('type', 'sale_order')));
 
     @if(isset($sale))
         // Edit mode
-        window.saleStoreUrl = "{{ route('sale.update', $sale->id) }}";
+        window.saleStoreUrl = "{{ route('sale-order.update', $sale->id) }}";
         window.saleMethod = 'PUT';
-        window.editSaleData = @json($sale->load(['items', 'payments']));
+        @php
+            $saleOrderEditPayload = $editSaleData ?? ($sale ? $sale->load(['items', 'payments', 'party', 'details']) : null);
+        @endphp
+        window.editSaleData = @json($saleOrderEditPayload);
 
     @elseif(isset($convertedSaleData))
         // Convert from estimate / sale order / challan
         window.editSaleData = @json($convertedSaleData);
+        @if($isDuplicateSaleMode)
+        window.sourceEstimateId = null;
+        window.sourceSaleOrderId = null;
+        window.sourceChallanId = null;
+        window.sourceProformaId = null;
+        @else
         window.sourceEstimateId = @json($convertedSaleData['source_estimate_id'] ?? null);
         window.sourceSaleOrderId = @json($convertedSaleData['source_sale_order_id'] ?? null);
         window.sourceChallanId = @json($convertedSaleData['source_challan_id'] ?? null);
         window.sourceProformaId = @json($convertedSaleData['source_proforma_id'] ?? null);
+        @endif
     @endif
 </script>
 
@@ -4566,14 +4659,166 @@ if (partySearchInput) {
         }
     };
 
-    const setPartyFieldValues = (partyRecord = {}) => {
-        setFieldValue(".phone-input", partyRecord.phone || "");
-        setFieldValue(".city-input", partyRecord.city || "");
-        setFieldValue(".ptcl-input", partyRecord.ptcl_number || partyRecord.ptcl || "");
-        setFieldValue(".address-input", partyRecord.address || "");
-        setFieldValue(".billing-address", partyRecord.billing_address || partyRecord.billing || "");
-        setFieldValue(".shipping-address", partyRecord.shipping_address || partyRecord.shipping || "");
+    const setPartyFieldsLocked = (locked) => {
+        const selectors = [
+            '.billing-name-input',
+            '#billingNameInput',
+            '.city-input',
+            '.ptcl-input',
+            '#pscPtcl',
+            '.address-input',
+            '#pscAddress',
+            '.billing-address',
+            '#pscBilling',
+            '.shipping-address',
+            '#pscShipping'
+        ];
+
+        selectors.forEach((selector) => {
+            document.querySelectorAll(selector).forEach((field) => {
+                if (!field) return;
+                if ('readOnly' in field) {
+                    field.readOnly = locked;
+                } else {
+                    field.disabled = locked;
+                }
+                field.classList.toggle('is-party-locked', locked);
+            });
+        });
     };
+
+    const syncPartyFormValues = (partyRecord = {}) => {
+        const valueOrEmpty = (value) => value || '';
+        setFieldValue('.phone-input', valueOrEmpty(partyRecord.phone));
+        setFieldValue('#pscPhone', valueOrEmpty(partyRecord.phone));
+        setFieldValue('.billing-name-input', valueOrEmpty(partyRecord.name));
+        setFieldValue('#billingNameInput', valueOrEmpty(partyRecord.name));
+        setFieldValue('.city-input', valueOrEmpty(partyRecord.city));
+        setFieldValue('.ptcl-input', valueOrEmpty(partyRecord.ptcl_number || partyRecord.ptcl));
+        setFieldValue('#pscPtcl', valueOrEmpty(partyRecord.ptcl_number || partyRecord.ptcl));
+        setFieldValue('.address-input', valueOrEmpty(partyRecord.address));
+        setFieldValue('#pscAddress', valueOrEmpty(partyRecord.address));
+        setFieldValue('.billing-address', valueOrEmpty(partyRecord.billing_address || partyRecord.billing || partyRecord.address));
+        setFieldValue('#pscBilling', valueOrEmpty(partyRecord.billing_address || partyRecord.billing || partyRecord.address));
+        setFieldValue('.shipping-address', valueOrEmpty(partyRecord.shipping_address || partyRecord.shipping));
+        setFieldValue('#pscShipping', valueOrEmpty(partyRecord.shipping_address || partyRecord.shipping));
+    };
+
+    const renderPartyCard = (partyRecord = {}) => {
+        const wrapper = document.querySelector('.party-dropdown-wrapper');
+        const searchInput = document.getElementById('partyDropdownBtn');
+        if (!wrapper || !searchInput) return;
+
+        const oldCard = wrapper.querySelector('.party-selected-card');
+        if (oldCard) oldCard.remove();
+
+        if (!partyRecord.name) {
+            searchInput.style.display = '';
+            searchInput.value = '';
+            const balanceDisplay = document.getElementById('partyBalanceDisplay');
+            if (balanceDisplay) balanceDisplay.innerHTML = '';
+            const partyDetailsSection = document.querySelector('.party-details');
+            if (partyDetailsSection) partyDetailsSection.classList.add('d-none');
+            const partyIdInput = document.querySelector('.party-id');
+            if (partyIdInput) partyIdInput.value = '';
+            setPartyFieldsLocked(false);
+            syncPartyFormValues({});
+            return;
+        }
+
+        searchInput.style.display = 'none';
+        const partyIdInput = document.querySelector('.party-id');
+        if (partyIdInput && partyRecord.id) {
+            partyIdInput.value = String(partyRecord.id);
+        }
+
+        const opening = parseFloat(partyRecord.opening_balance || 0);
+        const type = partyRecord.transaction_type;
+        let balanceHtml = '';
+        if (type === 'pay') {
+            balanceHtml = `<span class="party-card-balance text-danger"><i class="fa-solid fa-arrow-up me-1"></i>₹${opening.toFixed(2)}</span>`;
+        } else if (type === 'receive') {
+            balanceHtml = `<span class="party-card-balance text-success"><i class="fa-solid fa-arrow-down me-1"></i>₹${opening.toFixed(2)}</span>`;
+        } else if (opening) {
+            balanceHtml = `<span class="party-card-balance text-muted">₹${opening.toFixed(2)}</span>`;
+        }
+
+        const lineParts = [];
+        const mobiles = [partyRecord.phone, partyRecord.phone_number_2].filter(Boolean);
+        if (mobiles.length) lineParts.push(`M: ${mobiles.join(', ')}`);
+        if (partyRecord.ptcl_number || partyRecord.ptcl) lineParts.push(`T: ${partyRecord.ptcl_number || partyRecord.ptcl}`);
+        if (partyRecord.email) lineParts.push(`Em: ${partyRecord.email}`);
+        const city = partyRecord.city || '';
+        if (city) lineParts.push(`📍 ${city}`);
+
+        const card = document.createElement('div');
+        card.className = 'party-selected-card';
+        card.innerHTML = `
+            <div class="party-card-info">
+                <span class="party-card-name">${partyRecord.name}</span>
+                ${lineParts.map((line) => `<span class="party-card-line">${line}</span>`).join('')}
+                ${balanceHtml}
+            </div>
+            <button type="button" class="party-card-clear" title="Change Party">✕</button>
+        `;
+
+        card.querySelector('.party-card-clear')?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            card.remove();
+            searchInput.style.display = '';
+            searchInput.value = '';
+            searchInput.focus();
+            const balanceDisplay = document.getElementById('partyBalanceDisplay');
+            if (balanceDisplay) balanceDisplay.innerHTML = '';
+            const partyDetailsSection = document.querySelector('.party-details');
+            if (partyDetailsSection) partyDetailsSection.classList.add('d-none');
+            const partyIdInput = document.querySelector('.party-id');
+            if (partyIdInput) partyIdInput.value = '';
+            setPartyFieldsLocked(false);
+            syncPartyFormValues({});
+        });
+
+        searchInput.insertAdjacentElement('beforebegin', card);
+    };
+
+    const setPartyFieldValues = (partyRecord = {}) => {
+        syncPartyFormValues(partyRecord);
+        setPartyFieldsLocked(Boolean(partyRecord.name));
+        const partyDetailsSection = document.querySelector(".party-details");
+        if (partyDetailsSection) partyDetailsSection.classList.remove("d-none");
+        renderPartyCard(partyRecord);
+    };
+
+    window.initializeSelectedPartyCard = (partyRecord = {}) => {
+        setPartyFieldValues(partyRecord);
+    };
+
+    if (window.pendingSelectedPartyRecord) {
+        setPartyFieldValues(window.pendingSelectedPartyRecord);
+        window.pendingSelectedPartyRecord = null;
+    } else if (window.editSaleData?.party_id) {
+        const fallbackParty = (window.parties || []).find(p => String(p.id) === String(window.editSaleData.party_id));
+        setPartyFieldValues(fallbackParty ? {
+            ...fallbackParty,
+            billing_address: fallbackParty.billing_address || window.editSaleData.billing_address || '',
+            shipping_address: fallbackParty.shipping_address || window.editSaleData.shipping_address || '',
+            phone: fallbackParty.phone || window.editSaleData.phone || '',
+        } : {
+            id: window.editSaleData.party_id,
+            name: window.editSaleData.party_name || 'Select Party',
+            phone: window.editSaleData.phone || '',
+            phone_number_2: window.editSaleData.party?.phone_number_2 || '',
+            ptcl_number: window.editSaleData.party?.ptcl_number || '',
+            email: window.editSaleData.party?.email || '',
+            city: window.editSaleData.party?.city || '',
+            address: window.editSaleData.party?.address || '',
+            billing_address: window.editSaleData.billing_address || '',
+            shipping_address: window.editSaleData.shipping_address || '',
+            due_days: window.editSaleData.party?.due_days || 0,
+            opening_balance: window.editSaleData.party?.opening_balance || 0,
+            transaction_type: window.editSaleData.party?.transaction_type || '',
+        });
+    }
 
     const setDueDateFromParty = (partyRecord = {}) => {
         const dealDaysSelect = document.querySelector(".due-days-select");
@@ -4627,16 +4872,21 @@ if (partySearchInput) {
             const id = option.dataset.id;
             const selectedParty = (window.parties || []).find((party) => String(party.id) === String(id)) || {};
             const partyRecord = {
+                name: selectedParty.name ?? option.dataset.name ?? partyName,
                 phone: selectedParty.phone ?? option.dataset.phone ?? "",
+                phone_number_2: selectedParty.phone_number_2 ?? option.dataset.phoneNumber2 ?? "",
                 city: selectedParty.city ?? option.dataset.city ?? "",
                 ptcl_number: selectedParty.ptcl_number ?? option.dataset.ptcl ?? "",
+                email: selectedParty.email ?? option.dataset.email ?? "",
                 address: selectedParty.address ?? option.dataset.address ?? "",
                 billing_address: selectedParty.billing_address ?? option.dataset.billing ?? "",
                 shipping_address: selectedParty.shipping_address ?? option.dataset.shipping ?? "",
                 due_days: selectedParty.due_days ?? option.dataset.dueDays ?? "",
+                opening_balance: selectedParty.opening_balance ?? option.dataset.opening ?? 0,
+                transaction_type: selectedParty.transaction_type ?? option.dataset.type ?? type,
             };
 
-            // Button pe sirf party name
+            // Button/search text pe sirf party name
             dropdownBtn.value = partyName;
 
             // Show balance below button with color
@@ -4864,7 +5114,7 @@ document.addEventListener("DOMContentLoaded", function() {
             dealDaysGroup.style.display = isCash ? 'none' : '';
         }
         if (dueDateGroup) {
-            dueDateGroup.style.display = isCash ? 'none' : '';
+            dueDateGroup.style.display = '';
         }
         invoiceContainer?.classList.toggle('cash-mode', Boolean(isCash));
         if (!isCash) {

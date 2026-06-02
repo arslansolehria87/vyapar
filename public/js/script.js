@@ -153,6 +153,29 @@ class TabManager {
         await this.createNewTab(`${this.getTabPrefix()} #1`);
     }
 
+    getCloseFallbackUrl() {
+        const referrer = document.referrer || '';
+        if (referrer) {
+            try {
+                const referrerUrl = new URL(referrer);
+                if (referrerUrl.origin === window.location.origin && referrerUrl.href !== window.location.href) {
+                    return referrerUrl.href;
+                }
+            } catch (_) {}
+        }
+
+        return '/dashboard/sales';
+    }
+
+    closePageToPrevious() {
+        if (window.history.length > 1) {
+            window.history.back();
+            return;
+        }
+
+        window.location.href = this.getCloseFallbackUrl();
+    }
+
    async createNewTab(title = null, content = "") {
         if (this.tabs.length >= this.MAX_TABS) {
             this.limitModal.show();
@@ -252,8 +275,8 @@ if (billInput && window.nextInvoiceNumber) {
     }
 
     closeTab(id) {
-        // Prevent closing the last tab
         if (this.tabs.length <= 1) {
+            this.closePageToPrevious();
             return;
         }
 

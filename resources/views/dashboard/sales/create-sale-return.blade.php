@@ -477,6 +477,12 @@ textarea.meta-control,
     padding:16px 10px 14px 10px !important;
 }
 
+textarea.meta-control[readonly]{
+    background:#f8fafc !important;
+    color:#475569 !important;
+    cursor:not-allowed;
+}
+
 /* =========================
    LABELS SMALL
 ========================= */
@@ -1174,6 +1180,74 @@ textarea.meta-control,
     line-height: 1.2;
 }
 
+.party-selected-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid #22c55e;
+    background: #e8f8ea;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(34, 197, 94, 0.10);
+    min-width: 180px;
+    max-width: 100%;
+    margin-bottom: 8px;
+}
+
+.party-selected-card.d-none {
+    display: none !important;
+}
+
+.party-selected-card .party-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+    min-width: 0;
+}
+
+.party-selected-card .party-card-name {
+    font-weight: 700;
+    font-size: 13px;
+    color: #1e293b;
+}
+
+.party-selected-card .party-card-line {
+    color: #475569;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.party-selected-card .party-card-balance {
+    font-weight: 700;
+    font-size: 11px;
+    color: #166534;
+}
+
+.party-selected-card .party-card-clear {
+    background: #fff;
+    border: 1px solid rgba(22, 101, 52, 0.18);
+    color: #166534;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.party-selected-card .party-card-clear:hover {
+    color: #0f5132;
+    background: #dcfce7;
+}
+
 .party-meta-field {
     display: flex;
     flex-direction: column;
@@ -1310,18 +1384,23 @@ textarea.meta-control,
 }
 
 .action-fields-layout.meta-stack-layout {
-    display: grid;
-    grid-template-columns: minmax(220px, 250px) minmax(0, 360px);
-    gap: 18px;
-    align-items: start;
+    display: flex;
+    align-items: flex-start;
+    gap: 22px;
+}
+
+.action-fields-layout.meta-stack-layout .action-buttons-column {
+    flex: 0 0 270px;
+    max-width: 270px;
 }
 
 .action-fields-layout.meta-stack-layout .description-side-fields {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    width: 100%;
-    max-width: 360px;
+    flex: 0 0 315px;
+    max-width: 315px;
+    width: 315px;
     margin-left: 0 !important;
     margin-top: 0 !important;
     padding-top: 0;
@@ -1334,8 +1413,26 @@ textarea.meta-control,
 .action-fields-layout.meta-stack-layout .floating-input-wrapper .meta-control {
     width: 100%;
     max-width: none;
-    min-height: 50px;
-    padding: 14px 16px 8px;
+}
+
+.action-fields-layout.meta-stack-layout.no-terms-layout {
+    gap: 0 !important;
+}
+
+.action-fields-layout.meta-stack-layout.no-terms-layout .meta-right-stack {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.action-fields-layout.meta-stack-layout.no-terms-layout .action-buttons-column {
+    flex: 0 0 270px;
+    max-width: 270px;
+}
+
+.action-fields-layout.meta-stack-layout.no-terms-layout .description-side-fields {
+    flex: 0 0 315px;
+    max-width: 315px;
+    width: 315px;
 }
 
 .additional-charge-live-section {
@@ -1343,6 +1440,27 @@ textarea.meta-control,
     flex-direction: column;
     gap: 10px;
     margin: 8px 0 12px;
+}
+
+.bottom-section {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    width: 100%;
+}
+
+.bottom-left {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.bottom-right {
+    flex: 0 0 420px;
+    max-width: 420px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
 }
 
 .additional-charge-live-row {
@@ -1392,6 +1510,12 @@ textarea.meta-control,
     border: 1px solid #dbe4f0;
     border-radius: 10px;
     background: #fbfdff;
+}
+
+.bottom-right .action-buttons-column {
+    width: 270px;
+    max-width: 270px;
+    margin-bottom: 12px;
 }
 
 .bottom-right .market-calc-row {
@@ -1492,10 +1616,8 @@ textarea.meta-control,
 }
 
 .bottom-right .custom-expense-inputs {
-    display: flex;
-    align-items: center;
     gap: 6px;
-    flex-wrap: wrap;
+    align-items: center;
 }
 
 .bottom-right .custom-expense-mode-group {
@@ -1600,7 +1722,6 @@ textarea.meta-control,
 .bottom-right .add-custom-expense-row {
     min-width: 120px;
     max-width: 140px;
-    margin-left: 242px;
 }
 
 @media (max-width: 1200px) {
@@ -2224,13 +2345,13 @@ textarea.meta-control,
                                     </div>
                                     <div class="party-meta-field address-field billing-address-field">
                                         <div class="floating-input-wrapper">
-                                            <textarea name="billing_address" class="meta-control billing-address" rows="2" placeholder=" "></textarea>
+                                            <textarea name="billing_address" class="meta-control billing-address" rows="2" placeholder=" " readonly></textarea>
                                             <label>Billing Address</label>
                                         </div>
                                     </div>
                                     <div class="party-meta-field address-field shipping-address-field">
                                         <div class="floating-input-wrapper">
-                                            <textarea name="shipping_address" class="meta-control shipping-address" rows="2" placeholder=" "></textarea>
+                                            <textarea name="shipping_address" class="meta-control shipping-address" rows="2" placeholder=" " readonly></textarea>
                                             <label>Shipping Address</label>
                                         </div>
                                     </div>
@@ -2269,18 +2390,15 @@ textarea.meta-control,
                                 </div>
                                 <div class="input-group invoice-number-group">
                                     <span>Invoice No.</span>
-                                    <div class="invoice-prefix-stack">
-                                        <select class="input-control underline-input sale-prefix-select"></select>
-                                        <input type="text" class="input-control underline-input bill-number" value="{{ $nextInvoiceNumber ?? 'Auto' }}" readonly>
-                                    </div>
+                                    <input type="text" class="input-control underline-input bill-number" value="{{ $nextInvoiceNumber ?? '' }}" placeholder="Invoice No.">
                                 </div>
                                 <div class="input-group date-wrapper invoice-date-group">
                                     <span>Invoice Date</span>
-                                    <input type="date" class="input-control underline-input invoice-date">
+                                    <input type="date" class="input-control underline-input invoice-date" value="">
                                 </div>
-                                <div class="input-group date-wrapper transaction-time-group d-none">
-                                    <span>Invoice Time</span>
-                                    <input type="text" class="input-control underline-input transaction-time-display" placeholder="03:45 PM" readonly>
+                                <div class="input-group date-wrapper final-due-date-group">
+                                    <span>Date</span>
+                                    <input type="date" class="input-control underline-input due-date" value="{{ now()->format('Y-m-d') }}">
                                 </div>
 
                                 <div class="input-group date-wrapper deal-days-group">
@@ -2296,11 +2414,6 @@ textarea.meta-control,
                                     </select>
                                     <input type="number" class="input-control underline-input due-days-custom d-none" placeholder="Custom deal days" min="0">
                                 </div>
-                                <div class="input-group date-wrapper final-due-date-group">
-                                    <span>Due Date</span>
-                                    <input type="date" class="input-control underline-input due-date" readonly>
-                                </div>
-
                             </div>
                         </div>
 
@@ -2328,8 +2441,7 @@ textarea.meta-control,
                                             @endforeach
                                             <option value="add_new_bank">+ Add Bank Account</option>
                                         </select>
-                                                                                <input type="text" class="input-control default-payment-reference d-none" placeholder="Reference">
-
+                                        <input type="text" class="input-control default-payment-reference d-none" placeholder="Reference">
                                         <input type="number" class="input-control default-payment-amount d-none" placeholder="Amount" min="0" step="0.01">
                                     </div>
 
@@ -2361,8 +2473,7 @@ textarea.meta-control,
                                               @endforeach
                                               <option value="add_new_bank">+ Add Bank Account</option>
                                           </select>
-                                                                                  <input type="text" class="input-control payment-reference" placeholder="Reference">
-
+                                        <input type="text" class="input-control payment-reference" placeholder="Reference">
                                         <input type="number" class="input-control payment-amount" placeholder="Amount" min="0" step="0.01">
                                         <button type="button" class="btn btn-outline-danger btn-sm remove-payment-entry" title="Remove">
                                             <i class="fa-solid fa-trash"></i>
@@ -2373,27 +2484,7 @@ textarea.meta-control,
 <div class="d-flex flex-column align-items-start w-100">
 
                                 <div class="action-fields-layout meta-stack-layout w-100">
-                                    <div class="terms-condition-group mb-2">
-                                        <div class="terms-condition-pane mt-2">
-                                            <div class="terms-condition-card">
-                                                <h6 class="terms-condition-card-title">Terms &amp; Conditions</h6>
-                                                <div class="terms-condition-row">
-                                                    <div class="terms-condition-field">
-                                                        <label class="terms-condition-field-label">Terms &amp; Conditions</label>
-                                                        <select class="form-select terms-condition-select">
-                                                            <option value="">Select Terms</option>
-                                                            <option value="__add_new__">+ Add Terms &amp; Conditions</option>
-                                                        </select>
-                                                    </div>
-                                                    <button type="button" class="terms-condition-add-btn open-terms-condition-modal" title="Add Terms &amp; Conditions">
-                                                        <i class="fa-solid fa-plus"></i>
-                                                    </button>
-                                                </div>
-                                                <textarea class="form-control terms-condition-text" rows="5" placeholder="Thanks for doing business with us!"></textarea>
-                                            </div>
-                                        </div>
-                                    </div>
-
+                                   
                                     <div class="meta-right-stack d-flex gap-3">
                                     <div class="action-buttons-column">
                                         <div class="description-action-group mb-2 w-100 d-flex">
@@ -2422,45 +2513,24 @@ textarea.meta-control,
                                                 ADD DOCUMENT
                                             </button>
                                         </div>
+
+                                        <div class="image-upload-section mt-2 w-100">
+                                            <div class="image-files-list d-flex flex-wrap gap-2"></div>
+                                            <div class="document-files-list list-group mt-2"></div>
+                                        </div>
                                     </div>
 
-                                    <div class="description-side-fields compact-side-fields d-flex flex-column gap-2">
-                                        <div class="party-meta-field">
-                                            <div class="floating-input-wrapper">
-                                                <input type="text" name="goods_name" class="meta-control goods-name-input" placeholder=" ">
-                                                <label>Goodz / Name</label>
-                                            </div>
-                                        </div>
-                                        <div class="party-meta-field">
-                                            <div class="floating-input-wrapper">
-                                                <input type="text" name="bilti_gari_no" class="meta-control bilti-gari-input" placeholder=" ">
-                                                <label>Bilti No / Gari No</label>
-                                            </div>
-                                        </div>
-                                        <div class="party-meta-field">
-                                            <div class="floating-input-wrapper">
-                                                <input type="text" name="details_extra" class="meta-control details-extra-input" placeholder=" ">
-                                                <label>Details Extra</label>
-                                            </div>
-                                        </div>
-                                    </div>
+                               
                                     </div>
                                 </div>
 
-                               <div class="image-upload-section mt-2">
-                                    <div class="image-placeholder text-center p-3 border border-dashed rounded" style="cursor:pointer;">
-                                        <div class="text-muted">Click to select image(s)</div>
-                                        <div class="small text-muted">(PNG/JPG, up to 5MB each)</div>
-                                    </div>
-                                    <div class="image-files-list d-flex flex-wrap gap-2 mt-2"></div>
-                                    <div class="document-files-list list-group mt-2"></div>
-                                </div>
-
-                                <input type="file" class="d-none image-input" accept="image/*" multiple />
-                                <input type="file" class="d-none document-input" accept=".pdf,.doc,.docx" multiple />
+                              
                             </div>
 
                         </div>
+
+                        <input type="file" class="d-none image-input" accept="image/*" multiple />
+                        <input type="file" class="d-none document-input" accept=".pdf,.doc,.docx" multiple />
 
                             <!-- Right Column -->
                             <div class="bottom-right">
@@ -2468,12 +2538,11 @@ textarea.meta-control,
                                     <div class="calc-label">Broker</div>
                                     <div class="calc-inputs broker-calc-inputs">
                                         <div class="broker-dropdown-wrapper dropdown" data-bs-auto-close="outside" style="position: relative; display: inline-block; width: 260px; max-width: 100%;">
-                                            <input type="text" class="form-control broker-search-input w-100" placeholder="Broker" id="brokerDropdownBtn" data-bs-toggle="dropdown" autocomplete="off">
+                                            <input type="text" class="form-control broker-search-input w-100" placeholder="Search or select broker..." id="brokerDropdownBtn" data-bs-toggle="dropdown" autocomplete="off">
                                             <div class="broker-selected-info">
                                                 <div class="broker-selected-name"></div>
                                                 <div class="broker-selected-phone"></div>
                                             </div>
-
                                             <ul class="dropdown-menu w-100" aria-labelledby="brokerDropdownBtn" id="brokerDropdownMenu">
                                                 @foreach($brokers as $broker)
                                                 <li>
@@ -2487,9 +2556,10 @@ textarea.meta-control,
                                                     </a>
                                                 </li>
                                                 @endforeach
-                                               </ul>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item text-primary" href="#" id="addNewBrokerBtn">+ Add New Broker</a></li>
+                                            </ul>
                                         </div>
-                                        <button type="button" class="broker-inline-add-btn open-broker-modal-btn">+ Broker</button>
                                         <div class="brokerage-inputs">
                                         <select class="brokerage-type">
                                             <option value="">Condition</option>
@@ -2497,7 +2567,6 @@ textarea.meta-control,
                                             <option value="full">Poori Brokerage (0.45%)</option>
                                             <option value="half">Aadhi Brokerage (0.225%)</option>
                                             <option value="custom_pct">Custom %</option>
-                                            <option value="fixed_rs">Rs</option>
                                             <option value="per_kg">Per KG (Safi Wazan)</option>
                                         </select>
                                         <input type="number" class="brokerage-rate" min="0" step="0.01" placeholder="Value">
@@ -2538,6 +2607,7 @@ textarea.meta-control,
                                 <div class="additional-charge-live-section d-none"></div>
 
                                 <!-- Summary Expense Grid -->
+
 
                                 <div class="custom-expense-section">
                                     <div class="custom-expense-rows"></div>
@@ -2595,7 +2665,7 @@ textarea.meta-control,
                                         </div>
                                         <input type="text" class="mini-input custom-expense-details" value="" placeholder="Tafseel">
                                         <input type="number" class="mini-input custom-expense-pct" value="" min="0" step="0.01" placeholder="%">
-                                        <span class="text-muted small">-</span>
+                                        <span class="custom-expense-unit-dash">-</span>
                                         <input type="number" class="mini-input custom-expense-value" value="0" min="0" step="0.01" placeholder="Amt">
                                         <input type="hidden" class="custom-expense-mode" value="+">
                                         <input type="hidden" class="custom-expense-account-type" value="">
@@ -2878,11 +2948,15 @@ textarea.meta-control,
         unitsStore: "{{ url('dashboard/items/units') }}"
     };
 
-    window.saleStoreUrl = "{{ route('sale.store') }}";
-    window.saleMethod = 'POST';
+    window.saleReturnStoreUrl = "{{ route('sale-return.store') }}";
+    window.saleReturnMethod = 'POST';
+    window.saleStoreUrl = window.saleReturnStoreUrl;
+    window.saleMethod = window.saleReturnMethod;
 
     // Default values
+    window.editSaleReturnData = null;
     window.editSaleData = null;
+    window.isDuplicateSaleReturnMode = false;
     window.sourceEstimateId = null;
     window.sourceSaleOrderId = null;
     window.sourceChallanId = null;
@@ -2891,19 +2965,44 @@ textarea.meta-control,
     // Optional doc type (avoid JS error)
  window.docType = "sale_return";
 
-    @if(isset($sale))
+    @if(isset($saleReturn))
         // Edit mode
-        window.saleStoreUrl = "{{ route('sale.update', $sale->id) }}";
-        window.saleMethod = 'PUT';
-        window.editSaleData = @json($sale->load(['items', 'payments']));
+        window.saleReturnStoreUrl = "{{ route('sale-return.update', $saleReturn->id) }}";
+        window.saleReturnMethod = 'PUT';
+        @php
+            $saleReturnEditPayload = $saleReturn->load(['items', 'payments', 'party', 'details']);
+        @endphp
+        window.editSaleReturnData = @json($saleReturnEditPayload);
+        window.editSaleData = window.editSaleReturnData;
+        window.saleStoreUrl = window.saleReturnStoreUrl;
+        window.saleMethod = window.saleReturnMethod;
 
     @elseif(isset($convertedSaleData))
         // Convert from estimate / sale order / challan
-        window.editSaleData = @json($convertedSaleData);
+        window.editSaleReturnData = @json($convertedSaleData);
+        window.editSaleData = window.editSaleReturnData;
+        window.saleStoreUrl = window.saleReturnStoreUrl;
+        window.saleMethod = window.saleReturnMethod;
         window.sourceEstimateId = @json($convertedSaleData['source_estimate_id'] ?? null);
         window.sourceSaleOrderId = @json($convertedSaleData['source_sale_order_id'] ?? null);
         window.sourceChallanId = @json($convertedSaleData['source_challan_id'] ?? null);
         window.sourceProformaId = @json($convertedSaleData['source_proforma_id'] ?? null);
+    @elseif(isset($duplicateSaleReturn))
+        @php
+            $duplicateSaleReturnPayload = $duplicateSaleReturn->load(['items', 'payments', 'party', 'details'])->toArray();
+            $duplicateSaleReturnPayload['bill_number'] = $nextInvoiceNumber;
+            $duplicateSaleReturnPayload['source_sale_id'] = null;
+        @endphp
+        window.isDuplicateSaleReturnMode = true;
+        window.editSaleReturnData = @json($duplicateSaleReturnPayload);
+        window.editSaleData = window.editSaleReturnData;
+        window.saleStoreUrl = window.saleReturnStoreUrl;
+        window.saleMethod = window.saleReturnMethod;
+    @elseif(isset($prefilledSaleReturnData))
+        window.editSaleReturnData = @json($prefilledSaleReturnData);
+        window.editSaleData = window.editSaleReturnData;
+        window.saleStoreUrl = window.saleReturnStoreUrl;
+        window.saleMethod = window.saleReturnMethod;
     @endif
 </script>
 
@@ -3132,44 +3231,6 @@ textarea.meta-control,
           </form>
         </div>
       </div>
-    </div>
-
-    <div class="modal fade" id="termsConditionModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content border-0 shadow-sm">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add Terms &amp; Conditions</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="terms-modal-field">
-                        <label class="terms-modal-label">Terms and Conditions</label>
-                        <input type="text" class="form-control" id="termsConditionNameInput" placeholder="">
-                        <div class="terms-modal-help">You can select the term based on the header you select here</div>
-                    </div>
-                    <div class="terms-modal-field">
-                        <label class="terms-modal-label">Description</label>
-                        <textarea class="form-control terms-modal-textarea" id="termsConditionDescriptionInput" placeholder="Paste/Write your terms and conditions here"></textarea>
-                    </div>
-                    <div class="terms-modal-field mb-0">
-                        <label class="terms-modal-label">Applicable for:</label>
-                        <div class="terms-modal-grid">
-                            <label class="terms-modal-check"><input type="checkbox" value="invoice" class="terms-applicable-check"> Sale Invoice</label>
-                            <label class="terms-modal-check"><input type="checkbox" value="sale_order" class="terms-applicable-check"> Sale Order</label>
-                            <label class="terms-modal-check"><input type="checkbox" value="delivery_challan" class="terms-applicable-check"> Delivery Challan</label>
-                            <label class="terms-modal-check"><input type="checkbox" value="estimate" class="terms-applicable-check"> Estimation/Quotation</label>
-                            <label class="terms-modal-check"><input type="checkbox" value="purchase_bill" class="terms-applicable-check"> Purchase Bill</label>
-                            <label class="terms-modal-check"><input type="checkbox" value="purchase_order" class="terms-applicable-check"> Purchase Order</label>
-                            <label class="terms-modal-check"><input type="checkbox" value="proforma" class="terms-applicable-check"> Proforma Invoice</label>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer terms-modal-actions">
-                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">No, Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveTermsConditionBtn">Save Changes</button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Form Logic -->
@@ -4699,6 +4760,79 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     };
 
+    const renderPartyCard = (partyRecord = {}) => {
+        const wrapper = document.querySelector('.party-dropdown-wrapper');
+        const searchInput = document.getElementById('partyDropdownBtn');
+        if (!wrapper || !searchInput) return;
+
+        const oldCard = wrapper.querySelector('.party-selected-card');
+        if (oldCard) oldCard.remove();
+
+        if (!partyRecord.name) {
+            searchInput.style.display = '';
+            searchInput.value = '';
+            const balanceDisplay = document.getElementById('partyBalanceDisplay');
+            if (balanceDisplay) balanceDisplay.innerHTML = '';
+            const partyDetailsSection = document.querySelector('.party-details');
+            if (partyDetailsSection) partyDetailsSection.classList.add('d-none');
+            const partyIdInput = document.querySelector('.party-id');
+            if (partyIdInput) partyIdInput.value = '';
+            return;
+        }
+
+        searchInput.style.display = 'none';
+        const partyIdInput = document.querySelector('.party-id');
+        if (partyIdInput && partyRecord.id) {
+            partyIdInput.value = String(partyRecord.id);
+        }
+
+        const opening = parseFloat(partyRecord.opening_balance || 0);
+        const type = partyRecord.transaction_type;
+        let balanceHtml = '';
+        if (type === 'pay') {
+            balanceHtml = `<span class="party-card-balance text-danger"><i class="fa-solid fa-arrow-up me-1"></i>₹${opening.toFixed(2)}</span>`;
+        } else if (type === 'receive') {
+            balanceHtml = `<span class="party-card-balance text-success"><i class="fa-solid fa-arrow-down me-1"></i>₹${opening.toFixed(2)}</span>`;
+        } else if (opening) {
+            balanceHtml = `<span class="party-card-balance text-muted">₹${opening.toFixed(2)}</span>`;
+        }
+
+        const lineParts = [];
+        const mobiles = [partyRecord.phone, partyRecord.phone_number_2].filter(Boolean);
+        if (mobiles.length) lineParts.push(`M: ${mobiles.join(', ')}`);
+        if (partyRecord.ptcl_number || partyRecord.ptcl) lineParts.push(`T: ${partyRecord.ptcl_number || partyRecord.ptcl}`);
+        if (partyRecord.email) lineParts.push(`Em: ${partyRecord.email}`);
+        const city = partyRecord.city || '';
+        if (city) lineParts.push(`📍 ${city}`);
+
+        const card = document.createElement('div');
+        card.className = 'party-selected-card';
+        card.innerHTML = `
+            <div class="party-card-info">
+                <span class="party-card-name">${partyRecord.name}</span>
+                ${lineParts.map((line) => `<span class="party-card-line">${line}</span>`).join('')}
+                ${balanceHtml}
+            </div>
+            <button type="button" class="party-card-clear" title="Change Party">✕</button>
+        `;
+
+        card.querySelector('.party-card-clear')?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            card.remove();
+            searchInput.style.display = '';
+            searchInput.value = '';
+            searchInput.focus();
+            const balanceDisplay = document.getElementById('partyBalanceDisplay');
+            if (balanceDisplay) balanceDisplay.innerHTML = '';
+            const partyDetailsSection = document.querySelector('.party-details');
+            if (partyDetailsSection) partyDetailsSection.classList.add('d-none');
+            const partyIdInput = document.querySelector('.party-id');
+            if (partyIdInput) partyIdInput.value = '';
+        });
+
+        searchInput.insertAdjacentElement('beforebegin', card);
+    };
+
     const setPartyFieldValues = (partyRecord = {}) => {
         setFieldValue(".phone-input", partyRecord.phone || "");
         setFieldValue(".city-input", partyRecord.city || "");
@@ -4706,13 +4840,45 @@ document.addEventListener("DOMContentLoaded", function() {
         setFieldValue(".address-input", partyRecord.address || "");
         setFieldValue(".billing-address", partyRecord.billing_address || partyRecord.billing || "");
         setFieldValue(".shipping-address", partyRecord.shipping_address || partyRecord.shipping || "");
+
+        const partyDetailsSection = document.querySelector(".party-details");
+        if (partyDetailsSection) partyDetailsSection.classList.remove("d-none");
+        renderPartyCard(partyRecord);
     };
+
+    window.initializeSelectedPartyCard = (partyRecord = {}) => {
+        setPartyFieldValues(partyRecord);
+    };
+
+    if (window.pendingSelectedPartyRecord) {
+        setPartyFieldValues(window.pendingSelectedPartyRecord);
+        window.pendingSelectedPartyRecord = null;
+    } else if (window.editSaleReturnData?.party_id) {
+        const fallbackParty = (window.parties || []).find(p => String(p.id) === String(window.editSaleReturnData.party_id));
+        setPartyFieldValues(fallbackParty ? {
+            ...fallbackParty,
+            billing_address: fallbackParty.billing_address || window.editSaleReturnData.billing_address || '',
+            shipping_address: fallbackParty.shipping_address || window.editSaleReturnData.shipping_address || '',
+            phone: fallbackParty.phone || window.editSaleReturnData.phone || '',
+        } : {
+            id: window.editSaleReturnData.party_id,
+            name: window.editSaleReturnData.party_name || 'Select Party',
+            phone: window.editSaleReturnData.phone || '',
+            city: window.editSaleReturnData.city || '',
+            ptcl_number: window.editSaleReturnData.ptcl_number || '',
+            address: window.editSaleReturnData.address || '',
+            billing_address: window.editSaleReturnData.billing_address || '',
+            shipping_address: window.editSaleReturnData.shipping_address || '',
+            opening_balance: window.editSaleReturnData.opening_balance || 0,
+            transaction_type: window.editSaleReturnData.transaction_type || '',
+        });
+    }
 
     const setDueDateFromParty = (partyRecord = {}) => {
         const dealDaysSelect = document.querySelector(".due-days-select");
         const dealDaysCustomInput = document.querySelector(".due-days-custom");
         const dueDateInput = document.querySelector(".due-date");
-        const orderDateInput = document.querySelector(".order-date");
+        const orderDateInput = document.querySelector(".invoice-date") || document.querySelector(".order-date");
         if (!dueDateInput || !orderDateInput || !dealDaysSelect) return;
 
         const dueDays = Number(partyRecord.due_days || partyRecord.dueDays || 0);
@@ -4750,6 +4916,21 @@ document.addEventListener("DOMContentLoaded", function() {
     };
 
 
+    const setSelectedPartyName = (partyName = '') => {
+        if (!dropdownBtn) return;
+        dropdownBtn.value = partyName;
+        dropdownBtn.defaultValue = partyName;
+        dropdownBtn.setAttribute('value', partyName);
+        dropdownBtn.placeholder = partyName ? '' : 'Search party...';
+        dropdownBtn.dataset.selectedPartyName = partyName;
+
+        setTimeout(() => {
+            dropdownBtn.value = partyName;
+            dropdownBtn.defaultValue = partyName;
+            dropdownBtn.setAttribute('value', partyName);
+        }, 0);
+    };
+
     dropdownMenu.addEventListener("click", function(e) {
         if(e.target.closest(".party-option")) {
             e.preventDefault();
@@ -4760,17 +4941,23 @@ document.addEventListener("DOMContentLoaded", function() {
             const id = option.dataset.id;
             const selectedParty = (window.parties || []).find((party) => String(party.id) === String(id)) || {};
             const partyRecord = {
+                id: selectedParty.id ?? id,
+                name: selectedParty.name ?? name,
                 phone: selectedParty.phone ?? option.dataset.phone ?? "",
+                phone_number_2: selectedParty.phone_number_2 ?? option.dataset.phoneNumber2 ?? "",
                 city: selectedParty.city ?? option.dataset.city ?? "",
                 ptcl_number: selectedParty.ptcl_number ?? option.dataset.ptcl ?? "",
+                email: selectedParty.email ?? option.dataset.email ?? "",
                 address: selectedParty.address ?? option.dataset.address ?? "",
                 billing_address: selectedParty.billing_address ?? option.dataset.billing ?? "",
                 shipping_address: selectedParty.shipping_address ?? option.dataset.shipping ?? "",
                 due_days: selectedParty.due_days ?? option.dataset.dueDays ?? "",
+                opening_balance: selectedParty.opening_balance ?? opening,
+                transaction_type: selectedParty.transaction_type ?? type,
             };
 
-            // Button pe sirf party name
-            dropdownBtn.value = name;
+            // Keep selected party name visible in the search field
+            setSelectedPartyName(name);
 
             // Show balance below button with color
           if(type === "pay"){
@@ -4959,6 +5146,18 @@ document.addEventListener("DOMContentLoaded", function() {
     const invoiceContainer = document.querySelector('.invoice-container');
     const showPartyWrap = document.querySelector('.cash-party-link-wrap');
     const partyIdInput = document.querySelector('.party-id');
+    const invoiceDateInput = document.querySelector('.invoice-date');
+    const dueDateInput = document.querySelector('.due-date');
+
+    const today = new Date();
+    const todayValue = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    if (invoiceDateInput) {
+        invoiceDateInput.value = '';
+    }
+    if (dueDateInput && !dueDateInput.value) {
+        dueDateInput.value = todayValue;
+    }
 
     function updatePaymentMode() {
         const isCash = saleToggleSwitch?.checked;
@@ -5029,23 +5228,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
             modal.show();
         });
-    }
-});
-
-document.addEventListener('click', function (e) {
-    const partyOption = e.target.closest('.party-option');
-    if (!partyOption) return;
-
-    const dropdownBtn = document.querySelector('#partyDropdownBtn.party-search-input');
-    if (!dropdownBtn) return;
-
-    const partyName = partyOption.dataset.name || partyOption.querySelector('.party-option-name')?.textContent?.trim() || '';
-    if (!partyName) return;
-
-    if (dropdownBtn.tagName === 'INPUT' || dropdownBtn.tagName === 'TEXTAREA') {
-        dropdownBtn.value = partyName;
-    } else {
-        dropdownBtn.textContent = partyName;
     }
 });
 </script>

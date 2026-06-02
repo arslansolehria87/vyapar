@@ -91,6 +91,8 @@ class SaleController extends Controller
 
     public function create(Request $request, string $type = 'invoice')
     {
+        
+        $type = (string) $request->query('type', $type ?: 'invoice');
         $bankAccounts = BankAccount::active()->orderBy('display_name')->get();
         $brokers = Broker::orderBy('name')->get();
 
@@ -211,6 +213,7 @@ class SaleController extends Controller
 
     public function createFromSaleOrder(Sale $sale)
     {
+     
         if ($sale->type !== 'sale_order') {
             abort(404);
         }
@@ -248,6 +251,7 @@ class SaleController extends Controller
         $nextInvoiceNumber = TransactionNumberPrefix::format('invoice', $nextSaleId);
         $convertedSaleData = $this->mapSaleOrderToSaleDraft($sale, $nextInvoiceNumber);
         $type = 'invoice';
+        // return view('dashboard.saleorder.create-sale-order', compact(
 
         return view('dashboard.sales.create', compact(
             'bankAccounts',
@@ -631,6 +635,36 @@ private function posData(): array
 
         $sale->load(['items', 'payments', 'party', 'details']);
 
+        $editSaleData = $sale->toArray();
+        $editSaleData['party_name'] = $sale->display_party_name;
+        $editSaleData['party'] = $sale->party ? $sale->party->toArray() : null;
+        $editSaleData['details'] = $sale->details ? $sale->details->toArray() : null;
+        $editSaleData['items'] = $sale->items->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'item_id' => $item->item_id,
+                'item_name' => $item->item_name,
+                'item_category' => $item->item_category,
+                'item_code' => $item->item_code,
+                'item_description' => $item->item_description,
+                'tafseel' => $item->tafseel,
+                'quantity' => $item->quantity,
+                'gross_w' => $item->gross_w,
+                'net_w' => $item->net_w,
+                'unit' => $item->unit,
+                'unit_price' => $item->unit_price,
+                'discount' => $item->discount,
+                'tax_pct' => $item->tax_pct ?? 0,
+                'tax_amount' => $item->tax_amount ?? 0,
+                'free_qty' => $item->free_qty ?? 0,
+                'amount' => $item->amount,
+                'extra_fields' => $item->extra_fields ?? [],
+            ];
+        })->values()->all();
+        $editSaleData['payments'] = $sale->payments->map(function ($payment) {
+            return $payment->toArray();
+        })->values()->all();
+
         $ledgerTransaction = Transaction::query()
             ->where('party_id', $sale->party_id)
             ->where('number', $sale->bill_number ?: (string) $sale->id)
@@ -652,8 +686,7 @@ private function posData(): array
         if ($sale->document_path) {
             $sale->document_url = Storage::disk('public')->url($sale->document_path);
         }
-
-        return view('dashboard.sales.create', compact('bankAccounts', 'brokers', 'saleItemsSource', 'serviceItemsSource', 'saleCategoryOptions', 'parties', 'partyGroups', 'categories', 'warehouses', 'customerPoDetailsEnabled', 'saleFormSettings', 'itemFormSettings', 'termsConditionTemplates', 'sale', 'type'));
+        return view('dashboard.sales.create', compact('bankAccounts', 'brokers', 'saleItemsSource', 'serviceItemsSource', 'saleCategoryOptions', 'parties', 'partyGroups', 'categories', 'warehouses', 'customerPoDetailsEnabled', 'saleFormSettings', 'itemFormSettings', 'termsConditionTemplates', 'editSaleData', 'sale', 'type'));
     }
 
     public function update(Request $request, Sale $sale)
@@ -790,7 +823,9 @@ private function posData(): array
             ? Carbon::parse($data['order_date'])
             : $invoiceDate->copy();
         $dealDays = max(0, intval($data['deal_days'] ?? 0));
-        $dueDate = $orderDate->copy()->addDays($dealDays);
+        $dueDate = !empty($data['due_date'])
+            ? Carbon::parse($data['due_date'])
+            : $orderDate->copy()->addDays($dealDays);
         $status = $this->resolveStatusForType(
             $type,
             $receivedAmount,
@@ -965,9 +1000,16 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
         $this->syncSaleLedgerEntries($sale, $data);
         $this->recalculatePartyLedgerBalances($sale->party_id);
 
-        $redirectUrl = match ($sale->type) {
-            'estimate' => route('sale.estimate'),
-            'sale_order' => route('sale-order'),
+        $requestType = (string) $request->input('type', $sale->type ?? 'invoice');
+        $fromSaleOrder = $request->boolean('from_sale_order') || $requestType === 'sale_order';
+
+        $redirectUrl = match (true) {
+            $requestType === 'estimate' => route('sale.estimate'),
+            $requestType === 'sale_return' => route('invoice', [
+                'sale_id' => $sale->id,
+                'type' => 'return-order',
+            ]),
+            $fromSaleOrder => route('sale-order'),
             default => route('sale.index'),
         };
 
@@ -976,12 +1018,18 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
             'redirect_url' => $redirectUrl,
-            'share_url' => route('invoice', ['sale_id' => $sale->id]),
+            'share_url' => $requestType === 'sale_return'
+                ? route('invoice', [
+                    'sale_id' => $sale->id,
+                    'type' => 'return-order',
+                ])
+                : route('invoice', ['sale_id' => $sale->id]),
         ]);
     }
 
     public function store(Request $request)
-    {
+    {   
+        
         $this->normalizeSaleRequestPayload($request);
 
         $data = $request->validate([
@@ -1103,6 +1151,7 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
         }
 
         $type = $data['type'] ?? 'invoice';
+    
         $grandTotal = floatval($data['grand_total'] ?? 0);
         $balance = max(0, $grandTotal - $receivedAmount);
         $invoiceDate = !empty($data['invoice_date'])
@@ -1112,7 +1161,9 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
             ? Carbon::parse($data['order_date'])
             : $invoiceDate->copy();
         $dealDays = max(0, intval($data['deal_days'] ?? 0));
-        $dueDate = $orderDate->copy()->addDays($dealDays);
+        $dueDate = !empty($data['due_date'])
+            ? Carbon::parse($data['due_date'])
+            : $orderDate->copy()->addDays($dealDays);
         $status = $this->resolveStatusForType(
             $type,
             $receivedAmount,
@@ -1335,25 +1386,40 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
             $sale->save();
         }
 
-        $redirectUrl = match ($sale->type) {
-            'estimate' => route('invoice', ['sale_id' => $sale->id]),
-            'sale_order' => route('invoice', ['sale_id' => $sale->id]),
-            'proforma' => route('proforma-invoice'),
+        $requestType = (string) $request->input('type', $sale->type ?? 'invoice');
+        $fromSaleOrder = $request->boolean('from_sale_order') || $requestType === 'sale_order';
+
+        $redirectUrl = match (true) {
+            $requestType === 'estimate' => route('invoice', ['sale_id' => $sale->id]),
+            $requestType === 'sale_return' => route('invoice', [
+                'sale_id' => $sale->id,
+                'type' => 'return-order',
+            ]),
+            $fromSaleOrder => route('sale-order'),
+            $requestType === 'proforma' => route('proforma-invoice'),
             default => route('sale.index'),
         };
-
+        // return $redirectUrl;
         return response()->json([
             'success' => true,
             'sale_id' => $sale->id,
             'bill_number' => $sale->bill_number,
             'redirect_url' => $redirectUrl,
-            'share_url' => route('invoice', ['sale_id' => $sale->id]),
+            'share_url' => $requestType === 'sale_return'
+                ? route('invoice', [
+                    'sale_id' => $sale->id,
+                    'type' => 'return-order',
+                ])
+                : route('invoice', ['sale_id' => $sale->id]),
         ]);
     }
 
     public function invoicePreview(Sale $sale)
     {
-        $sale->loadMissing(['items.item', 'party', 'payments.bankAccount']);
+        $sale->loadMissing(['items.item', 'party', 'payments.bankAccount', 'details']);
+        $signatureImage = (string) request()->query('signature_image', '');
+        $themeContext = $this->resolveSaleThemeContext($sale, request());
+        $themeConfig = $themeContext['themeConfig'];
 
         return view('themes.sales_invoice', [
             'sale' => $sale,
@@ -1361,29 +1427,27 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
             'pageTitle' => 'Preview',
             'browserTabLabel' => $sale->display_party_name !== '-' ? $sale->display_party_name : ('Invoice #' . ($sale->bill_number ?: $sale->id)),
             'saveCloseUrl' => route('sale.index'),
-            'initialMode' => $sale->type === 'invoice' ? request()->query('mode', 'regular') : 'regular',
-            'initialRegularThemeId' => (int) request()->query('theme_id', 1),
-            'initialThermalThemeId' => (int) request()->query('theme_id', 1),
-            'initialAccent' => (string) request()->query('accent', '#1f4e79'),
-            'initialAccent2' => (string) request()->query('accent2', '#ff981f'),
+            'initialMode' => $sale->type === 'invoice' ? $themeConfig['mode'] : 'regular',
+            'initialRegularThemeId' => (int) ($themeConfig['id'] ?? 1),
+            'initialThermalThemeId' => (int) ($themeConfig['id'] ?? 1),
+            'initialAccent' => $themeContext['accent'],
+            'initialAccent2' => $themeContext['accent2'],
         ]);
     }
 
     public function invoicePdf(Request $request, Sale $sale)
     {
-        $sale->loadMissing(['items.item', 'party', 'payments.bankAccount']);
-
-        $themeConfig = $this->resolveInvoiceThemeConfig(
-            (string) $request->query('mode', 'regular'),
-            (int) $request->query('theme_id', 1)
-        );
+        $sale->loadMissing(['items.item', 'party', 'payments.bankAccount', 'details']);
+        $themeContext = $this->resolveSaleThemeContext($sale, $request);
+        $themeConfig = $themeContext['themeConfig'];
 
         if ($request->boolean('download')) {
             $pdf = Pdf::loadView('themes.sales_invoice_pdf_document', [
                 'invoicePreviewData' => $this->mapSaleToThemePreviewData($sale),
                 'themeConfig' => $themeConfig,
-                'accent' => (string) $request->query('accent', '#1f4e79'),
-                'accent2' => (string) $request->query('accent2', '#ff981f'),
+                'accent' => $themeContext['accent'],
+                'accent2' => $themeContext['accent2'],
+                'saleOrderThemeApplied' => $themeContext['saleOrderThemeApplied'],
             ]);
 
             if (($themeConfig['mode'] ?? 'regular') === 'thermal') {
@@ -1737,7 +1801,16 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
         $paymentsReceived = (float) $sale->payments
             ->sum('amount');
 
+        $itemsTotal = (float) collect($items)->sum('amt');
+        $subtotal = (float) ($sale->total_amount ?? 0);
+        if ($subtotal <= 0) {
+            $subtotal = $itemsTotal;
+        }
+
         $totalAmount = (float) ($sale->grand_total ?? 0);
+        if ($totalAmount <= 0) {
+            $totalAmount = max($subtotal + (float) ($sale->tax_amount ?? 0) - (float) ($sale->discount_rs ?? 0), $itemsTotal);
+        }
         $storedBalance = (float) ($sale->balance ?? 0);
 
         $receivedAmount = (float) ($sale->received_amount ?? 0);
@@ -1758,12 +1831,14 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
             'shipTo' => (string) ($sale->shipping_address ?: $sale->billing_address ?: ''),
             'items' => $items,
             'description' => (string) ($sale->description ?: 'Thanks for doing business with us!'),
-            'subtotal' => (float) ($sale->total_amount ?? 0),
+            'subtotal' => $subtotal,
             'discount' => (float) ($sale->discount_rs ?? 0),
             'taxAmount' => (float) ($sale->tax_amount ?? 0),
             'total' => $totalAmount,
             'received' => $receivedAmount,
             'balance' => (float) ($sale->balance ?? max($totalAmount - $receivedAmount, 0)),
+            'totalInWords' => $this->formatAmountInWords($totalAmount),
+            'termsText' => trim((string) ($sale->details?->terms_condition_text ?: $sale->description ?: 'Thanks for doing business with us!')),
             'bankName' => (string) ($bankAccount?->bank_name ?: $bankAccount?->display_name ?: ''),
             'bankAccountNumber' => (string) ($bankAccount?->account_number ?: ''),
             'bankAccountHolder' => (string) ($bankAccount?->account_holder_name ?: ''),
@@ -1783,6 +1858,25 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
         }
     }
 
+    private function formatAmountInWords(float $amount): string
+    {
+        if (class_exists(\NumberFormatter::class)) {
+            $formatter = new \NumberFormatter('en', \NumberFormatter::SPELLOUT);
+            $whole = (int) floor(abs($amount));
+            $fraction = (int) round((abs($amount) - $whole) * 100);
+
+            $words = ucfirst((string) $formatter->format($whole)) . ' Rupees';
+
+            if ($fraction > 0) {
+                $words .= ' and ' . (string) $formatter->format($fraction) . ' Paisa';
+            }
+
+            return trim($words) . ' only';
+        }
+
+        return 'Rupees ' . number_format($amount, 2);
+    }
+
     private function formatPercentValue($value): string
     {
         $numeric = (float) ($value ?? 0);
@@ -1790,6 +1884,50 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
         $formatted = rtrim(rtrim($formatted, '0'), '.');
 
         return ($formatted === '' ? '0' : $formatted) . '%';
+    }
+
+    private function resolveSavedSaleThemeState(Sale $sale): ?array
+    {
+        $extraFields = $sale->details?->invoice_extra_fields;
+        if (!is_array($extraFields)) {
+            return null;
+        }
+
+        $mode = (string) ($extraFields['theme_mode'] ?? '');
+        if (!in_array($mode, ['regular', 'thermal'], true)) {
+            return null;
+        }
+
+        $regularThemeId = (int) ($extraFields['theme_regular_theme_id'] ?? 0);
+        $thermalThemeId = (int) ($extraFields['theme_thermal_theme_id'] ?? 0);
+        $accent = trim((string) ($extraFields['theme_accent'] ?? ''));
+        $accent2 = trim((string) ($extraFields['theme_accent2'] ?? ''));
+
+        return [
+            'mode' => $mode,
+            'regularThemeId' => $regularThemeId > 0 ? $regularThemeId : 1,
+            'thermalThemeId' => $thermalThemeId > 0 ? $thermalThemeId : 1,
+            'accent' => $accent !== '' ? $accent : '#1f4e79',
+            'accent2' => $accent2 !== '' ? $accent2 : '#ff981f',
+        ];
+    }
+
+    private function resolveSaleThemeContext(Sale $sale, Request $request): array
+    {
+        $savedTheme = $this->resolveSavedSaleThemeState($sale);
+        $mode = (string) ($savedTheme['mode'] ?? $request->query('mode', 'regular'));
+        $themeId = (int) (
+            $mode === 'thermal'
+                ? ($savedTheme['thermalThemeId'] ?? $request->query('theme_id', 1))
+                : ($savedTheme['regularThemeId'] ?? $request->query('theme_id', 1))
+        );
+
+        return [
+            'themeConfig' => $this->resolveInvoiceThemeConfig($mode, $themeId),
+            'accent' => (string) ($savedTheme['accent'] ?? $request->query('accent', '#1f4e79')),
+            'accent2' => (string) ($savedTheme['accent2'] ?? $request->query('accent2', '#ff981f')),
+            'saleOrderThemeApplied' => $savedTheme !== null || $request->boolean('theme_applied'),
+        ];
     }
 
     private function resolveInvoiceThemeConfig(string $mode, int $themeId): array
@@ -1849,9 +1987,26 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
             abort(404);
         }
 
-        $sale->load(['items']);
+        $sale->loadMissing(['items.item', 'party', 'payments.bankAccount', 'details']);
+        $themeContext = $this->resolveSaleThemeContext($sale, request());
+        $themeConfig = $themeContext['themeConfig'];
+        $saleOrderThemeApplied = $themeContext['saleOrderThemeApplied'];
+        $signatureImage = (string) request()->query('signature_image', '');
+        $previewData = $this->mapSaleToThemePreviewData($sale);
+        $previewData['termsText'] = trim((string) ($sale->details?->terms_condition_text ?: $sale->description ?: 'Thanks for shopping with us!'));
 
-        return view('dashboard.saleorder.sale-order-preview', compact('sale'));
+        return view('themes.sales_invoice_pdf_document', [
+            'sale' => $sale,
+            'invoicePreviewData' => $previewData,
+            'themeConfig' => $themeConfig,
+            'saleOrderThemeApplied' => $saleOrderThemeApplied,
+            'accent' => $themeContext['accent'],
+            'accent2' => $themeContext['accent2'],
+            'signatureImage' => $signatureImage,
+            'pageTitle' => 'Sale Order Preview',
+            'browserTabLabel' => 'Sale Order #' . ($sale->bill_number ?: $sale->id),
+            'saveCloseUrl' => route('sale.index'),
+        ]);
     }
 
     public function printSaleOrder(Sale $sale)
@@ -1860,9 +2015,27 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
             abort(404);
         }
 
-        $sale->load(['items']);
+        $sale->loadMissing(['items.item', 'party', 'payments.bankAccount', 'details']);
+        $themeContext = $this->resolveSaleThemeContext($sale, request());
+        $themeConfig = $themeContext['themeConfig'];
+        $saleOrderThemeApplied = $themeContext['saleOrderThemeApplied'];
+        $signatureImage = (string) request()->query('signature_image', '');
+        $previewData = $this->mapSaleToThemePreviewData($sale);
+        $previewData['termsText'] = trim((string) ($sale->details?->terms_condition_text ?: $sale->description ?: 'Thanks for shopping with us!'));
 
-        return view('dashboard.saleorder.sale-order-preview', ['sale' => $sale, 'autoPrint' => true]);
+        return view('themes.sales_invoice_pdf_document', [
+            'sale' => $sale,
+            'invoicePreviewData' => $previewData,
+            'themeConfig' => $themeConfig,
+            'saleOrderThemeApplied' => $saleOrderThemeApplied,
+            'accent' => $themeContext['accent'],
+            'accent2' => $themeContext['accent2'],
+            'signatureImage' => $signatureImage,
+            'pageTitle' => 'Sale Order Print',
+            'browserTabLabel' => 'Sale Order #' . ($sale->bill_number ?: $sale->id),
+            'saveCloseUrl' => route('sale.index'),
+            'autoPrint' => true,
+        ]);
     }
 
     public function pdfSaleOrder(Sale $sale)
@@ -1871,9 +2044,40 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
             abort(404);
         }
 
-        $sale->load(['items']);
+        $sale->loadMissing(['items.item', 'party', 'payments.bankAccount', 'details']);
+        $themeContext = $this->resolveSaleThemeContext($sale, request());
+        $themeConfig = $themeContext['themeConfig'];
+        $saleOrderThemeApplied = $themeContext['saleOrderThemeApplied'];
+        $signatureImage = (string) request()->query('signature_image', '');
+        $previewData = $this->mapSaleToThemePreviewData($sale);
+        $previewData['termsText'] = trim((string) ($sale->details?->terms_condition_text ?: $sale->description ?: 'Thanks for shopping with us!'));
 
-        return view('dashboard.saleorder.sale-order-preview', ['sale' => $sale, 'pdfMode' => true]);
+        $payload = [
+            'sale' => $sale,
+            'invoicePreviewData' => $previewData,
+            'themeConfig' => $themeConfig,
+            'saleOrderThemeApplied' => $saleOrderThemeApplied,
+            'accent' => $themeContext['accent'],
+            'accent2' => $themeContext['accent2'],
+            'signatureImage' => $signatureImage,
+            'pageTitle' => 'Sale Order PDF',
+            'browserTabLabel' => 'Sale Order #' . ($sale->bill_number ?: $sale->id),
+            'saveCloseUrl' => route('sale.index'),
+        ];
+
+        $fileName = 'sale-order-' . ($sale->bill_number ?: $sale->id) . '.pdf';
+        $pdf = Pdf::loadView('themes.sales_invoice_pdf_document', $payload);
+        if (($themeConfig['mode'] ?? 'regular') === 'thermal') {
+            $pdf->setPaper([0, 0, 226.77, 841.89], 'portrait');
+        } else {
+            $pdf->setPaper('a4', 'portrait');
+        }
+
+        if (request()->boolean('download')) {
+            return $pdf->download($fileName);
+        }
+
+        return $pdf->stream($fileName);
     }
 
     private function mapEstimateToSaleDraft(Sale $estimate, string $nextInvoiceNumber): array

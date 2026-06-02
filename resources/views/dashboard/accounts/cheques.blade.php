@@ -1,35 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
+@extends('layouts.app')
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vyapar — Cheques</title>
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-  <link href="{{ asset('../css/styles.css') }}" rel="stylesheet">
-
-  <script>
-    const authUser = @json(Auth::user());
-    window.App = window.App || {
-      isAuthenticated: @json(Auth::check()),
-      user: authUser ? {
-        id: authUser.id,
-        name: authUser.name,
-        roles: @json(Auth::user()?->roles()->pluck('name')->toArray() ?? []),
-        permissions: @json(Auth::user()?->getAllPermissions() ?? []),
-      } : { id: null, name: null, roles: [], permissions: [] },
-      logoutUrl: "{{ route('logout') }}",
-      csrfToken: "{{ csrf_token() }}",
-    };
-  </script>
-
-  <style>
+<style>
     /* ── Global ── */
     body { background-color: #ffffff; color: #000000; }
-    .main-content { padding: 0px !important; }
+    .main-content {
+      padding: 20px 24px !important;
+      min-width: 0;
+      overflow: visible;
+    }
+    .cheques-page {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      min-height: calc(100vh - var(--navbar-height, 50px) - 40px);
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
 
     /* ── Header ── */
     .cheque-header {
@@ -242,6 +232,11 @@
     }
     .cm-input:focus { border-color: #2563eb; }
     .cm-input::placeholder { color: #94a3b8; }
+    .cm-input:disabled {
+      background: #f8fafc;
+      color: #64748b;
+      cursor: not-allowed;
+    }
     .cm-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
     .cm-btn-cancel { border: 1.5px solid #cbd5e1; background: #fff; border-radius: 20px; padding: 9px 22px; font-size: 13px; font-weight: 500; color: #64748b; cursor: pointer; transition: background .15s; }
@@ -305,11 +300,13 @@
     /* Resize cursor */
     body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-select: none !important; }
   </style>
-</head>
+@section('title', 'Vyapar — Cheques')
+@section('description', 'Manage cheque transactions in Vyapar accounting software.')
+@section('page', 'cheques')
 
-<body data-page="cheques">
+@section('content')
 
-  <main class="main-content" id="mainContent">
+  <div class="cheques-page" id="chequesPage">
 
     <!-- ── Header ── -->
     <div class="d-flex justify-content-between align-items-center cheque-header">
@@ -346,7 +343,6 @@
           <col style="width:160px; min-width:110px;">
           <col style="width:160px; min-width:100px;">
           <col style="width:120px; min-width:90px;">
-          <col style="width:110px; min-width:80px;">
           <col style="width:40px;  min-width:40px;">
         </colgroup>
         <thead>
@@ -514,12 +510,6 @@
               </div>
             </th>
 
-            {{-- ACTION --}}
-            <th data-col="action_col" style="text-align:left;">
-              <span class="th-inner" style="cursor:default;">ACTION</span>
-              <div class="col-resize-handle"></div>
-            </th>
-
             {{-- DOTS --}}
             <th data-col="actions"></th>
 
@@ -544,8 +534,14 @@
               <td>{{ $cheque->transaction_date ? $cheque->transaction_date->format('d/m/Y') : '—' }}</td>
               <td>{{ $cheque->cheque_date ? $cheque->cheque_date->format('d/m/Y') : '—' }}</td>
               <td class="td-price">Rs {{ number_format($cheque->amount, 2) }}</td>
-            <td>{{ $cheque->statusBadge() }}</td>
               <td>
+                @if($cheque->status === 'open')
+                  <button class="deposit-link" onclick="markChequeDeposited({{ $cheque->id }}, event)">Open/Deposit</button>
+                @else
+                  {{ $cheque->statusBadge() }}
+                @endif
+              </td>
+              <td style="display:none;">
                 @if($cheque->status === 'open')
                   <button class="deposit-link" onclick="openDepositModal({{ $cheque->id }}, '{{ $cheque->name }}', '{{ number_format($cheque->amount,2) }}', event)">Deposit</button>
                 @else
@@ -569,6 +565,9 @@
                       <i class="fa-solid fa-clock-rotate-left"></i> View History
                     </div>
                     @if($cheque->status === 'open')
+                    <div class="il-row-menu-item" onclick="markChequeDeposited({{ $cheque->id }}, event)">
+                      <i class="fa-solid fa-building-columns"></i> Deposit
+                    </div>
                     <div class="il-row-menu-item" onclick="updateStatus({{ $cheque->id }}, 'bounced')">
                       <i class="fa-solid fa-ban"></i> Mark Bounced
                     </div>
@@ -591,7 +590,7 @@
       </div>
     </div>
 
-  </main>
+  </div>
 
   <!-- ══ ADD / EDIT CHEQUE MODAL ══ -->
   <div class="cheque-modal-overlay" id="chequeModalOverlay" onclick="closeChequeModal()">
@@ -605,13 +604,9 @@
 
         <div class="cm-row-2">
           <div class="cm-field">
-            <label class="cm-label">Type <span style="color:#e53e3e">*</span></label>
-            <select class="cm-input" id="cm_type">
-              <option value="sale">Sale</option>
-              <option value="purchase">Purchase</option>
-              <option value="payment_in">Payment In</option>
-              <option value="payment_out">Payment Out</option>
-              <option value="other">Other</option>
+            <label class="cm-label">Payment Type <span style="color:#e53e3e">*</span></label>
+            <select class="cm-input" id="cm_type" disabled>
+              <option value="cheque">Cheque</option>
             </select>
           </div>
           <div class="cm-field">
@@ -642,7 +637,7 @@
           </div>
         </div>
 
-        <div class="cm-field">
+        <div class="cm-field" style="display:none;">
           <label class="cm-label">Bank Account</label>
           <select class="cm-input" id="cm_bank_account_id">
             <option value="">— Select Bank Account —</option>
@@ -653,8 +648,8 @@
         </div>
 
         <div class="cm-field">
-          <label class="cm-label">Notes</label>
-          <input type="text" class="cm-input" id="cm_notes" placeholder="Optional note">
+          <label class="cm-label">Description</label>
+          <input type="text" class="cm-input" id="cm_notes" placeholder="Write description">
         </div>
       </div>
       <div class="cheque-modal-footer">
@@ -705,9 +700,9 @@
 
   <div id="print-area" style="display:none;"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="{{ asset('../js/components.js') }}"></script>
-  <script src="{{ asset('../js/common.js') }}"></script>
+@endsection
+
+@push('scripts')
 
   <script>
     /* ═══════════════════════════════════════════
@@ -962,10 +957,16 @@
     /* ═══════════════════════════════════════════
         ADD / EDIT MODAL
        ═══════════════════════════════════════════ */
+    function setChequeAmountDateLocked(locked) {
+      document.getElementById('cm_amount').disabled = locked;
+      document.getElementById('cm_transaction_date').disabled = locked;
+    }
+
     function openAddModal() {
       document.getElementById('chequeModalTitle').textContent = 'Add Cheque';
+      setChequeAmountDateLocked(false);
       document.getElementById('cm_id').value = '';
-      document.getElementById('cm_type').value = 'sale';
+      document.getElementById('cm_type').value = 'cheque';
       document.getElementById('cm_name').value = '';
       document.getElementById('cm_ref_no').value = '';
       document.getElementById('cm_amount').value = '';
@@ -978,13 +979,14 @@
 
     function openEditModal(id) {
       closeAllMenus();
+      setChequeAmountDateLocked(true);
       fetch('/dashboard/cheques/'+id, { headers: { 'Accept':'application/json', 'X-CSRF-TOKEN': window.App.csrfToken } })
         .then(function(r){ return r.json(); }).then(function(d){
           if (!d.success) { alert('Could not load cheque.'); return; }
           var c = d.cheque;
           document.getElementById('chequeModalTitle').textContent = 'Edit Cheque';
           document.getElementById('cm_id').value = c.id;
-          document.getElementById('cm_type').value = c.type;
+          document.getElementById('cm_type').value = 'cheque';
           document.getElementById('cm_name').value = c.name;
           document.getElementById('cm_ref_no').value = c.ref_no||'';
           document.getElementById('cm_amount').value = c.amount;
@@ -1046,6 +1048,20 @@
     /* ═══════════════════════════════════════════
         DEPOSIT MODAL
        ═══════════════════════════════════════════ */
+    function markChequeDeposited(id, e) {
+      if (e) e.stopPropagation();
+      closeAllMenus();
+      fetch('/dashboard/cheques/'+id+'/deposit', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': window.App.csrfToken },
+        body: JSON.stringify({ bank_account_id: null })
+      })
+      .then(function(r){ return r.json(); }).then(function(d){
+        if (d.success) window.location.reload();
+        else alert(d.message||'Error depositing cheque.');
+      }).catch(function(){ alert('Network error.'); });
+    }
+
     function openDepositModal(id, name, amount, e) {
       if (e) e.stopPropagation();
       document.getElementById('deposit_cheque_id').value = id;
@@ -1170,5 +1186,4 @@
     document.addEventListener('keydown', function(e){ if (e.key==='Escape') { closeAllMenus(); closeHistoryModal(); closeChequeModal(); closeDepositModal(); } });
     document.addEventListener('DOMContentLoaded', function(){ highlightFirstVisible(); });
   </script>
-</body>
-</html>
+@endpush

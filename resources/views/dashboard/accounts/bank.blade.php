@@ -1,6 +1,8 @@
 @extends('layouts.app')
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 <style>
+
+  
 
 /* uper panel styling */
 .uper-panel{
@@ -338,6 +340,150 @@ display:flex;
 align-items:center;
 justify-content:space-between;
 padding:6px 8px;
+}
+
+.bank-list-info {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.bank-list-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.bank-list-right .entity-balance {
+  margin-left: 0;
+}
+
+.bank-list-menu-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.bank-list-menu-toggle {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #9ca3af;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.bank-list-menu-toggle:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.bank-list-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 124px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+  padding: 5px 0;
+  display: none;
+  z-index: 2200;
+}
+
+.bank-list-menu.open {
+  display: block;
+}
+
+.bank-list-menu-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bank-list-menu-item:hover {
+  background: #f3f4f6;
+}
+
+.bank-list-menu-item.delete {
+  color: #dc2626;
+}
+
+.bank-list-menu-item.delete:hover {
+  background: #fee2e2;
+}
+
+.bank-list-sort-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 8px;
+  background: #f9fafb;
+  border-top: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f3f4f6;
+  color: #9ca3af;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+
+.bank-list-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.bank-list-sort:hover,
+.bank-list-sort.active {
+  color: #374151;
+}
+
+.bank-list-sort-arrow {
+  display: inline-flex;
+  width: 10px;
+  color: #6b7280;
+  opacity: 1;
+}
+
+.bank-list-sort-arrow::after {
+  content: '↕';
+  font-size: 10px;
+  line-height: 1;
+}
+
+.bank-list-sort.asc .bank-list-sort-arrow::after {
+  content: '↑';
+}
+
+.bank-list-sort.desc .bank-list-sort-arrow::after {
+  content: '↓';
+}
+
+.bank-list-sort-payment {
+  margin-left: auto;
 }
 
 /* HEADER AREA */
@@ -877,6 +1023,7 @@ font-size:12px;
   width: 54px;
   text-align: center;
   position: relative;
+  overflow: visible !important;
 }
 
 .bulk-menu-wrap {
@@ -1087,7 +1234,249 @@ font-size:12px;
   gap: 12px;
 }
 
+.detail-panel-header {
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #fff;
+}
+
+.detail-panel-body {
+  padding: 14px 20px 0;
+}
+
+.txn-table-wrap {
+  width: 100%;
+  overflow: visible;
+  border-top: 1px solid #ebebeb;
+}
+
+.txn-table {
+  min-width: 0;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.txn-table th {
+  padding: 12px 10px !important;
+  font-size: 11px !important;
+  font-weight: 600;
+  text-transform: capitalize !important;
+  color: #9ca3af;
+  background: #f9fafb;
+  border-bottom: 1px solid #ebebeb;
+  border-right: 1px solid #d1d5db;
+  white-space: nowrap;
+  position: relative;
+  user-select: none;
+}
+
+.txn-table th[data-col="actions"] {
+  border-right: none;
+}
+
+.txn-table td {
+  padding: 10px 8px;
+  font-size: 12px;
+  color: #374151;
+  border-bottom: 1px solid #f3f4f6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.txn-table th[data-col="type"],
+.txn-table th[data-col="invoice"],
+.txn-table th[data-col="amount"] {
+  width: 12% !important;
+}
+
+.txn-table th[data-col="party"],
+.txn-table th[data-col="bank"] {
+  width: 14% !important;
+}
+
+.txn-table th[data-col="payment"],
+.txn-table th[data-col="date"] {
+  width: 13% !important;
+}
+
+.txn-table th[data-col="actions"] {
+  width: 44px !important;
+}
+
+.txn-table tbody tr:hover td {
+  background: #fafafa;
+}
+
+.txn-table tbody tr.active-row td {
+  background: #eff6ff;
+}
+
+.bank-th-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.bank-th-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bank-sort-arrow {
+  display: inline-flex;
+  align-items: center;
+  color: #4b5563;
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0;
+}
+
+.txn-table th.sort-asc .bank-sort-arrow,
+.txn-table th.sort-desc .bank-sort-arrow {
+  opacity: 1;
+}
+
+.bank-sort-arrow::after {
+  content: '↑';
+}
+
+.txn-table th.sort-desc .bank-sort-arrow::after {
+  content: '↓';
+}
+
+.bank-filter-icon {
+  color: #b8bec7;
+  cursor: pointer;
+  font-size: 10px;
+  margin-left: auto;
+}
+
+.bank-filter-icon:hover,
+.bank-filter-icon.active {
+  color: #e53e3e;
+}
+
+.bank-col-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: col-resize;
+  z-index: 2;
+}
+
+.bank-col-resize-handle:hover,
+.bank-col-resize-handle.resizing {
+  background: #2563eb;
+  opacity: .4;
+}
+
+.bank-col-filter-dd {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  min-width: 220px;
+  padding: 16px 16px 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.15);
+}
+
+.bank-col-filter-dd.open {
+  display: block;
+}
+
+.bcfd-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 12px;
+}
+
+.bcfd-cb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 2px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.bcfd-cb-row input[type=checkbox] {
+  width: 15px;
+  height: 15px;
+  accent-color: #2563eb;
+}
+
+.bcfd-select,
+.bcfd-input {
+  width: 100%;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 9px 10px;
+  font-size: 13px;
+  color: #374151;
+  background: #fff;
+  outline: none;
+  margin-bottom: 10px;
+}
+
+.bcfd-input:focus,
+.bcfd-select:focus {
+  border-color: #2563eb;
+}
+
+.bcfd-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.bcfd-clear,
+.bcfd-apply {
+  flex: 1;
+  border-radius: 20px;
+  padding: 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bcfd-clear {
+  border: 1.5px solid #e5e7eb;
+  background: #fff;
+  color: #6b7280;
+}
+
+.bcfd-apply {
+  border: none;
+  background: #e53e3e;
+  color: #fff;
+}
+
+.bcfd-clear:hover {
+  background: #f3f4f6;
+}
+
+.bcfd-apply:hover {
+  background: #b91c1c;
+}
+
+.bank-no-results td {
+  text-align: center;
+  color: #9ca3af;
+  padding: 48px 0 !important;
+}
+
 </style>
+
   <script>
     function toggleFilter(){
 let dropdown = document.getElementById("filterDropdown");
@@ -1099,9 +1488,14 @@ dropdown.style.display = "block";
 }
 }
 
-document.querySelector(".filter-icon").onclick = function(){
-document.querySelector(".filter-dropdown").classList.toggle("show");
-}
+document.addEventListener('DOMContentLoaded', function () {
+  const filterIcon = document.querySelector(".filter-icon");
+  if (filterIcon) {
+    filterIcon.onclick = function(){
+      document.querySelector(".filter-dropdown")?.classList.toggle("show");
+    }
+  }
+});
 
 function toggleHeaderDropdown(element) {
   const dropdownMenu = element.nextElementSibling;
@@ -1220,8 +1614,18 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
       <div class="search-box">
   <i class="fa fa-search"></i>
   <input type="text" class="form-control search-input" placeholder="Search Bank Account" id="bankSearchInput">
-</div>
+      </div>
 
+      </div>
+      <div class="bank-list-sort-header">
+        <button type="button" class="bank-list-sort" data-sort="name">
+          <span>BANK NAME</span>
+          <span class="bank-list-sort-arrow"></span>
+        </button>
+        <button type="button" class="bank-list-sort bank-list-sort-payment" data-sort="amount">
+          <span>PAYMENT</span>
+          <span class="bank-list-sort-arrow"></span>
+        </button>
       </div>
       <ul class="entity-list" id="bankList">
         @forelse($bankAccounts as $bank)
@@ -1236,8 +1640,27 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
             data-print-on-invoice="{{ $bank->print_on_invoice ? '1' : '0' }}"
             data-is-active="{{ $bank->is_active ? '1' : '0' }}"
         >
-          <span class="entity-name">{{ $bank->display_with_account }}</span>
-          <span class="entity-balance {{ (float) $bank->opening_balance < 0 ? 'negative' : 'positive' }}">₹ {{ number_format($bank->opening_balance, 2) }}</span>
+          <span class="bank-list-info">
+            <span class="entity-name">{{ $bank->display_with_account }}</span>
+          </span>
+          <span class="bank-list-right">
+            <span class="entity-balance {{ (float) $bank->opening_balance < 0 ? 'negative' : 'positive' }}">₹ {{ number_format($bank->opening_balance, 2) }}</span>
+            <span class="bank-list-menu-wrap">
+              <button type="button" class="bank-list-menu-toggle" data-bank-list-menu-toggle title="More Options">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
+              </button>
+              <span class="bank-list-menu">
+                <button type="button" class="bank-list-menu-item" data-bank-list-action="edit">
+                  <i class="fa-solid fa-pen"></i>
+                  <span>Edit</span>
+                </button>
+                <button type="button" class="bank-list-menu-item delete" data-bank-list-action="delete">
+                  <i class="fa-solid fa-trash"></i>
+                  <span>Delete</span>
+                </button>
+              </span>
+            </span>
+          </span>
         </li>
         @empty
         <li class="text-center text-muted py-5">
@@ -1299,41 +1722,89 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
   </div>
 
 
+        <div class="txn-table-wrap">
         <table class="txn-table" id="bankTable">
           <thead>
             <tr>
-              <th>Type</th>
-              <th>Invoice No</th>
-              <th>Party</th>
-              <th>Bank Name</th>
-              <th>Payment Type</th>
-              <th>Date</th>
-              <th>Amount</th>
-              <th class="action-cell"></th>
+              <th data-col="type" style="width:130px;">
+                <span class="bank-th-inner" data-sort-col="type">
+                  <span class="bank-th-label">Type</span><span class="bank-sort-arrow"></span>
+                  <i class="fa-solid fa-filter bank-filter-icon" data-filter-target="bcf-type"></i>
+                </span>
+                <div class="bank-col-resize-handle" data-col="type"></div>
+              </th>
+              <th data-col="invoice" style="width:130px;">
+                <span class="bank-th-inner" data-sort-col="invoice">
+                  <span class="bank-th-label">Invoice No</span><span class="bank-sort-arrow"></span>
+                  <i class="fa-solid fa-filter bank-filter-icon" data-filter-target="bcf-invoice"></i>
+                </span>
+                <div class="bank-col-resize-handle" data-col="invoice"></div>
+              </th>
+              <th data-col="party" style="width:150px;">
+                <span class="bank-th-inner" data-sort-col="party">
+                  <span class="bank-th-label">Party</span><span class="bank-sort-arrow"></span>
+                  <i class="fa-solid fa-filter bank-filter-icon" data-filter-target="bcf-party"></i>
+                </span>
+                <div class="bank-col-resize-handle" data-col="party"></div>
+              </th>
+              <th data-col="bank" style="width:150px;">
+                <span class="bank-th-inner" data-sort-col="bank">
+                  <span class="bank-th-label">Bank Name</span><span class="bank-sort-arrow"></span>
+                  <i class="fa-solid fa-filter bank-filter-icon" data-filter-target="bcf-bank"></i>
+                </span>
+                <div class="bank-col-resize-handle" data-col="bank"></div>
+              </th>
+              <th data-col="payment" style="width:140px;">
+                <span class="bank-th-inner" data-sort-col="payment">
+                  <span class="bank-th-label">Payment Type</span><span class="bank-sort-arrow"></span>
+                  <i class="fa-solid fa-filter bank-filter-icon" data-filter-target="bcf-payment"></i>
+                </span>
+                <div class="bank-col-resize-handle" data-col="payment"></div>
+              </th>
+              <th data-col="date" style="width:150px;">
+                <span class="bank-th-inner" data-sort-col="date">
+                  <span class="bank-th-label">Date</span><span class="bank-sort-arrow"></span>
+                  <i class="fa-solid fa-filter bank-filter-icon" data-filter-target="bcf-date"></i>
+                </span>
+                <div class="bank-col-resize-handle" data-col="date"></div>
+              </th>
+              <th data-col="amount" style="width:130px;">
+                <span class="bank-th-inner" data-sort-col="amount">
+                  <span class="bank-th-label">Amount</span><span class="bank-sort-arrow"></span>
+                  <i class="fa-solid fa-filter bank-filter-icon" data-filter-target="bcf-amount"></i>
+                </span>
+                <div class="bank-col-resize-handle" data-col="amount"></div>
+              </th>
+              <th class="action-cell" data-col="actions" style="width:54px;"></th>
             </tr>
           </thead>
           <tbody>
             @forelse(($bankTransactions ?? collect()) as $transaction)
               @php
                 $typeLabel = $transaction->type_label ?? '-';
+                $amountClass = ($transaction->direction ?? 'in') === 'out' ? 'negative' : 'positive';
               @endphp
-              <tr data-bank-id="{{ $transaction->bank_account_id }}">
+              <tr data-bank-id="{{ $transaction->bank_account_id }}"
+                  data-transaction-url="{{ $transaction->source_url }}"
+                  data-delete-url="{{ $transaction->delete_url }}"
+                  data-history-url="{{ $transaction->history_url }}"
+                  data-transaction-label="{{ $transaction->type_label ?? 'transaction' }}">
                 <td>{{ $transaction->type_label ?? '-' }}</td>
                 <td>{{ $transaction->invoice_no ?? '-' }}</td>
                 <td>{{ $transaction->party_name ?? '-' }}</td>
                 <td>{{ $transaction->bank_name ?? '-' }}</td>
                 <td>{{ $transaction->payment_type ?? '-' }}</td>
                 <td>{{ optional($transaction->created_at)->format('d/m/Y h:i A') }}</td>
-                <td class="positive">₹ {{ number_format($transaction->amount, 2) }}</td>
+                <td class="{{ $amountClass }}">₹ {{ number_format($transaction->amount, 2) }}</td>
                 <td class="action-cell">
                   <div class="action-dropdown">
                     <button type="button" class="action-toggle" title="More Options" aria-label="More Options">
                       <i class="fa-solid fa-ellipsis-vertical"></i>
                     </button>
                     <div class="action-menu">
-                      <button type="button" class="action-item" data-action="edit" data-bank-id="{{ $transaction->bank_account_id }}">View/Edit</button>
-                      <button type="button" class="action-item" data-action="delete" data-bank-id="{{ $transaction->bank_account_id }}">Delete</button>
-                      <button type="button" class="action-item" data-action="history" data-bank-id="{{ $transaction->bank_account_id }}">View History</button>
+                      <button type="button" class="action-item" data-action="edit">View/Edit</button>
+                      <button type="button" class="action-item" data-action="delete">Delete</button>
+                      <button type="button" class="action-item" data-action="history">View History</button>
                     </div>
                   </div>
                 </td>
@@ -1345,9 +1816,71 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
             @endforelse
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   </div>
+
+<div class="bank-col-filter-dd" id="bcf-type" data-col="type" data-filter-type="checkbox">
+  <div class="bcfd-title">Select Type</div>
+  <div class="bank-filter-options"></div>
+  <div class="bcfd-actions">
+    <button type="button" class="bcfd-clear" data-clear-filter="bcf-type">Clear</button>
+    <button type="button" class="bcfd-apply" data-apply-filter>Apply</button>
+  </div>
+</div>
+
+<div class="bank-col-filter-dd" id="bcf-payment" data-col="payment" data-filter-type="checkbox">
+  <div class="bcfd-title">Select Payment Type</div>
+  <div class="bank-filter-options"></div>
+  <div class="bcfd-actions">
+    <button type="button" class="bcfd-clear" data-clear-filter="bcf-payment">Clear</button>
+    <button type="button" class="bcfd-apply" data-apply-filter>Apply</button>
+  </div>
+</div>
+
+@foreach(['invoice' => 'Invoice No', 'party' => 'Party', 'bank' => 'Bank Name'] as $filterCol => $filterLabel)
+<div class="bank-col-filter-dd" id="bcf-{{ $filterCol }}" data-col="{{ $filterCol }}" data-filter-type="text">
+  <div class="bcfd-title">{{ $filterLabel }}</div>
+  <select class="bcfd-select" data-filter-op>
+    <option value="contains">Contains</option>
+    <option value="exact">Exact match</option>
+  </select>
+  <input type="text" class="bcfd-input" data-filter-value placeholder="{{ strtoupper($filterLabel) }}">
+  <div class="bcfd-actions">
+    <button type="button" class="bcfd-clear" data-clear-filter="bcf-{{ $filterCol }}">Clear</button>
+    <button type="button" class="bcfd-apply" data-apply-filter>Apply</button>
+  </div>
+</div>
+@endforeach
+
+<div class="bank-col-filter-dd" id="bcf-date" data-col="date" data-filter-type="date">
+  <div class="bcfd-title">Date</div>
+  <select class="bcfd-select" data-filter-op>
+    <option value="equal">Equal To</option>
+    <option value="before">Before</option>
+    <option value="after">After</option>
+  </select>
+  <input type="date" class="bcfd-input" data-filter-value>
+  <div class="bcfd-actions">
+    <button type="button" class="bcfd-clear" data-clear-filter="bcf-date">Clear</button>
+    <button type="button" class="bcfd-apply" data-apply-filter>Apply</button>
+  </div>
+</div>
+
+<div class="bank-col-filter-dd" id="bcf-amount" data-col="amount" data-filter-type="number">
+  <div class="bcfd-title">Amount</div>
+  <select class="bcfd-select" data-filter-op>
+    <option value="equal">Equal to</option>
+    <option value="lt">Less Than</option>
+    <option value="gt">Greater Than</option>
+  </select>
+  <input type="number" class="bcfd-input" data-filter-value placeholder="AMOUNT" step="0.01">
+  <div class="bcfd-actions">
+    <button type="button" class="bcfd-clear" data-clear-filter="bcf-amount">Clear</button>
+    <button type="button" class="bcfd-apply" data-apply-filter>Apply</button>
+  </div>
+</div>
 
 @endsection
 
@@ -1494,4 +2027,3 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
   });
 </script>
 @endpush
-
