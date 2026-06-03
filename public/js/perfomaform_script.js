@@ -649,6 +649,13 @@ function initializeForm(context) {
         }, 250);
     }
 
+    if (window.proformaIsConverted) {
+        $ctx.find('.btn-save, .btn-share-main').prop('disabled', true).addClass('disabled');
+        setTimeout(function () {
+            showToast(window.proformaConvertedMessage || 'This Data is Converted please close the Tab', true);
+        }, 250);
+    }
+
     // Update payment summary when default payment type is changed
     $ctx.on('change', '.default-payment-type', function() {
         updatePaymentSummary();
@@ -1078,4 +1085,3 @@ function initializeForm(context) {
     setupAdjustmentControls();
     calculateTotals();
 }
-
