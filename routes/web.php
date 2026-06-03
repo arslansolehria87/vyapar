@@ -128,6 +128,9 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/proforma-invoice/{sale}/convert-to-sale', [SaleController::class, 'createFromProforma'])->name('proforma-invoice.convert-to-sale');
     Route::get('/proforma-invoice/{sale}/convert-to-sale-order', [SaleOrderController::class, 'createFromProforma'])->name('proforma-invoice.convert-to-sale-order');
     Route::get('/proforma-invoice/{sale}/react-preview', [InvoiceController::class, 'proforma'])->name('proforma-invoice.react');
+    Route::post('/proforma-invoice/{sale}/email', [InvoiceController::class, 'emailProforma'])->name('proforma-invoice.email');
+    //emailsend
+    Route::post('/sales/{sale}/invoice-email', [InvoiceController::class, 'emailDocument'])->name('sale.invoice-email');
     // Sale Return
     Route::get('/sale-return', [SaleReturnController::class, 'saleReturn'])->name('sale-return');
     Route::get('/sale-return/create', [SaleReturnController::class, 'salereturncreate'])->name('sale-return.create');
