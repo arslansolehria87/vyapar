@@ -50,6 +50,41 @@
   .proforma-filter-flyout input { width: 100%; }
   .proforma-filter-flyout .form-control { font-size: 13px; }
   .proforma-filter-flyout .filter-clear { margin-top: 6px; }
+  .action-menu-btn {
+    border: 0;
+    background: transparent;
+    color: #64748b;
+    padding: 0.35rem 0.5rem;
+  }
+  .action-menu-btn::after { display: none; }
+  .action-menu-cell {
+    overflow: visible !important;
+    position: relative;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .proforma-action-menu .dropdown-menu {
+    min-width: 180px;
+    padding: 0.45rem 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+    z-index: 1090;
+  }
+  .proforma-action-menu .dropdown-item {
+    padding: 0.6rem 1rem;
+    font-size: 14px;
+    color: #1f2937;
+    text-decoration: none;
+  }
+  .proforma-action-menu .dropdown-item:hover {
+    background: #e0f2fe;
+    color: #0f172a;
+    font-weight: 700;
+  }
+  .proforma-action-menu .dropdown-divider {
+    margin: 0.35rem 0;
+  }
  
 
 
@@ -214,7 +249,7 @@
                   <th class="proforma-header-cell">
                     <div class="proforma-header-label"><span>Status</span><button type="button" class="proforma-filter-trigger" data-column="5" onclick="openProformaFilter(event, 5)"><i class="fa-solid fa-filter"></i></button></div>
                   </th>
-                  <th>Actions</th>
+                  <th class="text-center" style="width: 220px;">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -239,7 +274,7 @@
                         @endif
                       </span>
                     </td>
-                    <td>
+                    <td class="action-menu-cell text-center">
                       <div class="dropdown d-inline me-2">
                         <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" {{ $isConverted ? 'disabled' : '' }}>
                           Convert
@@ -257,22 +292,24 @@
                           </li>
                         </ul>
                       </div>
+
                       <div class="dropdown d-inline proforma-action-menu"
-                           data-preview-url="{{ route('sale.invoice-preview', $proforma) }}"
-                           data-pdf-url="{{ route('sale.invoice-pdf', $proforma) }}"
-                           data-print-url="{{ route('sale.invoice-preview', ['sale' => $proforma->id, 'print' => 1]) }}"
+                           data-preview-url="{{ route('proforma-invoice.preview', $proforma->id) }}"
+                           data-pdf-url="{{ route('proforma-invoice.pdf', $proforma->id) }}"
+                           data-print-url="{{ route('proforma-invoice.print', $proforma->id) }}"
+                           data-party-email="{{ $proforma->party?->email ?? '' }}"
+                           data-party-name="{{ $proforma->party?->name ?? '' }}"
+                           data-sale-number="{{ $proforma->bill_number ?? $proforma->id }}"
+                           data-email-url="{{ route('sale.invoice-email', $proforma) }}"
                            data-duplicate-url="{{ route('proforma-invoice.duplicate', $proforma->id) }}">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <button class="btn btn-sm action-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
                           <i class="fas fa-ellipsis-v"></i>
                         </button>
-                        <ul class="dropdown-menu">
-                          <li><a class="dropdown-item" href="#" onclick="return transactionPasscodeNavigate('{{ route('proforma-invoice.edit', $proforma->id) }}');"><i class="fas fa-edit me-2"></i>View/Edit</a></li>
-                          <li><a class="dropdown-item" href="#" onclick="previewProforma(this); return false;"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
-                          <li><a class="dropdown-item" href="#" onclick="openProformaPdf(this); return false;"><i class="fas fa-file-pdf me-2"></i>Open PDF</a></li>
-                          <li><a class="dropdown-item" href="#" onclick="printProforma(this); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
-                          <li><a class="dropdown-item" href="#" onclick="duplicateProforma(this); return false;"><i class="fas fa-copy me-2"></i>Duplicate</a></li>
-                          <li><hr class="dropdown-divider"></li>
-                          <li><a class="dropdown-item text-danger" href="#" onclick="return transactionPasscodeExecute('deleteProforma','{{ route('proforma-invoice.destroy', $proforma->id) }}');"><i class="fas fa-trash me-2"></i>Delete</a></li>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                          <li><a class="dropdown-item" href="#" onclick="transactionPasscodeNavigate('{{ route('proforma-invoice.edit', $proforma->id) }}'); return false;">View/Edit</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="previewProforma(this); return false;">Preview</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="printProforma(this); return false;">Print</a></li>
+                          <li><a class="dropdown-item" href="#" onclick="duplicateProforma(this); return false;">Duplicate</a></li>
                         </ul>
                       </div>
                     </td>
@@ -280,6 +317,7 @@
                 @empty
                   <tr>
                     <td class="text-center text-muted py-4">No proforma invoices yet.</td>
+                    <td></td>
                     <td></td>
                     <td></td>
                     <td></td>
@@ -310,12 +348,25 @@
             <button type="button" class="btn btn-outline-danger rounded-pill px-4" id="proformaPreviewOpenPdf">Open PDF</button>
             <button type="button" class="btn btn-outline-secondary rounded-pill px-4" id="proformaPreviewPrint">Print</button>
             <button type="button" class="btn btn-outline-success rounded-pill px-4" id="proformaPreviewSavePdf">Save PDF</button>
-            <button type="button" class="btn btn-outline-primary rounded-pill px-4" id="proformaPreviewEmailPdf">Email PDF</button>
+            <button type="button" class="btn btn-outline-primary rounded-pill px-4" id="proformaPreviewEmailPdf">Send Email</button>
             <button type="button" class="btn btn-danger rounded-pill px-4" data-bs-dismiss="modal">Close</button>
           </div>
       </div>
     </div>
   </div>
+
+  @include('dashboard.partials.document-email-modal', [
+    'modalId' => 'documentEmailModal',
+    'toId' => 'documentEmailTo',
+    'subjectId' => 'documentEmailSubject',
+    'messageId' => 'documentEmailMessage',
+    'viewPdfBtnId' => 'documentEmailViewPdfBtn',
+    'sendBtnId' => 'documentEmailSendBtn',
+    'title' => 'Send Email',
+    'subjectValue' => 'Your Vyapar PDF',
+    'messageValue' => "Dear Sir,\nPlease find the attached document below.\nThank you for doing business with us.\nThanks and regards.",
+    'helperText' => 'The invoice PDF will be attached automatically.',
+  ])
 
   @include('dashboard.partials.transaction-passcode-guard')
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -324,6 +375,7 @@
   <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
   <script src="{{ asset('js/components.js') }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
+  <script src="{{ asset('js/document-email-preview.js') }}"></script>
   <script>
     function deleteProforma(url) {
       if (!confirm('Are you sure you want to delete this proforma invoice?')) {
@@ -371,7 +423,6 @@
       const proformaPreviewOpenPdf = document.getElementById('proformaPreviewOpenPdf');
       const proformaPreviewPrint = document.getElementById('proformaPreviewPrint');
       const proformaPreviewSavePdf = document.getElementById('proformaPreviewSavePdf');
-      const proformaPreviewEmailPdf = document.getElementById('proformaPreviewEmailPdf');
       const proformaSearchToggle = document.getElementById('proformaSearchToggle');
       const proformaSearchForm = document.getElementById('proformaSearchForm');
       const proformaSearchInput = document.getElementById('proformaSearchInput');
@@ -423,12 +474,16 @@
           previewUrl: menu?.dataset?.previewUrl || '',
           pdfUrl: menu?.dataset?.pdfUrl || '',
           printUrl: menu?.dataset?.printUrl || '',
+          partyEmail: menu?.dataset?.partyEmail || '',
+          partyName: menu?.dataset?.partyName || '',
+          saleNumber: menu?.dataset?.saleNumber || '',
+          emailUrl: menu?.dataset?.emailUrl || '',
           duplicateUrl: menu?.dataset?.duplicateUrl || '',
         };
       }
 
       window.previewProforma = function (trigger) {
-        const { previewUrl, pdfUrl, printUrl } = resolveAction(trigger);
+        const { previewUrl, pdfUrl, printUrl, partyEmail, partyName, saleNumber } = resolveAction(trigger);
         if (!proformaPreviewModal || !proformaPreviewFrame) {
           window.open(previewUrl || pdfUrl || printUrl, '_blank');
           return;
@@ -437,6 +492,10 @@
         proformaPreviewFrame.dataset.previewUrl = previewUrl || '';
         proformaPreviewFrame.dataset.pdfUrl = pdfUrl || '';
         proformaPreviewFrame.dataset.printUrl = printUrl || '';
+        proformaPreviewFrame.dataset.partyEmail = partyEmail || '';
+        proformaPreviewFrame.dataset.partyName = partyName || '';
+        proformaPreviewFrame.dataset.saleNumber = saleNumber || '';
+        proformaPreviewFrame.dataset.emailUrl = resolveAction(trigger)?.emailUrl || '';
         proformaPreviewModal.show();
       };
 
@@ -455,6 +514,30 @@
         if (duplicateUrl) {
           window.location.href = duplicateUrl;
         }
+      };
+
+      const proformaEmailComposer = window.DocumentEmailPreview?.init({
+        name: 'proforma-email-preview',
+        previewModalId: 'proformaPreviewModal',
+        previewFrameId: 'proformaPreviewFrame',
+        emailModalId: 'documentEmailModal',
+        emailToId: 'documentEmailTo',
+        emailSubjectId: 'documentEmailSubject',
+        emailMessageId: 'documentEmailMessage',
+        viewPdfBtnId: 'documentEmailViewPdfBtn',
+        sendBtnId: 'documentEmailSendBtn',
+        openButtonId: 'proformaPreviewEmailPdf',
+        toastId: 'documentEmailToast',
+        defaultSubject: (context) => `Proforma Invoice${context.saleNumber ? ' - ' + context.saleNumber : ''}`,
+        defaultMessage: (context) => {
+          const pdfLink = context.pdfUrl || context.previewUrl || '';
+          return `Dear ${context.partyName || 'Sir'},\n\nPlease find the proforma invoice attached below.\n${pdfLink ? 'PDF Link: ' + pdfLink + '\n' : ''}\nThank you for doing business with us.\nThanks and regards.`;
+        },
+      });
+
+      window.openProformaEmail = function (trigger) {
+        const composer = proformaEmailComposer || window.DocumentEmailPreview?.get('proforma-email-preview');
+        composer?.open(trigger);
       };
 
       if (proformaPreviewOpenPdf) {
@@ -486,15 +569,9 @@
         });
       }
 
-      if (proformaPreviewEmailPdf) {
-        proformaPreviewEmailPdf.addEventListener('click', function () {
-          const url = proformaPreviewFrame?.dataset?.pdfUrl || proformaPreviewFrame?.dataset?.previewUrl || proformaPreviewFrame?.src || '';
-          if (!url) return;
-          const subject = 'Proforma Invoice';
-          const body = `Please find the proforma invoice here: ${url}`;
-          window.location.href = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-        });
-      }
+      proformaPreviewEmailPdf?.addEventListener('click', function () {
+        window.openProformaEmail();
+      });
 
       proformaSearchToggle?.addEventListener('click', function () {
         if (!proformaSearchForm) return;

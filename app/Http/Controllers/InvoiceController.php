@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Mail;
 use Symfony\Component\Process\Process;
 
 class InvoiceController extends Controller
@@ -130,9 +131,116 @@ class InvoiceController extends Controller
         ]);
     }
 
+    public function emailDocument(Request $request, Sale $sale, ?string $expectedType = null)
+    {
+        if ($expectedType !== null) {
+            abort_unless($sale->type === $expectedType, 404);
+        }
+
+        $data = $request->validate([
+            'email' => 'required|email',
+            'subject' => 'nullable|string|max:255',
+            'message' => 'nullable|string|max:5000',
+        ]);
+
+        $sale->loadMissing(['items.item', 'party', 'broker', 'challanDetail', 'details', 'payments.bankAccount']);
+        $invoicePreviewData = $this->mapSaleToThemePreviewData($sale);
+        $invoicePreviewData['title'] = $this->documentLabelForSale($sale);
+
+        $themeDefaults = $this->resolveStoredInvoiceThemeConfig($sale, $request);
+        $themeConfig = $this->resolveInvoiceThemeConfig(
+            $themeDefaults['mode'],
+            $themeDefaults[$themeDefaults['mode'] === 'thermal' ? 'thermalThemeId' : 'regularThemeId']
+        );
+
+        $pdf = Pdf::loadView('themes.sales_invoice_pdf_document', [
+            'invoicePreviewData' => $invoicePreviewData,
+            'themeConfig' => $themeConfig,
+            'accent' => $themeDefaults['accent'],
+            'accent2' => $themeDefaults['accent2'],
+        ])->setPaper('a4', 'portrait');
+
+        if (($themeConfig['mode'] ?? 'regular') === 'thermal') {
+            $pdf->setPaper([0, 0, 226.77, 841.89], 'portrait');
+        }
+
+        $subject = trim((string) ($data['subject'] ?? ''));
+        if ($subject === '') {
+            $subject = $this->documentLabelForSale($sale);
+        }
+
+        $message = trim((string) ($data['message'] ?? ''));
+        if ($message === '') {
+            $message = $this->documentEmailBodyForSale($sale);
+        }
+
+        $fileName = $this->documentFileNameForSale($sale);
+
+        try {
+            Mail::raw($message, function ($mail) use ($data, $subject, $pdf, $fileName) {
+                $mail->to($data['email'])
+                    ->subject($subject)
+                    ->attachData($pdf->output(), $fileName, ['mime' => 'application/pdf']);
+
+                $fromAddress = config('mail.from.address');
+                if (!empty($fromAddress)) {
+                    $mail->from($fromAddress, config('mail.from.name'));
+                }
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to send email right now.',
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Email sent successfully.',
+        ]);
+    }
+
+    public function emailProforma(Request $request, Sale $sale)
+    {
+        return $this->emailDocument($request, $sale, 'proforma');
+    }
+
     public function paymentIn(Request $request)
     {
         return $this->index($request);
+    }
+
+    private function documentLabelForSale(Sale $sale): string
+    {
+        return match ($sale->type) {
+            'proforma' => 'Proforma Invoice',
+            'sale_order' => 'Sale Order',
+            'sale_return' => 'Sale Return',
+            'delivery_challan' => 'Delivery Challan',
+            default => 'Invoice',
+        };
+    }
+
+    private function documentFileNameForSale(Sale $sale): string
+    {
+        $prefix = match ($sale->type) {
+            'proforma' => 'proforma-invoice',
+            'sale_order' => 'sale-order',
+            'sale_return' => 'sale-return',
+            'delivery_challan' => 'delivery-challan',
+            default => 'invoice',
+        };
+
+        return $prefix . '-' . ($sale->bill_number ?: $sale->id) . '.pdf';
+    }
+
+    private function documentEmailBodyForSale(Sale $sale): string
+    {
+        $label = $this->documentLabelForSale($sale);
+
+        return "Dear Sir,\n\nPlease find the attached {$label}.\n\nThanks and regards.";
     }
 
     private function buildInvoiceViewData(Request $request): array

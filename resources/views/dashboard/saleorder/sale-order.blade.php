@@ -105,17 +105,18 @@
       position: relative;
       overflow: visible;
       background: #fafafa; color: #6c757d;
-      font-size: 13px; font-weight: 500;
+      font-size: 11.5px; font-weight: 600;
       border-bottom: 1px solid #eee;
-      padding: 12px 10px !important;
+      padding: 8px 6px !important;
       vertical-align: middle; white-space: nowrap;
     }
     .sale-order-table tbody td {
-      padding: 14px 10px !important;
+      padding: 8px 6px !important;
       border-bottom: 1px solid #f1f1f1;
       vertical-align: middle; color: #0f172a;
       white-space: nowrap;
       overflow: hidden; text-overflow: ellipsis;
+      font-size: 12px;
     }
     .sale-order-table tbody td.action-cell {
       overflow: visible !important;
@@ -127,6 +128,31 @@
       text-align: center;
       white-space: nowrap;
     }
+    .sale-order-table thead th.col-checkbox,
+    .sale-order-table tbody td.col-checkbox {
+      width: 34px;
+      text-align: center;
+    }
+    .sale-order-table thead th.col-party,
+    .sale-order-table tbody td.col-party { width: 130px; }
+    .sale-order-table thead th.col-number,
+    .sale-order-table tbody td.col-number { width: 75px; }
+    .sale-order-table thead th.col-date,
+    .sale-order-table tbody td.col-date { width: 85px; }
+    .sale-order-table thead th.col-due,
+    .sale-order-table tbody td.col-due { width: 85px; }
+    .sale-order-table thead th.col-total,
+    .sale-order-table tbody td.col-total { width: 100px; text-align: right; }
+    .sale-order-table thead th.col-balance,
+    .sale-order-table tbody td.col-balance { width: 95px; text-align: right; }
+    .sale-order-table thead th.col-type,
+    .sale-order-table tbody td.col-type { width: 75px; }
+    .sale-order-table thead th.col-status,
+    .sale-order-table tbody td.col-status { width: 110px; }
+    .sale-order-table thead th.col-action,
+    .sale-order-table tbody td.col-action { width: 100px; }
+    .sale-order-table thead th.col-menu,
+    .sale-order-table tbody td.col-menu { width: 36px; }
     .sale-order-table tbody tr:hover { background: #fafafa; }
     .sale-order-table th, .sale-order-table td { border-right: 1px solid #e9ecef !important; }
     .sale-order-table th:last-child, .sale-order-table td:last-child { border-right: none !important; }
@@ -360,11 +386,11 @@
           <table class="table sale-order-table align-middle mb-0 txn-table">
             <thead>
               <tr>
-                <th style="width: 40px; vertical-align: middle;"><input type="checkbox" id="selectAllOrders"></th>
+                <th class="col-checkbox" style="vertical-align: middle;"><input type="checkbox" id="selectAllOrders"></th>
                 
-                <th>
+                <th class="col-party">
                   <div class="column-filter-header">
-                    <span>Party</span>
+                    <span>PARTY</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
                   </div>
                   <div class="column-filter-dropdown">
@@ -376,9 +402,9 @@
                   </div>
                 </th>
 
-                <th>
+                <th class="col-number">
                   <div class="column-filter-header">
-                    <span>No.</span>
+                    <span>NO.</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
                   </div>
                   <div class="column-filter-dropdown">
@@ -390,9 +416,9 @@
                   </div>
                 </th>
 
-                <th>
+                <th class="col-date">
                   <div class="column-filter-header">
-                    <span>Date</span>
+                    <span>DATE</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
                   </div>
                   <div class="column-filter-dropdown">
@@ -411,9 +437,9 @@
                   </div>
                 </th>
 
-                <th>
+                <th class="col-due">
                   <div class="column-filter-header">
-                    <span>Due Date</span>
+                    <span>DUE DATE</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
                   </div>
                   <div class="column-filter-dropdown">
@@ -432,9 +458,9 @@
                   </div>
                 </th>
 
-                <th class="text-end" style="width: 155px;">
+                <th class="text-end col-total">
                   <div class="column-filter-header justify-content-end">
-                    <span class="me-3">Total Amount</span>
+                    <span class="me-3">AMOUNT</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
                   </div>
                   <div class="column-filter-dropdown text-start">
@@ -446,9 +472,9 @@
                   </div>
                 </th>
 
-                <th class="text-end">
+                <th class="text-end col-balance">
                   <div class="column-filter-header justify-content-end">
-                    <span class="me-2">Balance</span>
+                    <span class="me-2">BALANCE</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
                   </div>
                   <div class="column-filter-dropdown text-start">
@@ -460,9 +486,9 @@
                   </div>
                 </th>
 
-                <th>
+                <th class="col-type">
                   <div class="column-filter-header">
-                    <span>Type</span>
+                    <span>TYPE</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
                   </div>
                   <div class="column-filter-dropdown">
@@ -474,9 +500,9 @@
                   </div>
                 </th>
 
-                <th style="width: 150px;">
+                <th class="col-status">
                   <div class="column-filter-header">
-                    <span>Status</span>
+                    <span>STATUS</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
                   </div>
                   <div class="column-filter-dropdown">
@@ -488,8 +514,8 @@
                   </div>
                 </th>
 
-                <th style="width: 220px;">Action</th>
-                <th style="width: 56px;"></th>
+                <th class="col-action">ACTION</th>
+                <th class="col-menu"></th>
               </tr>
             </thead>
             <tbody>
@@ -502,7 +528,7 @@
                   $convertedInvoiceId = $convertedInvoiceIds[$saleOrder->id] ?? null;
                 @endphp
                 <tr data-edit-url="{{ route('sale-order.edit', $saleOrder->id) }}">
-                  <td>
+                  <td class="col-checkbox">
                     <input type="checkbox"
                            class="sale-order-select"
                            value="{{ $saleOrder->id }}"
@@ -514,19 +540,19 @@
                            data-status="{{ $statusLabel }}"
                            @if($isCompleted) disabled @endif>
                   </td>
-                  <td>{{ $saleOrder->display_party_name }}</td>
-                  <td>{{ $saleOrder->bill_number ?? '-' }}</td>
-                  <td>{{ optional($saleOrder->order_date)->format('d/m/Y') ?? '-' }}</td>
-                  <td>{{ optional($saleOrder->due_date)->format('d/m/Y') ?? '-' }}</td>
-                  <td class="text-end">Rs {{ number_format($saleOrder->grand_total ?? 0, 2) }}</td>
-                  <td class="text-end">Rs {{ number_format($saleOrder->balance ?? 0, 2) }}</td>
-                  <td>Sale Order</td>
-                  <td>
+                  <td class="col-party">{{ $saleOrder->display_party_name }}</td>
+                  <td class="col-number">{{ $saleOrder->bill_number ?? '-' }}</td>
+                  <td class="col-date">{{ optional($saleOrder->order_date)->format('d/m/Y') ?? '-' }}</td>
+                  <td class="col-due">{{ optional($saleOrder->due_date)->format('d/m/Y') ?? '-' }}</td>
+                  <td class="text-end col-total">Rs {{ number_format($saleOrder->grand_total ?? 0, 2) }}</td>
+                  <td class="text-end col-balance">Rs {{ number_format($saleOrder->balance ?? 0, 2) }}</td>
+                  <td class="col-type">Sale Order</td>
+                  <td class="col-status">
                     <span class="status-text {{ $isCompleted ? 'text-success' : ($isOverdue ? 'text-danger' : 'text-warning') }}">
                       {{ $statusLabel }}
                     </span>
                   </td>
-                  <td class="action-cell">
+                  <td class="action-cell col-action">
                     @if($isCompleted)
                       @php
                         $invoiceLabel = $convertedInvoiceNumber ?: ($convertedInvoiceId ? 'ID '.$convertedInvoiceId : null);
@@ -541,16 +567,24 @@
                       </a>
                     @endif
                   </td>
-                  <td class="action-menu-cell">
-                    <div class="dropdown d-inline">
+                  <td class="action-menu-cell col-menu">
+                    <div class="dropdown d-inline action-menu sale-order-action-menu"
+                         data-preview-url="{{ route('sale-orders.preview', $saleOrder->id) }}"
+                         data-pdf-url="{{ route('sale-orders.pdf', $saleOrder->id) }}"
+                         data-print-url="{{ route('sale-orders.print', $saleOrder->id) }}"
+                         data-party-email="{{ $saleOrder->party?->email ?? '' }}"
+                         data-party-name="{{ $saleOrder->display_party_name }}"
+                         data-sale-number="{{ $saleOrder->bill_number ?? $saleOrder->id }}"
+                         data-email-url="{{ route('sale.invoice-email', $saleOrder) }}"
+                         data-duplicate-url="{{ route('sale-order.create', ['duplicate_sale_id' => $saleOrder->id]) }}">
                       <button class="btn btn-sm action-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
                         <i class="fas fa-ellipsis-v"></i>
                       </button>
                       <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="#" onclick="return transactionPasscodeNavigate('{{ route('sale-order.edit', $saleOrder->id) }}');">View/Edit</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="previewSaleOrder('{{ route('sale-orders.preview', $saleOrder->id) }}', '{{ route('sale-orders.pdf', $saleOrder->id) }}'); return false;">Preview</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="printSaleOrder('{{ route('sale-orders.print', $saleOrder->id) }}'); return false;">Print</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="duplicateSaleOrder('{{ route('sale-order.create', ['duplicate_sale_id' => $saleOrder->id]) }}'); return false;">Duplicate</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="previewSaleOrder(this); return false;">Preview</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="printSaleOrder(this); return false;">Print</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="duplicateSaleOrder(this); return false;">Duplicate</a></li>
                         <li><a class="dropdown-item" href="#" onclick="viewSaleOrderHistory('{{ $convertedInvoiceId ? route('sale.bank-history', $convertedInvoiceId) : '' }}'); return false;">View History</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger" href="#" onclick="return transactionPasscodeExecute('deleteSaleOrder','{{ route('sale.destroy', $saleOrder->id) }}');">Delete</a></li>
@@ -647,6 +681,19 @@
   </div>
 </div>
 
+  @include('dashboard.partials.document-email-modal', [
+    'modalId' => 'documentEmailModal',
+    'toId' => 'documentEmailTo',
+    'subjectId' => 'documentEmailSubject',
+    'messageId' => 'documentEmailMessage',
+    'viewPdfBtnId' => 'documentEmailViewPdfBtn',
+    'sendBtnId' => 'documentEmailSendBtn',
+    'title' => 'Send Email',
+    'subjectValue' => 'Your Vyapar PDF',
+    'messageValue' => "Dear Sir,\nPlease find the attached document below.\nThank you for doing business with us.\nThanks and regards.",
+    'helperText' => 'The invoice PDF will be attached automatically.',
+  ])
+
   <div class="modal fade" id="saleOrderPreviewModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 96vw;">
       <div class="modal-content border-0 shadow">
@@ -673,6 +720,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="{{ asset('js/components.js') }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
+  <script src="{{ asset('js/document-email-preview.js') }}"></script>
   
   <script>
     const bulkConvertUrl = "{{ route('sale-orders.bulk-convert') }}";
@@ -720,14 +768,36 @@
       const frame = document.getElementById('saleOrderPreviewFrame');
       const previewUrl = String(modalEl?.dataset?.previewUrl || frame?.src || '');
       const pdfUrl = String(modalEl?.dataset?.pdfUrl || previewUrl.replace('/preview', '/pdf'));
-      return { previewUrl, pdfUrl };
+      return {
+        previewUrl,
+        pdfUrl,
+        partyEmail: String(modalEl?.dataset?.partyEmail || frame?.dataset?.partyEmail || ''),
+        partyName: String(modalEl?.dataset?.partyName || frame?.dataset?.partyName || ''),
+        saleNumber: String(modalEl?.dataset?.saleNumber || frame?.dataset?.saleNumber || ''),
+        emailUrl: String(modalEl?.dataset?.emailUrl || frame?.dataset?.emailUrl || ''),
+      };
     }
 
-    function previewSaleOrder(url, pdfUrl) {
+    function resolveSaleOrderAction(trigger) {
+      const menu = trigger?.closest('.sale-order-action-menu') || trigger?.closest('.action-menu');
+      return {
+        previewUrl: menu?.dataset?.previewUrl || '',
+        pdfUrl: menu?.dataset?.pdfUrl || '',
+        printUrl: menu?.dataset?.printUrl || '',
+        partyEmail: menu?.dataset?.partyEmail || '',
+        partyName: menu?.dataset?.partyName || '',
+        saleNumber: menu?.dataset?.saleNumber || '',
+        emailUrl: menu?.dataset?.emailUrl || '',
+        duplicateUrl: menu?.dataset?.duplicateUrl || '',
+      };
+    }
+
+    function previewSaleOrder(trigger) {
+      const { previewUrl, pdfUrl, partyEmail, partyName, saleNumber, emailUrl } = resolveSaleOrderAction(trigger);
       const modalEl = document.getElementById('saleOrderPreviewModal');
       const frame = document.getElementById('saleOrderPreviewFrame');
-      const themedUrl = appendSaleOrderThemeParams(url);
-      const themedPdfUrl = appendSaleOrderThemeParams(pdfUrl || String(url).replace('/preview', '/pdf'));
+      const themedUrl = appendSaleOrderThemeParams(previewUrl);
+      const themedPdfUrl = appendSaleOrderThemeParams(pdfUrl || String(previewUrl).replace('/preview', '/pdf'));
 
       if (!modalEl || !frame) {
         window.open(themedUrl, '_blank');
@@ -737,15 +807,29 @@
       frame.src = themedUrl;
       modalEl.dataset.previewUrl = themedUrl;
       modalEl.dataset.pdfUrl = themedPdfUrl;
+      modalEl.dataset.partyEmail = partyEmail || '';
+      modalEl.dataset.partyName = partyName || '';
+      modalEl.dataset.saleNumber = saleNumber || '';
+      modalEl.dataset.emailUrl = emailUrl || '';
+      frame.dataset.previewUrl = themedUrl;
+      frame.dataset.pdfUrl = themedPdfUrl;
+      frame.dataset.partyEmail = partyEmail || '';
+      frame.dataset.partyName = partyName || '';
+      frame.dataset.saleNumber = saleNumber || '';
+      frame.dataset.emailUrl = emailUrl || '';
       bootstrap.Modal.getOrCreateInstance(modalEl).show();
     }
-    function printSaleOrder(url) {
-      window.open(appendSaleOrderThemeParams(url), '_blank');
+    function printSaleOrder(trigger) {
+      const { printUrl } = resolveSaleOrderAction(trigger);
+      window.open(appendSaleOrderThemeParams(printUrl), '_blank');
     }
     function openSaleOrderPdf(url) {
       window.open(appendSaleOrderThemeParams(url), '_blank');
     }
-    function duplicateSaleOrder(url) { window.open(url, '_blank'); }
+    function duplicateSaleOrder(trigger) {
+      const { duplicateUrl } = resolveSaleOrderAction(trigger);
+      window.open(duplicateUrl, '_blank');
+    }
 
     function openSaleOrderPreviewPdf() {
       const modalEl = document.getElementById('saleOrderPreviewModal');
@@ -769,24 +853,37 @@
       frame.contentWindow.print();
     }
 
-    function emailSaleOrderPreview() {
-      const modalEl = document.getElementById('saleOrderPreviewModal');
-      const { pdfUrl } = getSaleOrderPreviewData(modalEl);
-      const subject = encodeURIComponent('Sale Order PDF');
-      const body = encodeURIComponent(`Please find the sale order PDF here: ${pdfUrl || window.location.href}`);
-      window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${subject}&body=${body}`, '_blank', 'noopener');
-    }
+    const saleOrderEmailComposer = window.DocumentEmailPreview?.init({
+      name: 'sale-order-email-preview',
+      previewModalId: 'saleOrderPreviewModal',
+      previewFrameId: 'saleOrderPreviewFrame',
+      emailModalId: 'documentEmailModal',
+      emailToId: 'documentEmailTo',
+      emailSubjectId: 'documentEmailSubject',
+      emailMessageId: 'documentEmailMessage',
+      viewPdfBtnId: 'documentEmailViewPdfBtn',
+      sendBtnId: 'documentEmailSendBtn',
+      openButtonId: 'saleOrderEmailPdfBtn',
+      toastId: 'documentEmailToast',
+      defaultSubject: (context) => `Sale Order PDF${context.saleNumber ? ' - ' + context.saleNumber : ''}`,
+      defaultMessage: (context) => {
+        const pdfLink = context.pdfUrl || context.previewUrl || '';
+        return `Dear ${context.partyName || 'Sir'},\n\nPlease find the sale order PDF attached below.\n${pdfLink ? 'PDF Link: ' + pdfLink + '\n' : ''}\nThank you for doing business with us.\nThanks and regards.`;
+      },
+    });
 
     function bindSaleOrderPreviewButtons() {
       const openPdfBtn = document.getElementById('saleOrderOpenPdfBtn');
       const printBtn = document.getElementById('saleOrderPrintBtn');
       const savePdfBtn = document.getElementById('saleOrderSavePdfBtn');
-      const emailPdfBtn = document.getElementById('saleOrderEmailPdfBtn');
 
       if (openPdfBtn) openPdfBtn.addEventListener('click', openSaleOrderPreviewPdf);
       if (printBtn) printBtn.addEventListener('click', printSaleOrderPreview);
       if (savePdfBtn) savePdfBtn.addEventListener('click', saveSaleOrderPreviewPdf);
-      if (emailPdfBtn) emailPdfBtn.addEventListener('click', emailSaleOrderPreview);
+      document.getElementById('saleOrderEmailPdfBtn')?.addEventListener('click', function () {
+        const composer = saleOrderEmailComposer || window.DocumentEmailPreview?.get('sale-order-email-preview');
+        composer?.open();
+      });
     }
 
     if (document.readyState === 'loading') {
