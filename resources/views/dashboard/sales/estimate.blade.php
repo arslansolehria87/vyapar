@@ -592,7 +592,37 @@
     estimatePreviewFrame.dataset.previewUrl = previewUrl || '';
     estimatePreviewFrame.dataset.pdfUrl = pdfUrl || '';
     estimatePreviewFrame.dataset.printUrl = printUrl || '';
+    estimatePreviewFrame.dataset.downloadUrl = (() => {
+      if (!pdfUrl) return previewUrl || '';
+      try {
+        const download = new URL(pdfUrl, window.location.origin);
+        download.searchParams.set('download', '1');
+        return download.toString();
+      } catch (error) {
+        return pdfUrl + (String(pdfUrl).includes('?') ? '&' : '?') + 'download=1';
+      }
+    })();
     estimatePreviewModal.show();
+  }
+
+  function openMailClient(subject, body) {
+    const mailtoUrl = 'mailto:?subject=' + encodeURIComponent(subject || 'Invoice Preview') +
+      '&body=' + encodeURIComponent(body || '');
+    try {
+      const opened = window.open(mailtoUrl, '_self');
+      if (opened !== null) {
+        return;
+      }
+    } catch (error) {
+      // fall through to anchor fallback
+    }
+    const link = document.createElement('a');
+    link.href = mailtoUrl;
+    link.target = '_self';
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   }
 
   function resolveEstimateAction(trigger) {
@@ -837,8 +867,8 @@
       }
     });
 
-    estimatePreviewSavePdf?.addEventListener('click', function () {
-      const url = estimatePreviewFrame?.dataset?.pdfUrl || estimatePreviewFrame?.dataset?.previewUrl;
+  estimatePreviewSavePdf?.addEventListener('click', function () {
+      const url = estimatePreviewFrame?.dataset?.downloadUrl || estimatePreviewFrame?.dataset?.pdfUrl || estimatePreviewFrame?.dataset?.previewUrl;
       if (!url) return;
       const a = document.createElement('a');
       a.href = url;
@@ -849,11 +879,12 @@
       a.remove();
     });
 
-    estimatePreviewEmailPdf?.addEventListener('click', function () {
-      const subject = 'Estimate Preview';
-      const body = `Please review the estimate: ${window.location.href}`;
-      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    });
+  estimatePreviewEmailPdf?.addEventListener('click', function () {
+    const subject = 'Estimate Preview';
+    const downloadUrl = estimatePreviewFrame?.dataset?.downloadUrl || estimatePreviewFrame?.dataset?.pdfUrl || estimatePreviewFrame?.dataset?.previewUrl || window.location.href;
+    const body = `Please review the estimate: ${downloadUrl}`;
+    openMailClient(subject, body);
+  });
 
     estimatePreviewModalEl?.addEventListener('hidden.bs.modal', function () {
       if (estimatePreviewFrame) {
@@ -861,6 +892,7 @@
         estimatePreviewFrame.removeAttribute('data-preview-url');
         estimatePreviewFrame.removeAttribute('data-pdf-url');
         estimatePreviewFrame.removeAttribute('data-print-url');
+        estimatePreviewFrame.removeAttribute('data-download-url');
       }
     });
 

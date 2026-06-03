@@ -26,6 +26,8 @@ $(document).ready(function () {
   const salePreviewModalTitle = document.getElementById('salePreviewModalTitle');
   const salePreviewOpenPdfBtn = document.getElementById('salePreviewOpenPdf');
   const salePreviewPrintBtn = document.getElementById('salePreviewPrint');
+  const salePreviewSavePdfBtn = document.getElementById('salePreviewSavePdf');
+  const salePreviewEmailPdfBtn = document.getElementById('salePreviewEmailPdf');
   const saleHistoryModalEl = document.getElementById('saleHistoryModal');
   const saleHistoryModal = saleHistoryModalEl ? bootstrap.Modal.getOrCreateInstance(saleHistoryModalEl) : null;
   const saleHistoryModalTitle = document.getElementById('saleHistoryModalTitle');
@@ -70,7 +72,7 @@ $(document).ready(function () {
     if (!saleId) return null;
 
     try {
-      const raw = window.localStorage.getItem(`saleInvoiceTheme:${saleId}`) || window.localStorage.getItem('saleInvoiceTheme:draft');
+      const raw = window.localStorage.getItem(`saleInvoiceTheme:${saleId}`);
       return raw ? JSON.parse(raw) : null;
     } catch (error) {
       return null;
@@ -101,6 +103,31 @@ $(document).ready(function () {
     });
 
     return url.toString();
+  }
+
+  function triggerPdfDownload(url) {
+    if (!url) return;
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '';
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+
+  function openMailClient(subject, body) {
+    const mailUrl = 'mailto:?subject=' + encodeURIComponent(subject || '') + '&body=' + encodeURIComponent(body || '');
+    const win = window.open(mailUrl, '_self');
+    if (!win) {
+      const a = document.createElement('a');
+      a.href = mailUrl;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
   }
 
   function openPreviewModal(url, title, options = {}) {
@@ -223,7 +250,7 @@ $(document).ready(function () {
   salePreviewOpenPdfBtn?.addEventListener('click', function () {
     const pdfUrl = salePreviewFrame?.dataset?.pdfUrl || salePreviewFrame?.src;
     if (pdfUrl) {
-      window.open(pdfUrl, '_blank');
+      triggerPdfDownload(pdfUrl);
     }
   });
 
@@ -232,6 +259,20 @@ $(document).ready(function () {
     if (printUrl) {
       window.open(printUrl, '_blank');
     }
+  });
+
+  salePreviewSavePdfBtn?.addEventListener('click', function () {
+    const pdfUrl = salePreviewFrame?.dataset?.pdfUrl || salePreviewFrame?.src;
+    if (pdfUrl) {
+      triggerPdfDownload(pdfUrl);
+    }
+  });
+
+  salePreviewEmailPdfBtn?.addEventListener('click', function () {
+    const pdfUrl = salePreviewFrame?.dataset?.pdfUrl || salePreviewFrame?.src;
+    const subject = `Invoice PDF - ${salePreviewModalTitle?.textContent || 'Preview'}`;
+    const body = `Please find the invoice PDF here: ${pdfUrl || window.location.href}`;
+    openMailClient(subject, body);
   });
 
   salePreviewModalEl?.addEventListener('hidden.bs.modal', function () {
@@ -780,7 +821,7 @@ $(document).ready(function () {
       window.location.href = duplicateUrl;
     } else if (action === 'pdf') {
       if (pdfUrl) {
-        window.open(pdfUrl, '_blank');
+        triggerPdfDownload(pdfUrl);
       }
     } else if (action === 'preview') {
       if (previewUrl) {
@@ -926,8 +967,9 @@ $(document).ready(function () {
   $(document).on('click', '.row-action-print', function () {
     const $menu = $(this).closest('td').find('.sale-action-menu');
     const saleId = $menu.data('sale-id');
-    if (saleId) {
-      window.open(`/dashboard/sales/${saleId}/print`, '_blank');
+    const printUrl = buildReactInvoiceUrl($menu.data('pdf-url'), saleId, { print: 1 });
+    if (printUrl) {
+      window.open(printUrl, '_blank');
     }
   });
 

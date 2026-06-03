@@ -1228,25 +1228,29 @@ textarea.meta-control,
 }
 
 .item-table .row-num {
-    width: 42px;
-    min-width: 42px;
+    width: 36px;
+    min-width: 36px;
     text-align: center;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
 }
 
 .item-table .col-barcode-scan {
-    width: 50px;
-    min-width: 50px;
+    width: 42px;
+    min-width: 42px;
     text-align: center;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
 }
 
 .item-table .col-item-name {
-    width: 17%;
-    min-width: 150px;
+    width: 24%;
+    min-width: 190px;
 }
 
 .item-table .col-tafseel {
-    width: 8%;
-    min-width: 88px;
+    width: 12%;
+    min-width: 110px;
 }
 
 .item-table .col-tadaat,
@@ -1257,8 +1261,8 @@ textarea.meta-control,
 .item-table .col-amount,
 .item-table .col-mrp,
 .item-table .col-count {
-    width: 5%;
-    min-width: 54px;
+    width: 7.5%;
+    min-width: 68px;
 }
 
 .item-table .custom-size-th,
@@ -1275,8 +1279,8 @@ textarea.meta-control,
 .item-table .col-discount,
 .item-table .col-item-tax,
 .item-table .custom-item-field {
-    width: 6.5%;
-    min-width: 64px;
+    width: 9%;
+    min-width: 84px;
 }
 
 .item-table .col-exp-date input,
@@ -1337,10 +1341,28 @@ textarea.meta-control,
 }
 
 .item-table .item-unit-wrapper .btn {
-    width: 28px;
-    min-width: 28px;
-    height: 32px;
+    width: 26px;
+    min-width: 26px;
+    height: 30px;
     padding: 0;
+}
+
+.item-table td.col-barcode-scan .btn {
+    width: 26px;
+    min-width: 26px;
+    height: 26px;
+    padding: 0;
+}
+
+.item-table td.col-item-name {
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.item-table td.col-tafseel,
+.item-table td.custom-size-td {
+    padding-left: 8px;
+    padding-right: 8px;
 }
 
 .item-table .item-tax-fields {
@@ -2467,9 +2489,14 @@ textarea.meta-control,
     </style>
 
 @php
-    $saleItemsSource = collect($items ?? []);
+    $itemFormSettings = $itemFormSettings ?? json_decode(\App\Models\AppSetting::getValue('item_form_settings', '{}'), true) ?: [];
+    $itemEnable = (bool) data_get($itemFormSettings, 'enable_item', true);
+    $sellType = (string) data_get($itemFormSettings, 'sell_type', 'both');
+    $showProducts = $itemEnable && in_array($sellType, ['product', 'both'], true);
+    $showServices = $itemEnable && in_array($sellType, ['service', 'both'], true);
 
-    if ($saleItemsSource->isEmpty()) {
+    $saleItemsSource = $showProducts ? collect($items ?? []) : collect();
+    if ($saleItemsSource->isEmpty() && $showProducts) {
         $saleItemsSource = \App\Models\Item::with('category')
             ->where(function ($query) {
                 $query->where('type', 'product')
@@ -2483,7 +2510,20 @@ textarea.meta-control,
             ->get();
     }
 
-    $saleCategoryOptions = $saleItemsSource
+    $serviceItemsSource = $showServices ? collect($serviceItemsSource ?? collect()) : collect();
+    if ($serviceItemsSource->isEmpty() && $showServices) {
+        $serviceItemsSource = \App\Models\Item::with('category')
+            ->where('type', 'service')
+            ->where(function ($query) {
+                $query->where('is_active', true)
+                    ->orWhereNull('is_active');
+            })
+            ->orderBy('name')
+            ->get();
+    }
+
+    $saleCategoryOptions = collect($saleItemsSource)
+        ->concat($serviceItemsSource)
         ->map(function ($item) {
             return $item->category->name ?? $item->category_name ?? $item->category_id ?? null;
         })

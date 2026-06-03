@@ -1,5 +1,5 @@
 @php
-$invoice=$invoicePreviewData??[];$theme=$themeConfig??['mode'=>'regular','variant'=>'classicA','name'=>'Telly Theme'];$variant=$theme['variant']??'classicA';$accent=$accent??'#1f4e79';$accent2=$accent2??'#ff981f';$items=collect($invoice['items']??[])->values()->all();$subtotal=(float)($invoice['subtotal']??collect($items)->sum('amt'));$discount=(float)($invoice['discount']??0);$tax=(float)($invoice['taxAmount']??0);$total=(float)($invoice['total']??max($subtotal+$tax-$discount,0));$received=(float)($invoice['received']??0);$balance=(float)($invoice['balance']??max($total-$received,0));$totalQty=collect($items)->sum(fn($item)=>(float)($item['qty']??0));$title=$invoice['title']??'Invoice';$isThermal=($theme['mode']??'regular')==='thermal';$isDoubleDivine=$variant==='doubleDivine';$isFrenchElite=$variant==='frenchElite';$isPurple=in_array($variant,['purpleA','purpleB','purpleC','taxTheme6','theme2'],true);$isModern=in_array($variant,['modernPurple','theme3'],true);$isSaleClassic=in_array($variant,['classicSale','theme4'],true);$termsText=trim((string)($invoice['termsText'] ?? $invoice['description'] ?? 'Thanks for doing business with us!'));$footerTermsText=$termsText ?: 'Thanks for doing business with us!';$signatureText=trim((string)($invoice['signatureText'] ?? 'Authorized Signatory')) ?: 'Authorized Signatory';$signatureImage=trim((string)($signatureImage ?? ''));
+$invoice=$invoicePreviewData??[];$theme=$themeConfig??['mode'=>'regular','variant'=>'classicA','name'=>'Telly Theme'];$variant=$theme['variant']??'classicA';$accent=$accent??'#1f4e79';$accent2=$accent2??'#ff981f';$items=collect($invoice['items']??[])->values()->all();$subtotal=(float)($invoice['subtotal']??collect($items)->sum('amt'));$discount=(float)($invoice['discount']??0);$tax=(float)($invoice['taxAmount']??0);$total=(float)($invoice['total']??max($subtotal+$tax-$discount,0));$received=(float)($invoice['received']??0);$balance=(float)($invoice['balance']??max($total-$received,0));$totalQty=collect($items)->sum(fn($item)=>(float)($item['qty']??0));$totalGrossW=collect($items)->sum(fn($item)=>(float)($item['gross_w']??0));$totalNetW=collect($items)->sum(fn($item)=>(float)($item['net_w']??0));$title=$invoice['title']??'Invoice';$footerTermsText=trim((string)($invoice['footerTermsText']??$invoice['termsText']??$invoice['terms_condition_text']??$invoice['description']??'Thanks for doing business with us!'));$signatureText=trim((string)($invoice['signatureText']??$invoice['authorizedSignatory']??$invoice['businessName']??'Authorized Signatory'));$signatureImage=(string)($invoice['signatureImage']??$invoice['signature_image']??'');$isThermal=($theme['mode']??'regular')==='thermal';$isDoubleDivine=$variant==='doubleDivine';$isFrenchElite=$variant==='frenchElite';$isPurple=in_array($variant,['purpleA','purpleB','purpleC','taxTheme6','theme2'],true);$isModern=in_array($variant,['modernPurple','theme3'],true);$isSaleClassic=in_array($variant,['classicSale','theme4'],true);$showWeightColumns=!$isThermal;$invoiceRate=(float)($invoice['rate']??0);
 $renderItemCell = function (array $item): string {
     $name = e($item['name'] ?? '');
     $summary = trim((string) ($item['customFieldSummary'] ?? ''));
@@ -115,8 +115,9 @@ body{display:block}
 @php $headBg=$isDoubleDivine?$accent2:$accent; $showUnitColumn=false; $showClassicSimpleTable=!$isDoubleDivine && !$isFrenchElite && !$isPurple && !$isModern && !$isSaleClassic && !$isThermal; @endphp
 <table class="table mb-16 @if($isFrenchElite) elite-table @endif @if($isDoubleDivine) double-table @endif"><thead><tr>
 <th style="background:{{ $headBg }};">#</th><th style="background:{{ $headBg }};">Item Name</th>
+@if($showWeightColumns)<th style="background:{{ $headBg }};">Gross W</th><th style="background:{{ $headBg }};">Net W</th><th style="background:{{ $headBg }};">Rate</th>@endif
 @if(!$isDoubleDivine && !$showClassicSimpleTable)<th style="background:{{ $headBg }};">HSN/SAC</th>@endif
-<th style="background:{{ $headBg }};">Quantity</th>
+<th style="background:{{ $headBg }};">Tadaat</th>
 @if($showUnitColumn)<th style="background:{{ $headBg }};">Unit</th>@endif
 <th style="background:{{ $headBg }};">Price / Unit(Rs)</th>
 @if(!$isDoubleDivine && !$showClassicSimpleTable)<th style="background:{{ $headBg }};">Discount</th><th style="background:{{ $headBg }};">GST</th>@endif
@@ -125,6 +126,7 @@ body{display:block}
 @foreach($items as $index=>$item)
 
 <tr><td>{{ $index+1 }}</td><td>{!! $renderItemCell($item) !!}</td>
+@if($showWeightColumns)<td class="text-right">{{ number_format((float)($item['gross_w'] ?? 0),2) }}</td><td class="text-right">{{ number_format((float)($item['net_w'] ?? 0),2) }}</td><td class="text-right">{{ number_format((float)($item['rate'] ?? 0),2) }}</td>@endif
 @if(!$isDoubleDivine && !$showClassicSimpleTable)<td>{{ $item['hsn'] ?? '' }}</td>@endif
 <td class="text-right">{{ $item['qty'] ?? '' }}</td>
 @if($showUnitColumn)<td>{{ $item['unit'] ?? '' }}</td>@endif
@@ -133,14 +135,33 @@ body{display:block}
 <td class="text-right">@if($showClassicSimpleTable)Rs @endif {{ number_format((float)($item['amt'] ?? 0),2) }}</td></tr>
 
 @endforeach
-<tr class="summary-row"><td></td><td>Total</td>@if(!$isDoubleDivine && !$showClassicSimpleTable)<td></td>@endif<td class="text-right">{{ number_format($totalQty,2) }}</td>@if($showUnitColumn)<td></td>@endif<td></td>@if(!$isDoubleDivine && !$showClassicSimpleTable)<td class="text-right">{{ number_format($discount,2) }}</td><td class="text-right">{{ number_format($tax,2) }}</td>@endif<td class="text-right">@if($showClassicSimpleTable)Rs @endif {{ number_format($total,2) }}</td></tr>
+<tr class="summary-row">
+    <td></td>
+    <td>Total</td>
+    @if($showWeightColumns)
+        <td class="text-right">{{ number_format($totalGrossW,2) }}</td>
+        <td class="text-right">{{ number_format($totalNetW,2) }}</td>
+        <td class="text-right">{{ $invoiceRate > 0 ? number_format($invoiceRate,2) : '' }}</td>
+    @endif
+    @if(!$isDoubleDivine && !$showClassicSimpleTable)
+        <td></td>
+    @endif
+    <td class="text-right">{{ number_format($totalQty,2) }}</td>
+    @if($showUnitColumn)
+        <td></td>
+    @endif
+    <td></td>
+    @if(!$isDoubleDivine && !$showClassicSimpleTable)
+        <td class="text-right">{{ number_format($discount,2) }}</td>
+        <td class="text-right">{{ number_format($tax,2) }}</td>
+    @endif
+    <td class="text-right">@if($showClassicSimpleTable)Rs @endif {{ number_format($total,2) }}</td>
+</tr>
 </tbody></table>
 
 @if($isDoubleDivine)
 <table class="grid-2"><tr><td style="width:50%;vertical-align:top;padding-right:10px;"><div class="box" style="min-height:140px;"><div class="section-head" style="color:{{ $accent2 }}">Order Amount In Words</div><div>{{ $invoice['totalInWords'] ?? 'Rupees Zero only' }}</div><div class="section-head" style="margin-top:14px;color:{{ $accent2 }}">Terms And Conditions</div><div>{{ $footerTermsText }}</div></div></td><td style="width:50%;vertical-align:top;padding-left:10px;"><div class="box"><table class="double-meta-table"><tr><td>Sub Total</td><td class="text-right">{{ number_format($subtotal,2) }}</td></tr><tr><td>Total</td><td class="text-right">{{ number_format($total,2) }}</td></tr><tr><td>Received</td><td class="text-right">{{ number_format($received,2) }}</td></tr><tr><td>Balance</td><td class="text-right">{{ number_format($balance,2) }}</td></tr></table></div></td></tr></table><div style="display:flex;justify-content:flex-end;margin-top:34px;"><div style="width:280px;text-align:center;"><div style="margin-bottom:12px;">For : {{ $invoice['businessName'] ?? 'My Company' }}</div>@if(!empty($signatureImage))<div style="margin:0 auto 10px;max-width:220px;"><img src="{{ $signatureImage }}" alt="Signature" style="max-width:220px;max-height:84px;object-fit:contain;"></div>@else<div style="height:50px;"></div>@endif<div style="border-top:1px solid #b8c2d1;padding-top:8px;font-weight:700;">{{ $signatureText }}</div></div></div>
-@endif
-
-@if($showClassicSimpleTable)
+@elseif($showClassicSimpleTable)
 <table style="width:100%;border-collapse:collapse;">
 <tr>
 <td style="width:50%;vertical-align:top;padding-right:10px;">
@@ -165,7 +186,7 @@ body{display:block}
 </td>
 </tr>
 </table>
-@elseif(!$isDoubleDivine)
+@else
 <table class="grid-2"><tr><td><div class="box">
 <div class="section-head">Order Amount In Words</div>
 <div>{{ $invoice['totalInWords'] ?? 'Rupees Zero only' }}</div>
@@ -189,6 +210,7 @@ body{display:block}
 <div style="border-top:1px solid #b8c2d1;padding-top:8px;font-weight:700;">{{ $signatureText }}</div>
 </div>
 </div>
+@endif
 @if(!empty($autoPrint))
 <script>
 window.addEventListener('load', function () {

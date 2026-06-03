@@ -1,6 +1,11 @@
 @php
-    $itemTableProducts = $saleItemsSource ?? $items ?? collect();
-    $itemTableServices = $serviceItemsSource ?? collect();
+    $itemFormSettings = $itemFormSettings ?? json_decode(\App\Models\AppSetting::getValue('item_form_settings', '{}'), true) ?: [];
+    $itemEnable = (bool) data_get($itemFormSettings, 'enable_item', true);
+    $sellType = (string) data_get($itemFormSettings, 'sell_type', 'both');
+    $showProducts = $itemEnable && in_array($sellType, ['product', 'both'], true);
+    $showServices = $itemEnable && in_array($sellType, ['service', 'both'], true);
+    $itemTableProducts = $showProducts ? collect($saleItemsSource ?? $items ?? collect()) : collect();
+    $itemTableServices = $showServices ? collect($serviceItemsSource ?? collect()) : collect();
     $itemTableCategories = $saleCategoryOptions ?? collect($itemTableProducts)
         ->map(function ($item) {
             return $item->category->name ?? $item->category_name ?? $item->category_id ?? null;

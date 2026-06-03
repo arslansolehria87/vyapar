@@ -664,10 +664,11 @@
                 <div class="dropdown sale-action-menu"
                      data-sale-id="{{ $sale->id }}"
                      data-party-name="{{ $sale->party?->name ?? 'No Party Selected' }}"
+                     data-party-email="{{ $sale->party?->email ?? '' }}"
                      data-balance="{{ (float) ($sale->balance ?? 0) }}"
                      data-edit-url="{{ route('sale.edit', $sale) }}"
                      data-preview-url="{{ route('sale.invoice-preview', $sale) }}"
-                     data-pdf-url="{{ route('sale.invoice-pdf', $sale) }}"
+                     data-pdf-url="{{ route('sale.invoice-pdf', ['sale' => $sale->id, 'download' => 1]) }}"
                      data-print-url="{{ route('sale.invoice-preview', ['sale' => $sale->id, 'print' => 1]) }}"
                      data-delivery-preview-url="{{ route('sale.invoice-preview', ['sale' => $sale->id, 'doc' => 'delivery_challan']) }}"
                      data-payment-history-url="{{ route('sale.payment-history', $sale) }}"
@@ -737,6 +738,8 @@
         <div class="modal-footer justify-content-center gap-2 flex-wrap">
           <button type="button" class="btn btn-outline-danger rounded-pill px-4" id="salePreviewOpenPdf">Open PDF</button>
           <button type="button" class="btn btn-outline-secondary rounded-pill px-4" id="salePreviewPrint">Print</button>
+          <button type="button" class="btn btn-outline-success rounded-pill px-4" id="salePreviewSavePdf">Save PDF</button>
+          <button type="button" class="btn btn-outline-primary rounded-pill px-4" id="salePreviewEmailPdf">Email PDF</button>
           <button type="button" class="btn btn-danger rounded-pill px-4" data-bs-dismiss="modal">Close</button>
         </div>
       </div>

@@ -846,6 +846,52 @@
                         <div class="alert alert-success d-none sale-success-msg"></div>
 
                         <!-- Table Section -->
+                        @php
+                            $itemFormSettings = $itemFormSettings ?? json_decode(\App\Models\AppSetting::getValue('item_form_settings', '{}'), true) ?: [];
+                            $itemEnable = (bool) data_get($itemFormSettings, 'enable_item', true);
+                            $sellType = (string) data_get($itemFormSettings, 'sell_type', 'both');
+                            $showProducts = $itemEnable && in_array($sellType, ['product', 'both'], true);
+                            $showServices = $itemEnable && in_array($sellType, ['service', 'both'], true);
+
+                            $saleItemsSource = $showProducts ? collect($items ?? []) : collect();
+                            if ($saleItemsSource->isEmpty() && $showProducts) {
+                                $saleItemsSource = \App\Models\Item::with('category')
+                                    ->where(function ($query) {
+                                        $query->where('type', 'product')
+                                            ->orWhereNull('type');
+                                    })
+                                    ->where(function ($query) {
+                                        $query->where('is_active', true)
+                                            ->orWhereNull('is_active');
+                                    })
+                                    ->orderBy('name')
+                                    ->get();
+                            }
+
+                            $serviceItemsSource = $showServices ? collect($serviceItemsSource ?? collect()) : collect();
+                            if ($serviceItemsSource->isEmpty() && $showServices) {
+                                $serviceItemsSource = \App\Models\Item::with('category')
+                                    ->where('type', 'service')
+                                    ->where(function ($query) {
+                                        $query->where('is_active', true)
+                                            ->orWhereNull('is_active');
+                                    })
+                                    ->orderBy('name')
+                                    ->get();
+                            }
+
+                            $saleCategoryOptions = collect($saleItemsSource)
+                                ->concat($serviceItemsSource)
+                                ->map(function ($item) {
+                                    return $item->category->name ?? $item->category_name ?? $item->category_id ?? null;
+                                })
+                                ->filter()
+                                ->map(fn ($value) => trim((string) $value))
+                                ->filter()
+                                ->unique()
+                                ->sort()
+                                ->values();
+                        @endphp
                         @include('dashboard.sales.partials._create_item_table')
 
                         <!-- Bottom Split Section -->
@@ -1413,7 +1459,7 @@
 
     @isset($proforma)
         <script>
-            window.items = @json($items ?? []);
+            window.items = @json(($saleItemsSource ?? collect())->concat($serviceItemsSource ?? collect())->values());
             window.parties = @json($parties ?? []);
             window.brokers = @json($brokers ?? []);
             window.partyGroups = @json($partyGroups ?? []);
@@ -1437,7 +1483,7 @@
             );
         @endphp
         <script>
-            window.items = @json($items ?? []);
+            window.items = @json(($saleItemsSource ?? collect())->concat($serviceItemsSource ?? collect())->values());
             window.parties = @json($parties ?? []);
             window.brokers = @json($brokers ?? []);
             window.partyGroups = @json($partyGroups ?? []);
@@ -1455,7 +1501,7 @@
         </script>
     @else
         <script>
-            window.items = @json($items ?? []);
+            window.items = @json(($saleItemsSource ?? collect())->concat($serviceItemsSource ?? collect())->values());
             window.parties = @json($parties ?? []);
             window.brokers = @json($brokers ?? []);
             window.partyGroups = @json($partyGroups ?? []);

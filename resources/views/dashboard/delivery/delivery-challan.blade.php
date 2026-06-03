@@ -450,8 +450,8 @@
                         <li><a class="dropdown-item" href="#" onclick="return transactionPasscodeNavigate('{{ route('delivery-challan.edit', $challan->id) }}');">View/Edit</a></li>
                         <li><a class="dropdown-item" href="#" onclick="return transactionPasscodeExecute('deleteChallan','{{ route('delivery-challan.destroy', $challan->id) }}');">Delete</a></li>
                         <li><a class="dropdown-item" href="{{ route('delivery-challan.duplicate', $challan->id) }}">Duplicate</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="openChallanRecordPreview('{{ route('sale.invoice-preview', $challan) }}', '{{ route('sale.invoice-pdf', $challan) }}', '{{ route('sale.invoice-preview', ['sale' => $challan->id, 'print' => 1]) }}'); return false;">Preview</a></li>
-                        <li><a class="dropdown-item" href="{{ route('sale.invoice-pdf', $challan) }}" target="_blank" rel="noopener">Open PDF</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openChallanRecordPreview('{{ route('sale.invoice-preview', $challan) }}', '{{ route('sale.invoice-pdf', ['sale' => $challan->id, 'download' => 1, 'doc' => 'delivery_challan']) }}', '{{ route('sale.invoice-preview', ['sale' => $challan->id, 'print' => 1, 'doc' => 'delivery_challan']) }}'); return false;">Preview</a></li>
+                        <li><a class="dropdown-item" href="{{ route('sale.invoice-pdf', ['sale' => $challan->id, 'download' => 1, 'doc' => 'delivery_challan']) }}" target="_blank" rel="noopener">Open PDF</a></li>
                         <li><a class="dropdown-item" href="#" onclick="printChallanPdf('{{ route('sale.invoice-preview', ['sale' => $challan->id, 'print' => 1]) }}'); return false;">Print</a></li>
                       </ul>
                     </div>
@@ -883,7 +883,14 @@
     }
 
     function openDeliveryChallanPdf(url) {
-      window.open(url, '_blank');
+      if (!url) return;
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     }
 
     function printDeliveryChallan(url) {
@@ -906,15 +913,52 @@
       challanPreviewFrame.dataset.reportUrl = url;
       challanPreviewFrame.dataset.reportPdfUrl = pdfUrl || url;
       challanPreviewFrame.dataset.reportPrintUrl = printUrl || pdfUrl || url;
+      challanPreviewFrame.dataset.reportDownloadUrl = (() => {
+        const target = pdfUrl || url;
+        try {
+          const download = new URL(target, window.location.origin);
+          download.searchParams.set('download', '1');
+          return download.toString();
+        } catch (error) {
+          return target + (String(target).includes('?') ? '&' : '?') + 'download=1';
+        }
+      })();
       challanPreviewModal.show();
     }
 
     function openChallanPdf(url) {
-      window.open(url, '_blank');
+      if (!url) return;
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     }
 
     function printChallanPdf(url) {
       window.open(url, '_blank');
+    }
+
+    function openMailClient(subject, body) {
+      const mailtoUrl = 'mailto:?subject=' + encodeURIComponent(subject || 'Invoice Preview') +
+        '&body=' + encodeURIComponent(body || '');
+      try {
+        const opened = window.open(mailtoUrl, '_self');
+        if (opened !== null) {
+          return;
+        }
+      } catch (error) {
+        // fall through to anchor fallback
+      }
+      const link = document.createElement('a');
+      link.href = mailtoUrl;
+      link.target = '_self';
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
     }
 
     function getVisibleChallanRows() {
@@ -1296,10 +1340,10 @@
       });
 
       challanPreviewOpenPdf?.addEventListener('click', function () {
-        const url = challanPreviewFrame?.dataset?.reportPdfUrl || challanPreviewFrame?.dataset?.reportUrl;
-        if (!url) return;
-        window.open(url, '_blank');
-      });
+      const url = challanPreviewFrame?.dataset?.reportPdfUrl || challanPreviewFrame?.dataset?.reportUrl;
+      if (!url) return;
+      openChallanPdf(url);
+    });
 
       challanPreviewPrint?.addEventListener('click', function () {
         const printUrl = challanPreviewFrame?.dataset?.reportPrintUrl;
@@ -1318,7 +1362,7 @@
       });
 
       challanPreviewSavePdf?.addEventListener('click', function () {
-        const url = challanPreviewFrame?.dataset?.reportUrl;
+        const url = challanPreviewFrame?.dataset?.reportDownloadUrl || challanPreviewFrame?.dataset?.reportPdfUrl || challanPreviewFrame?.dataset?.reportUrl;
         if (!url) return;
         const a = document.createElement('a');
         a.href = url;
@@ -1332,8 +1376,8 @@
       challanPreviewEmailPdf?.addEventListener('click', function () {
         const rows = getFilteredChallanRows();
         const subject = `Delivery Challan Report - ${rows.length} entries`;
-        const body = `Please find the delivery challan report attached/opened here: ${window.location.href}`;
-        window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        const body = `Please find the delivery challan report attached/opened here: ${challanPreviewFrame?.dataset?.reportDownloadUrl || challanPreviewFrame?.dataset?.reportPdfUrl || window.location.href}`;
+        openMailClient(subject, body);
       });
 
       challanPreviewModalEl?.addEventListener('hidden.bs.modal', function () {
@@ -1343,6 +1387,7 @@
           challanPreviewFrame.removeAttribute('data-report-html');
           challanPreviewFrame.removeAttribute('data-report-pdf-url');
           challanPreviewFrame.removeAttribute('data-report-print-url');
+          challanPreviewFrame.removeAttribute('data-report-download-url');
         }
         if (challanPreviewObjectUrl) {
           URL.revokeObjectURL(challanPreviewObjectUrl);

@@ -7,6 +7,31 @@ function initializeForm(context) {
     const defaultPaymentDirection = 'payment_in';
 
     const baseItems = Array.isArray(window.items) ? window.items : [];
+    const itemFormSettingsSnapshot = (() => {
+        const raw = window.itemFormSettings;
+        if (raw && typeof raw === 'object') {
+            return raw;
+        }
+        return {};
+    })();
+    const itemEnable = !(
+        itemFormSettingsSnapshot.enable_item === false ||
+        String(itemFormSettingsSnapshot.enable_item || '1') === '0'
+    );
+    const sellType = String(itemFormSettingsSnapshot.sell_type || 'both').toLowerCase();
+    const normalizeItemType = (item = {}) => String(item.type || item.item_type || item.kind || 'product').toLowerCase();
+    const isItemAllowedBySettings = (item = {}) => {
+        if (!itemEnable) return false;
+        const type = normalizeItemType(item);
+        if (sellType === 'product') {
+            return type !== 'service';
+        }
+        if (sellType === 'service') {
+            return type === 'service';
+        }
+        return true;
+    };
+    const filterItemsBySettings = (items = []) => (Array.isArray(items) ? items : []).filter(isItemAllowedBySettings);
     const getUrlDocType = () => new URLSearchParams(window.location.search).get('type') || '';
     const getActiveDocType = () => String($ctx.find('.doc-type').val() || window.docType || getUrlDocType() || 'invoice');
     const currentDocType = getActiveDocType();
@@ -36,9 +61,10 @@ function initializeForm(context) {
     };
 
     const buildItemOptionsHtml = (items = []) => {
-        return items.map(item => {
+        return filterItemsBySettings(items).map(item => {
             const { plainLabel, richLabel, categoryLabel, itemCode, description, discount } = getItemMeta(item);
-            return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}" data-weight="${item.weight ?? 0}" data-category="${categoryLabel}" data-item-code="${itemCode}" data-description="${description}" data-discount="${discount}" data-bag-weight="${item.bag_weight ?? ''}">${richLabel}</option>`;
+            const itemType = normalizeItemType(item);
+            return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}" data-weight="${item.weight ?? 0}" data-category="${categoryLabel}" data-item-code="${itemCode}" data-description="${description}" data-discount="${discount}" data-bag-weight="${item.bag_weight ?? ''}" data-type="${itemType}">${richLabel}</option>`;
         }).join('');
     };
 
@@ -50,6 +76,7 @@ function initializeForm(context) {
             domItems.push({
                 id: value,
                 name: $(this).attr('data-label') || $(this).text().trim(),
+                type: $(this).attr('data-type') || 'product',
                 item_code: $(this).attr('data-item-code') || '',
                 description: $(this).attr('data-description') || '',
                 sale_price: parseFloat($(this).attr('data-sale-price') || $(this).attr('data-price') || 0) || 0,
@@ -81,18 +108,21 @@ function initializeForm(context) {
     const getSourceItems = () => {
         const latestItems = Array.isArray(window.items) ? window.items : baseItems;
         if (latestItems !== baseItems) {
-            baseItems.splice(0, baseItems.length, ...latestItems);
+            const filteredLatestItems = filterItemsBySettings(latestItems);
+            baseItems.splice(0, baseItems.length, ...filteredLatestItems);
+            return filteredLatestItems;
         }
 
         if (latestItems.length) {
-            return latestItems;
+            return filterItemsBySettings(latestItems);
         }
 
         const domItems = getDomItems();
         if (domItems.length) {
-            baseItems.splice(0, baseItems.length, ...domItems);
-            window.items = domItems;
-            return domItems;
+            const filteredDomItems = filterItemsBySettings(domItems);
+            baseItems.splice(0, baseItems.length, ...filteredDomItems);
+            window.items = filteredDomItems;
+            return filteredDomItems;
         }
 
         return [];
@@ -1473,8 +1503,9 @@ function initializeForm(context) {
                 ...(Array.isArray(serviceItems) ? serviceItems : [])
             ];
             const uniqueItems = dedupeItemsById(mergedItems);
-            baseItems.splice(0, baseItems.length, ...uniqueItems);
-            window.items = uniqueItems;
+            const filteredItems = filterItemsBySettings(uniqueItems);
+            baseItems.splice(0, baseItems.length, ...filteredItems);
+            window.items = filteredItems;
             updateItemSelectOptions();
 
             if (selectedItem && selectedItem.id) {

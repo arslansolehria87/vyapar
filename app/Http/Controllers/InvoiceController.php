@@ -292,29 +292,24 @@ class InvoiceController extends Controller
         ];
     }
 
-    private function resolveSavedSaleThemeState(Sale $sale): ?array
+    private function resolveSavedSaleThemeState(?Sale $sale): array
     {
-        $extraFields = $sale->details?->invoice_extra_fields;
-        if (!is_array($extraFields)) {
-            return null;
+        $stored = $sale?->invoice_theme;
+
+        if (is_string($stored)) {
+            $stored = json_decode($stored, true);
         }
 
-        $mode = (string) ($extraFields['theme_mode'] ?? '');
-        if (!in_array($mode, ['regular', 'thermal'], true)) {
-            return null;
+        if (!is_array($stored)) {
+            $stored = [];
         }
-
-        $regularThemeId = (int) ($extraFields['theme_regular_theme_id'] ?? 0);
-        $thermalThemeId = (int) ($extraFields['theme_thermal_theme_id'] ?? 0);
-        $accent = trim((string) ($extraFields['theme_accent'] ?? ''));
-        $accent2 = trim((string) ($extraFields['theme_accent2'] ?? ''));
 
         return [
-            'mode' => $mode,
-            'regularThemeId' => $regularThemeId > 0 ? $regularThemeId : 1,
-            'thermalThemeId' => $thermalThemeId > 0 ? $thermalThemeId : 1,
-            'accent' => $accent !== '' ? $accent : '#1f4e79',
-            'accent2' => $accent2 !== '' ? $accent2 : '#ff981f',
+            'mode' => (string) ($stored['mode'] ?? 'regular'),
+            'regularThemeId' => (int) ($stored['regularThemeId'] ?? ($stored['theme_id'] ?? 1)),
+            'thermalThemeId' => (int) ($stored['thermalThemeId'] ?? ($stored['theme_id'] ?? 1)),
+            'accent' => (string) ($stored['accent'] ?? '#1f4e79'),
+            'accent2' => (string) ($stored['accent2'] ?? '#ff981f'),
         ];
     }
 
@@ -632,6 +627,7 @@ class InvoiceController extends Controller
             'date' => $invoiceDate->format('d/m/Y'),
             'time' => $createdAt->format('h:i A'),
             'dueDate' => ($sale->due_date ? Carbon::parse($sale->due_date) : $invoiceDate)->format('d/m/Y'),
+            'rate' => (float) ($sale->rate ?? 0),
             'billTo' => (string) ($sale->display_party_name !== '-' ? $sale->display_party_name : 'Walk-in Customer'),
             'billAddress' => (string) ($sale->billing_address ?: ''),
             'billPhone' => (string) ($sale->phone ?: ($sale->party?->phone ?: '')),
