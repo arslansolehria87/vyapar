@@ -278,6 +278,8 @@ class ItemController extends Controller
             $purchasePrice,
             $openingQty,
             $minStock,
+            $hasCustomFieldsColumn,
+            $customFields,
             $itemStocksTableExists,
             $itemStocksColumns
         ) {

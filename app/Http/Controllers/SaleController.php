@@ -21,6 +21,7 @@ use App\Models\TransactionAdjustment;
 use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -964,7 +965,7 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
         $redirectUrl = match ($sale->type) {
             'estimate' => route('sale.estimate'),
             'sale_order' => route('sale-order'),
-            default => route('sale.index'),
+            default => route('invoice', ['sale_id' => $sale->id]),
         };
 
         return response()->json([
@@ -1311,7 +1312,7 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
             'estimate' => route('invoice', ['sale_id' => $sale->id]),
             'sale_order' => route('invoice', ['sale_id' => $sale->id]),
             'proforma' => route('proforma-invoice'),
-            default => route('sale.index'),
+            default => route('invoice', ['sale_id' => $sale->id]),
         };
 
         return response()->json([
@@ -1556,6 +1557,54 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
         $pdf = Pdf::loadView('dashboard.sales.partials.report-preview', $payload)->setPaper('a4', 'portrait');
 
         return $pdf->download('sale-report-' . now()->format('Ymd-His') . '.pdf');
+    }
+
+    public function reportEmail(Request $request)
+    {
+        $data = $request->validate([
+            'email' => 'required|email',
+            'subject' => 'nullable|string|max:255',
+            'message' => 'nullable|string|max:5000',
+        ]);
+
+        $payload = $this->buildSaleReportPayload($request);
+        $pdf = Pdf::loadView('dashboard.sales.partials.report-preview', $payload)->setPaper('a4', 'portrait');
+        $fileName = 'sale-report-' . now()->format('Ymd-His') . '.pdf';
+
+        $subject = trim((string) ($data['subject'] ?? ''));
+        if ($subject === '') {
+            $subject = 'Sale Report';
+        }
+
+        $message = trim((string) ($data['message'] ?? ''));
+        if ($message === '') {
+            $message = "Dear Sir,\n\nPlease find the sale report PDF attached below.\n\nThank you for doing business with us.\nThanks and regards.";
+        }
+
+        try {
+            Mail::raw($message, function ($mail) use ($data, $subject, $pdf, $fileName) {
+                $mail->to($data['email'])
+                    ->subject($subject)
+                    ->attachData($pdf->output(), $fileName, ['mime' => 'application/pdf']);
+
+                $fromAddress = config('mail.from.address');
+                if (!empty($fromAddress)) {
+                    $mail->from($fromAddress, config('mail.from.name'));
+                }
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to send email right now.',
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Email sent successfully.',
+        ]);
     }
 
     private function buildSaleReportPayload(Request $request): array

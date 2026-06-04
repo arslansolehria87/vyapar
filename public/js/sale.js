@@ -49,6 +49,7 @@ $(document).ready(function () {
   const passcodeVerifyUrl = document.body?.dataset?.transactionPasscodeVerifyUrl || '';
   const reportPreviewBaseUrl = printTableBtn?.dataset?.reportPreviewUrl || `${window.location.origin}/dashboard/sale-report-preview`;
   const reportPdfBaseUrl = printTableBtn?.dataset?.reportPdfUrl || `${window.location.origin}/dashboard/sale-report-pdf`;
+  const reportEmailBaseUrl = printTableBtn?.dataset?.reportEmailUrl || `${window.location.origin}/dashboard/sale-report-email`;
   let pendingProtectedAction = null;
 
   // Filter variables
@@ -146,6 +147,22 @@ $(document).ready(function () {
     salePreviewFrame.dataset.saleNumber = options.saleNumber || '';
     salePreviewFrame.dataset.emailUrl = options.emailUrl || '';
     salePreviewFrame.dataset.documentLabel = options.documentLabel || 'Sale Invoice';
+    salePreviewModalEl?.setAttribute('data-preview-url', options.previewUrl || url || '');
+    salePreviewModalEl?.setAttribute('data-pdf-url', options.pdfUrl || '');
+    salePreviewModalEl?.setAttribute('data-print-url', options.printUrl || '');
+    salePreviewModalEl?.setAttribute('data-email-url', options.emailUrl || '');
+    salePreviewModalEl?.setAttribute('data-party-email', options.partyEmail || '');
+    salePreviewModalEl?.setAttribute('data-party-name', options.partyName || '');
+    salePreviewModalEl?.setAttribute('data-sale-number', options.saleNumber || '');
+    salePreviewModalEl?.setAttribute('data-document-label', options.documentLabel || 'Sale Invoice');
+    salePreviewEmailPdfBtn?.setAttribute('data-preview-url', options.previewUrl || url || '');
+    salePreviewEmailPdfBtn?.setAttribute('data-pdf-url', options.pdfUrl || '');
+    salePreviewEmailPdfBtn?.setAttribute('data-print-url', options.printUrl || '');
+    salePreviewEmailPdfBtn?.setAttribute('data-email-url', options.emailUrl || '');
+    salePreviewEmailPdfBtn?.setAttribute('data-party-email', options.partyEmail || '');
+    salePreviewEmailPdfBtn?.setAttribute('data-party-name', options.partyName || '');
+    salePreviewEmailPdfBtn?.setAttribute('data-sale-number', options.saleNumber || '');
+    salePreviewEmailPdfBtn?.setAttribute('data-document-label', options.documentLabel || 'Sale Invoice');
     salePreviewModal.show();
   }
 
@@ -274,7 +291,15 @@ $(document).ready(function () {
     }
   });
 
-  salePreviewEmailPdfBtn?.addEventListener('click', function () {
+  salePreviewEmailPdfBtn?.addEventListener('click', function (e) {
+    const emailComposer = window.DocumentEmailPreview?.get('sale-invoice-email-preview');
+    if (emailComposer && typeof emailComposer.open === 'function') {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      emailComposer.open(this);
+      return;
+    }
+
     const pdfUrl = salePreviewFrame?.dataset?.pdfUrl || salePreviewFrame?.src;
     const subject = `Invoice PDF - ${salePreviewModalTitle?.textContent || 'Preview'}`;
     const body = `Please find the invoice PDF here: ${pdfUrl || window.location.href}`;
@@ -293,6 +318,22 @@ $(document).ready(function () {
       delete salePreviewFrame.dataset.emailUrl;
       delete salePreviewFrame.dataset.documentLabel;
     }
+    salePreviewModalEl?.removeAttribute('data-preview-url');
+    salePreviewModalEl?.removeAttribute('data-pdf-url');
+    salePreviewModalEl?.removeAttribute('data-print-url');
+    salePreviewModalEl?.removeAttribute('data-email-url');
+    salePreviewModalEl?.removeAttribute('data-party-email');
+    salePreviewModalEl?.removeAttribute('data-party-name');
+    salePreviewModalEl?.removeAttribute('data-sale-number');
+    salePreviewModalEl?.removeAttribute('data-document-label');
+    salePreviewEmailPdfBtn?.removeAttribute('data-preview-url');
+    salePreviewEmailPdfBtn?.removeAttribute('data-pdf-url');
+    salePreviewEmailPdfBtn?.removeAttribute('data-print-url');
+    salePreviewEmailPdfBtn?.removeAttribute('data-email-url');
+    salePreviewEmailPdfBtn?.removeAttribute('data-party-email');
+    salePreviewEmailPdfBtn?.removeAttribute('data-party-name');
+    salePreviewEmailPdfBtn?.removeAttribute('data-sale-number');
+    salePreviewEmailPdfBtn?.removeAttribute('data-document-label');
   });
 
   function buildPrintOptionParams() {
@@ -303,13 +344,14 @@ $(document).ready(function () {
     return params;
   }
 
-  function showPrintOptions(previewUrl, pdfUrl, saleLabel) {
+  function showPrintOptions(previewUrl, pdfUrl, saleLabel, emailUrl = '') {
     if (!salePrintOptionsModal || !salePrintOptionsApplyBtn || !previewUrl) {
       if (previewUrl) window.open(previewUrl, '_blank');
       return;
     }
     salePrintOptionsApplyBtn.dataset.previewUrl = previewUrl;
     salePrintOptionsApplyBtn.dataset.printUrl = pdfUrl || '';
+    salePrintOptionsApplyBtn.dataset.emailUrl = emailUrl || '';
     salePrintOptionsApplyBtn.dataset.saleLabel = saleLabel || 'Invoice';
     salePrintOptionsModal.show();
   }
@@ -321,15 +363,22 @@ $(document).ready(function () {
     const options = buildPrintOptionParams();
     Object.entries(options).forEach(([key, value]) => preview.searchParams.set(key, value));
     let pdf = '';
+    let email = '';
     if (this.dataset.printUrl) {
       const pdfUrl = new URL(this.dataset.printUrl, window.location.origin);
       Object.entries(options).forEach(([key, value]) => pdfUrl.searchParams.set(key, value));
       pdf = pdfUrl.toString();
     }
+    if (this.dataset.emailUrl) {
+      const emailUrl = new URL(this.dataset.emailUrl, window.location.origin);
+      Object.entries(options).forEach(([key, value]) => emailUrl.searchParams.set(key, value));
+      email = emailUrl.toString();
+    }
     salePrintOptionsModal.hide();
     openPreviewModal(preview.toString(), this.dataset.saleLabel || 'Sale Report', {
       pdfUrl: pdf,
       printUrl: preview.toString() + (preview.search ? '&print=1' : '?print=1'),
+      emailUrl: email,
     });
   });
 
@@ -717,7 +766,10 @@ $(document).ready(function () {
     const pdfUrl = new URL(reportPdfBaseUrl, window.location.origin);
     pdfUrl.searchParams.set('sale_ids', query.sale_ids);
     if (query.duration) pdfUrl.searchParams.set('duration', query.duration);
-    showPrintOptions(previewUrl.toString(), pdfUrl.toString(), 'Sale Report');
+    const emailUrl = new URL(reportEmailBaseUrl, window.location.origin);
+    emailUrl.searchParams.set('sale_ids', query.sale_ids);
+    if (query.duration) emailUrl.searchParams.set('duration', query.duration);
+    showPrintOptions(previewUrl.toString(), pdfUrl.toString(), 'Sale Report', emailUrl.toString());
   });
 
   $('#signalBtn').on('click', function () {
@@ -863,7 +915,10 @@ $(document).ready(function () {
       const pdfReportUrl = new URL(reportPdfBaseUrl, window.location.origin);
       pdfReportUrl.searchParams.set('sale_ids', String(saleId));
       pdfReportUrl.searchParams.set('duration', `For invoice ${saleNumber}`);
-      showPrintOptions(previewReportUrl.toString(), pdfReportUrl.toString(), `Sale Report - ${saleNumber}`);
+      const emailReportUrl = new URL(reportEmailBaseUrl, window.location.origin);
+      emailReportUrl.searchParams.set('sale_ids', String(saleId));
+      emailReportUrl.searchParams.set('duration', `For invoice ${saleNumber}`);
+      showPrintOptions(previewReportUrl.toString(), pdfReportUrl.toString(), `Sale Report - ${saleNumber}`, emailReportUrl.toString());
     } else if (action === 'history') {
       if (!bankHistoryUrl) return;
 
@@ -993,7 +1048,7 @@ $(document).ready(function () {
   $(document).on('click', '.row-action-print', function () {
     const $menu = $(this).closest('td').find('.sale-action-menu');
     const saleId = $menu.data('sale-id');
-    const printUrl = buildReactInvoiceUrl($menu.data('pdf-url'), saleId, { print: 1 });
+    const printUrl = buildUrlWithTheme($menu.data('print-url'), saleId, { print: 1 });
     if (printUrl) {
       window.open(printUrl, '_blank');
     }

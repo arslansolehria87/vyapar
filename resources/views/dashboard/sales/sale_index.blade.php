@@ -472,7 +472,8 @@
                 type="button"
                 title="Print"
                 data-report-preview-url="{{ route('sale.report-preview') }}"
-                data-report-pdf-url="{{ route('sale.report-pdf') }}">
+                data-report-pdf-url="{{ route('sale.report-pdf') }}"
+                data-report-email-url="{{ route('sale.report-email') }}">
           <i class="fa-solid fa-print"></i>
         </button>
         <button id="signalBtn" class="btn btn-sm btn-outline-secondary" type="button" title="Signal"><i class="fa-solid fa-signal"></i></button>
@@ -879,10 +880,11 @@
         sendBtnId: 'documentEmailSendBtn',
         openButtonId: 'salePreviewEmailPdf',
         toastId: 'documentEmailToast',
-        defaultSubject: (context) => `Sale Invoice PDF${context.saleNumber ? ' - ' + context.saleNumber : ''}`,
+        defaultSubject: (context) => `${context.documentLabel || 'Sale Invoice'} PDF${context.saleNumber ? ' - ' + context.saleNumber : ''}`,
         defaultMessage: (context) => {
           const pdfLink = context.pdfUrl || context.previewUrl || '';
-          return `Dear ${context.partyName || 'Sir'},\n\nPlease find the sale invoice PDF attached below.\n${pdfLink ? 'PDF Link: ' + pdfLink + '\n' : ''}\nThank you for doing business with us.\nThanks and regards.`;
+          const documentName = (context.documentLabel || 'sale invoice').toString().toLowerCase();
+          return `Dear ${context.partyName || 'Sir'},\n\nPlease find the ${documentName} PDF attached below.\n${pdfLink ? 'PDF Link: ' + pdfLink + '\n' : ''}\nThank you for doing business with us.\nThanks and regards.`;
         },
       });
 

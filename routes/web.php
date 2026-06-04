@@ -71,6 +71,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/sales', [SaleController::class, 'index'])->name('sale.index');
     Route::get('/sale-report-preview', [SaleController::class, 'reportPreview'])->name('sale.report-preview');
     Route::get('/sale-report-pdf', [SaleController::class, 'reportPdf'])->name('sale.report-pdf');
+    Route::post('/sale-report-email', [SaleController::class, 'reportEmail'])->name('sale.report-email');
     Route::post('/sales/verify-passcode', [SaleController::class, 'verifyTransactionPasscode'])->name('sale.verify-passcode');
     Route::get('/sale/create/{type?}', [SaleController::class, 'create'])->name('sale.create');
     Route::post('/sales', [SaleController::class, 'store'])->name('sale.store');
