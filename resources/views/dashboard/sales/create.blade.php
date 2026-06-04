@@ -23,6 +23,35 @@
 </head>
 
 <style>
+    html, body {
+        min-width: 0;
+        overflow-x: hidden;
+    }
+
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
+
+    .invoice-container,
+    .invoice-form,
+    .table-container,
+    .item-picker,
+    .item-picker-panel,
+    .party-dropdown-wrapper,
+    .broker-dropdown-wrapper,
+    .custom-expense-account-wrap {
+        max-width: 100%;
+    }
+
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .item-picker {
+        min-width: 0;
+        width: 100%;
+    }
     /* Force card inputs to be visibly editable */
 #pscPhone,
 #pscPhoneTwo,
@@ -101,7 +130,7 @@
     border-radius: 8px;
     padding: 8px 10px;
     min-height: 34px;
-    width: calc(100% - 20px);
+    width: 100%;
     cursor: default;
     box-sizing: border-box;
 }
@@ -1030,7 +1059,7 @@ textarea.meta-control,
     top: calc(100% + 4px);
     left: 0;
     width: 100%;
-    min-width: 520px;
+    min-width: 0;
     max-width: 100%;
     background: white;
     border: 1px solid #e1e8ed;
@@ -2149,7 +2178,7 @@ textarea.meta-control,
 .bottom-right .add-custom-expense-row {
     min-width: 120px;
     max-width: 140px;
-    margin-left: 242px;
+    margin-left: auto;
 }
 
 @media (max-width: 1200px) {
@@ -2159,6 +2188,11 @@ textarea.meta-control,
 }
 
 @media (max-width: 768px) {
+    .bottom-right .add-custom-expense-row {
+        margin-left: 0;
+        width: 100%;
+        max-width: 100%;
+    }
     .bottom-right .summary-expense-grid {
         grid-template-columns: 1fr;
     }
