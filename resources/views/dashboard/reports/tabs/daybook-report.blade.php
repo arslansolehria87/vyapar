@@ -46,7 +46,7 @@
         </div>
 
         {{-- Payment type filter --}}
-        <div class="d-flex align-items-center border rounded px-2 py-1" style="background:#fff;">
+        {{-- <div class="d-flex align-items-center border rounded px-2 py-1" style="background:#fff;">
             <select id="db-payment-type" class="border-0 bg-transparent text-dark" style="font-size:13px; outline:none;">
                 <option value="">All Payment Types</option>
                 <option value="Cash">Cash</option>
@@ -55,7 +55,7 @@
                 <option value="HBL">HBL</option>
                 <option value="hasnain">hasnain</option>
             </select>
-        </div>
+        </div> --}}
 
         {{-- Spacer --}}
         <div class="flex-grow-1"></div>
@@ -148,8 +148,8 @@
                                             <input type="text" id="db-name-val" class="form-control form-control-sm mb-2" placeholder="Party / Account name">
                                         </li>
                                         <li class="px-3 pb-2 d-flex gap-2">
-                                            <button class="btn btn-sm rounded-pill px-3" style="background:#ebeaea;color:#71748e;" onclick="dbClearColFilter('name')">Clear</button>
-                                            <button class="btn btn-sm rounded-pill px-3 text-white" style="background:#d4112e;" onclick="dbApplyFilters()">Apply</button>
+                                            <button class="btn btn-sm rounded-pill px-3" style="background:#ebeaea;color:#71748e;" onclick="dbDaybookClearColFilter('name')">Clear</button>
+                                            <button class="btn btn-sm rounded-pill px-3 text-white" style="background:#d4112e;" onclick="dbDaybookApplyFilters()">Apply</button>
                                         </li>
                                     </ul>
                                 </div>
@@ -174,8 +174,8 @@
                                             <input type="number" id="db-ref-val" class="form-control form-control-sm mb-2" placeholder="Reference number">
                                         </li>
                                         <li class="px-3 pb-2 d-flex gap-2">
-                                            <button class="btn btn-sm rounded-pill px-3" style="background:#ebeaea;color:#71748e;" onclick="dbClearColFilter('ref')">Clear</button>
-                                            <button class="btn btn-sm rounded-pill px-3 text-white" style="background:#d4112e;" onclick="dbApplyFilters()">Apply</button>
+                                            <button class="btn btn-sm rounded-pill px-3" style="background:#ebeaea;color:#71748e;" onclick="dbDaybookClearColFilter('ref')">Clear</button>
+                                            <button class="btn btn-sm rounded-pill px-3 text-white" style="background:#d4112e;" onclick="dbDaybookApplyFilters()">Apply</button>
                                         </li>
                                     </ul>
                                 </div>
@@ -201,8 +201,8 @@
                                         <li><label class="dropdown-item rounded"><input type="checkbox" class="db-type-chk me-2" value="Cash Deposit">Cash Deposit</label></li>
                                         <li><label class="dropdown-item rounded"><input type="checkbox" class="db-type-chk me-2" value="Expense">Expense</label></li>
                                         <li class="px-2 pt-2 d-flex gap-2">
-                                            <button class="btn btn-sm rounded-pill px-3" style="background:#ebeaea;color:#71748e;" onclick="dbClearColFilter('type')">Clear</button>
-                                            <button class="btn btn-sm rounded-pill px-3 text-white" style="background:#d4112e;" onclick="dbApplyFilters()">Apply</button>
+                                            <button class="btn btn-sm rounded-pill px-3" style="background:#ebeaea;color:#71748e;" onclick="dbDaybookClearColFilter('type')">Clear</button>
+                                            <button class="btn btn-sm rounded-pill px-3 text-white" style="background:#d4112e;" onclick="dbDaybookApplyFilters()">Apply</button>
                                         </li>
                                     </ul>
                                 </div>
@@ -223,8 +223,8 @@
                                         <li><label class="dropdown-item rounded"><input type="checkbox" class="db-pay-chk me-2" value="Online">Online</label></li>
                                         <li><label class="dropdown-item rounded"><input type="checkbox" class="db-pay-chk me-2" value="HBL">HBL</label></li>
                                         <li class="px-2 pt-2 d-flex gap-2">
-                                            <button class="btn btn-sm rounded-pill px-3" style="background:#ebeaea;color:#71748e;" onclick="dbClearColFilter('pay')">Clear</button>
-                                            <button class="btn btn-sm rounded-pill px-3 text-white" style="background:#d4112e;" onclick="dbApplyFilters()">Apply</button>
+                                            <button class="btn btn-sm rounded-pill px-3" style="background:#ebeaea;color:#71748e;" onclick="dbDaybookClearColFilter('pay')">Clear</button>
+                                            <button class="btn btn-sm rounded-pill px-3 text-white" style="background:#d4112e;" onclick="dbDaybookApplyFilters()">Apply</button>
                                         </li>
                                     </ul>
                                 </div>
@@ -254,8 +254,8 @@
                                             </div>
                                         </li>
                                         <li class="px-3 pb-2 d-flex gap-2">
-                                            <button class="btn btn-sm rounded-pill px-3" style="background:#ebeaea;color:#71748e;" onclick="dbClearColFilter('total')">Clear</button>
-                                            <button class="btn btn-sm rounded-pill px-3 text-white" style="background:#d4112e;" onclick="dbApplyFilters()">Apply</button>
+                                            <button class="btn btn-sm rounded-pill px-3" style="background:#ebeaea;color:#71748e;" onclick="dbDaybookClearColFilter('total')">Clear</button>
+                                            <button class="btn btn-sm rounded-pill px-3 text-white" style="background:#d4112e;" onclick="dbDaybookApplyFilters()">Apply</button>
                                         </li>
                                     </ul>
                                 </div>
@@ -281,8 +281,8 @@
                                             <input type="number" id="db-moneyin-val" class="form-control form-control-sm mb-2" placeholder="Amount">
                                         </li>
                                         <li class="px-3 pb-2 d-flex gap-2">
-                                            <button class="btn btn-sm rounded-pill px-3" style="background:#ebeaea;color:#71748e;" onclick="dbClearColFilter('moneyin')">Clear</button>
-                                            <button class="btn btn-sm rounded-pill px-3 text-white" style="background:#d4112e;" onclick="dbApplyFilters()">Apply</button>
+                                            <button class="btn btn-sm rounded-pill px-3" style="background:#ebeaea;color:#71748e;" onclick="dbDaybookClearColFilter('moneyin')">Clear</button>
+                                            <button class="btn btn-sm rounded-pill px-3 text-white" style="background:#d4112e;" onclick="dbDaybookApplyFilters()">Apply</button>
                                         </li>
                                     </ul>
                                 </div>
@@ -308,8 +308,8 @@
                                             <input type="number" id="db-moneyout-val" class="form-control form-control-sm mb-2" placeholder="Amount">
                                         </li>
                                         <li class="px-3 pb-2 d-flex gap-2">
-                                            <button class="btn btn-sm rounded-pill px-3" style="background:#ebeaea;color:#71748e;" onclick="dbClearColFilter('moneyout')">Clear</button>
-                                            <button class="btn btn-sm rounded-pill px-3 text-white" style="background:#d4112e;" onclick="dbApplyFilters()">Apply</button>
+                                            <button class="btn btn-sm rounded-pill px-3" style="background:#ebeaea;color:#71748e;" onclick="dbDaybookClearColFilter('moneyout')">Clear</button>
+                                            <button class="btn btn-sm rounded-pill px-3 text-white" style="background:#d4112e;" onclick="dbDaybookApplyFilters()">Apply</button>
                                         </li>
                                     </ul>
                                 </div>
@@ -386,13 +386,13 @@
             </div>
             <div class="modal-body pt-2">
                 <div class="d-grid gap-2">
-                    <button class="btn btn-outline-secondary btn-sm text-start" onclick="dbRowPrint()">
+                    <button class="btn btn-outline-secondary btn-sm text-start" onclick="dbDaybookRowPrint()">
                         <i class="fa-solid fa-print me-2 text-secondary"></i> Print Voucher
                     </button>
-                    <button class="btn btn-outline-success btn-sm text-start" onclick="dbRowShare('whatsapp')">
+                    <button class="btn btn-outline-success btn-sm text-start" onclick="dbDaybookRowShare('whatsapp')">
                         <i class="fa-brands fa-whatsapp me-2 text-success"></i> Share via WhatsApp
                     </button>
-                    <button class="btn btn-outline-primary btn-sm text-start" onclick="dbRowShare('email')">
+                    <button class="btn btn-outline-primary btn-sm text-start" onclick="dbDaybookRowShare('email')">
                         <i class="fa-regular fa-envelope me-2 text-primary"></i> Share via Email
                     </button>
                     <button class="btn btn-outline-secondary btn-sm text-start" onclick="dbRowDownloadPdf()">
@@ -411,28 +411,152 @@
 <script>
 (function () {
     'use strict';
+    const DB_MOCK = [];
+
+    //yahn syyy agyyy,,,
+//     window.fetchCashFlow = function fetchCashFlow() {
+//     if (CF.loading) return;
+//     CF.loading = true;
+//     hideError();
+
+//     const { from, to } = getDateRange();
+//     const tbody = document.getElementById('cfTbody');
+//     const tfoot = document.getElementById('cfTfoot');
+
+//     tbody.innerHTML = `
+//       <tr id="cfLoadingRow">
+//         <td colspan="12" class="text-center py-5">
+//           <div class="spinner-border spinner-border-sm text-secondary me-2"></div>
+//           <span class="text-muted" style="font-size:13px;">Loading…</span>
+//         </td>
+//       </tr>`;
+//     tfoot.style.display = 'none';
+
+//     const csrfToken = window.App?.csrfToken
+//       || document.querySelector('meta[name=csrf-token]')?.content
+//       || '';
+
+//    fetch(`/dashboard/reports/cash-flow?from=${from}&to=${to}`, {
+//       headers: {
+//         'X-Requested-With': 'XMLHttpRequest',
+//         'X-CSRF-TOKEN': csrfToken,
+//         'Accept': 'application/json',
+//       }
+//     })
+//     .then(async r => {
+//       CF.loading = false;
+
+//       /* ── Handle non-200 HTTP status ── */
+//       if (!r.ok) {
+//         const text = await r.text().catch(() => '');
+//         let detail = `HTTP ${r.status} ${r.statusText}`;
+//         try {
+//           const json = JSON.parse(text);
+//           detail = json.message || json.error || detail;
+//         } catch (_) { /* non-JSON body */ }
+//         showError(detail);
+//         return;
+//       }
+
+//       let data;
+//       try {
+//         data = await r.json();
+//       } catch (_) {
+//         showError('Server returned invalid JSON. Check the /reports/cash-flow controller.');
+//         return;
+//       }
+
+//       if (!data.success) {
+//         showError(data.message || data.error || 'Server returned success:false');
+//         return;
+//       }
+
+//       CF.raw = data.transactions || [];
+//       CF.activeFilters = {};
+
+//       document.getElementById('cfOpeningCash').textContent = fmtN(data.opening_balance || 0);
+//       document.getElementById('cfPrintOpening').textContent = fmt(data.opening_balance || 0);
+
+//       applyFiltersAndRender();
+//     })
+//     .catch(err => {
+//       CF.loading = false;
+//       showError('Network error — could not reach server. (' + err.message + ')');
+//       console.error('CashFlow fetch error:', err);
+//     });
+//   };
+
+//     fetchCashFlow();
+// window.fetchDayBook = function fetchDayBook() {
+//  fetch('/dashboard/reports/day-book', {
+//         headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+//     })
+//     .then(response => response.json())
+//     .then(data => {
+
+//         DB_MOCK = data;
+        
+//         console.log("this is DBB Moch:",DB_MOCK);
+
+//         // yahan apna kaam karo (table render etc)
+//     })
+//     .catch(error => {
+//         console.error('Error:', error);
+//     });
+// };
+
+// fetchDayBook();
+
+    // fromDate, toDate
+//      function saleLoadData() {
+//     const tbody = document.getElementById('db-tbody');
+//     tbody.innerHTML = `<tr><td colspan="8" class="sale-empty-state">
+//       <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;color:#d1d5db;display:block;margin-bottom:6px;"></i>
+//       Loading transactions…
+//     </td></tr>`;
+// // from=${fromDate}&to=${toDate}
+//     fetch(`{{ route('reports.daybook') }}?`, {
+//       headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+//     })
+//     .then(r => r.json())
+//     .then(data => {
+//       if (data.success) {
+//         // saleAllRows  = data.transactions || [];
+//         // saleFiltered = [...saleAllRows];
+//         DB_MOCK = data.transactions || [];
+//         updateSaleSummary(data);
+//         saleRenderTable();
+//       } else {
+//         DB_MOCK = [name:"hello",ref:"",type:"Sale",pay_type:"Cash",total:100,money_in:100,money_out:0];
+//         // tbody.innerHTML = `<tr><td colspan="8" class="sale-empty-state">No data found.</td></tr>`;
+//       }
+//     })
+//     .catch(() => {
+//       tbody.innerHTML = `<tr><td colspan="8" class="sale-empty-state text-danger">Error loading data.</td></tr>`;
+//     });
+//   }
 
     /* ─── sample / mock data (replace with real API call) ─── */
-    const DB_MOCK = [
-        { id:1,  name:'hasnain',           ref:'',  type:'Cash Withdraw',   pay_type:'',      total:100,   money_in:0,    money_out:0 },
-        { id:2,  name:'hasnain',           ref:'',  type:'Cash Withdraw',   pay_type:'',      total:100,   money_in:0,    money_out:0 },
-        { id:3,  name:'hasnain',           ref:'',  type:'Cash Deposit',    pay_type:'',      total:100,   money_in:0,    money_out:0 },
-        { id:4,  name:'hasnain TO HBL',    ref:'',  type:'Bank to Bank',    pay_type:'',      total:1000,  money_in:0,    money_out:0 },
-        { id:5,  name:'[Loan Acc] ok ha',  ref:'',  type:'Opening Loan',    pay_type:'HBL',   total:5000,  money_in:5000, money_out:0 },
-        { id:6,  name:'[Loan Acc] ok ha',  ref:'',  type:'Processing Fee',  pay_type:'hasnain',total:100,  money_in:0,    money_out:100 },
-        { id:7,  name:'[Loan Acc] maleeq azhar',ref:'',type:'Loan Adjustment',pay_type:'hasnain',total:100,money_in:100, money_out:0 },
-        { id:8,  name:'Party 1',            ref:'16',type:'Sale',            pay_type:'hasnain',total:700,  money_in:700,  money_out:0 },
-        { id:9,  name:'Party 1',            ref:'1', type:'Credit Note',     pay_type:'hasnain',total:700,  money_in:0,    money_out:0 },
-        { id:10, name:'Party 1',            ref:'17',type:'Sale',            pay_type:'hasnain',total:600,  money_in:600,  money_out:0 },
-        { id:11, name:'Party 1',            ref:'18',type:'Sale',            pay_type:'Cash',   total:700,  money_in:600,  money_out:0 },
-        { id:12, name:'maleeq',             ref:'1', type:'Payment-In',      pay_type:'Cash',   total:100,  money_in:100,  money_out:0 },
-        { id:13, name:'dodh patya',         ref:'2', type:'Delivery Challan',pay_type:'',       total:600,  money_in:0,    money_out:0 },
-        { id:14, name:'dodh patya',         ref:'19',type:'Sale',            pay_type:'hasnain',total:700,  money_in:500,  money_out:0 },
-    ];
+    // const DB_MOCK = [
+    //     { id:1,  name:'talha',           ref:'',  type:'Cash Withdraw',   pay_type:'',      total:100,   money_in:0,    money_out:0 },
+    //     { id:2,  name:'hasnain',           ref:'',  type:'Cash Withdraw',   pay_type:'',      total:100,   money_in:0,    money_out:0 },
+    //     { id:3,  name:'hasnain',           ref:'',  type:'Cash Deposit',    pay_type:'',      total:100,   money_in:0,    money_out:0 },
+    //     { id:4,  name:'hasnain TO HBL',    ref:'',  type:'Bank to Bank',    pay_type:'',      total:1000,  money_in:0,    money_out:0 },
+    //     { id:5,  name:'[Loan Acc] ok ha',  ref:'',  type:'Opening Loan',    pay_type:'HBL',   total:5000,  money_in:5000, money_out:0 },
+    //     { id:6,  name:'[Loan Acc] ok ha',  ref:'',  type:'Processing Fee',  pay_type:'hasnain',total:100,  money_in:0,    money_out:100 },
+    //     { id:7,  name:'[Loan Acc] maleeq azhar',ref:'',type:'Loan Adjustment',pay_type:'hasnain',total:100,money_in:100, money_out:0 },
+    //     { id:8,  name:'Party 1',            ref:'16',type:'Sale',            pay_type:'hasnain',total:700,  money_in:700,  money_out:0 },
+    //     { id:9,  name:'Party 1',            ref:'1', type:'Credit Note',     pay_type:'hasnain',total:700,  money_in:0,    money_out:0 },
+    //     { id:10, name:'Party 1',            ref:'17',type:'Sale',            pay_type:'hasnain',total:600,  money_in:600,  money_out:0 },
+    //     { id:11, name:'Party 1',            ref:'18',type:'Sale',            pay_type:'Cash',   total:700,  money_in:600,  money_out:0 },
+    //     { id:12, name:'maleeq',             ref:'1', type:'Payment-In',      pay_type:'Cash',   total:100,  money_in:100,  money_out:0 },
+    //     { id:13, name:'dodh patya',         ref:'2', type:'Delivery Challan',pay_type:'',       total:600,  money_in:0,    money_out:0 },
+    //     { id:14, name:'dodh patya',         ref:'19',type:'Sale',            pay_type:'hasnain',total:700,  money_in:500,  money_out:0 },
+    // ];
 
-    let dbAllRows   = [...DB_MOCK];
-    let dbFiltered  = [...DB_MOCK];
-    let dbActiveRow = null;   // for print/share modal
+    let dbDaybookAllRows   = [...DB_MOCK];
+    let dbDaybookFiltered  = [...DB_MOCK];
+    let dbDaybookActiveRow = null;   // for print/share modal
 
     /* ─── helpers ─── */
     const fmt = v => 'Rs ' + Number(v || 0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -449,17 +573,23 @@
     };
 
     /* ─── init on tab show ─── */
-    function dbInit() {
-        // set today's date
-        const today = new Date().toISOString().slice(0,10);
-        document.getElementById('db-date').value = today;
-
-        dbFetchData();
-        dbBindEvents();
+    function dbDaybookInit() {
+        dbDaybookBindEvents();
+        dbDaybookSetTodayDateAndFilter();
     }
 
+    /* ─── helper to set today's date and apply Day Book filters ─── */
+    window.dbDaybookSetTodayDateAndFilter = function () {
+        const today = new Date().toISOString().slice(0,10);
+        const dateInput = document.getElementById('db-date');
+        if (dateInput) {
+            dateInput.value = today;
+        }
+        dbDaybookFetchData();
+    };
+
     /* ─── fetch (replace with real AJAX) ─── */
-    function dbFetchData() {
+    function dbDaybookFetchData() {
         const date     = document.getElementById('db-date').value;
         const firm     = document.getElementById('db-firm').value;
         const typeTop  = document.getElementById('db-type').value;
@@ -467,19 +597,19 @@
 
         // In real app: $.get('/reports/daybook', {date, firm, type:typeTop, payment_type:payTop}, ...)
         // For now: filter mock data
-        dbAllRows = DB_MOCK.filter(r => {
+        dbDaybookAllRows = DB_MOCK.filter(r => {
             if (typeTop && r.type !== typeTop) return false;
             if (payTop  && r.pay_type !== payTop) return false;
             if (firm)   return true; // would filter by firm
             return true;
         });
 
-        dbApplyFilters();
+        dbDaybookApplyFilters();
     }
 
     /* ─── apply column-level filters ─── */
-    window.dbApplyFilters = function () {
-        let rows = [...dbAllRows];
+    window.dbDaybookApplyFilters = function () {
+        let rows = [...dbDaybookAllRows];
 
         // search bar
         const q = (document.getElementById('db-search').value || '').toLowerCase();
@@ -504,12 +634,12 @@
         if (refVal) rows = rows.filter(r => String(r.ref).toLowerCase().includes(refVal));
 
         // type checkboxes
-        const typeChecked = [...document.querySelectorAll('.db-type-chk:checked')].map(c => c.value);
-        if (typeChecked.length) rows = rows.filter(r => typeChecked.includes(r.type));
+        const typeChecked = [...document.querySelectorAll('.db-type-chk:checked')].map(c => String(c.value).toLowerCase());
+        if (typeChecked.length) rows = rows.filter(r => typeChecked.includes(String(r.type || '').toLowerCase()));
 
         // pay type checkboxes
-        const payChecked = [...document.querySelectorAll('.db-pay-chk:checked')].map(c => c.value);
-        if (payChecked.length) rows = rows.filter(r => payChecked.includes(r.pay_type));
+        const payChecked = [...document.querySelectorAll('.db-pay-chk:checked')].map(c => String(c.value).toLowerCase());
+        if (payChecked.length) rows = rows.filter(r => payChecked.includes(String(r.pay_type || '').toLowerCase()));
 
         // total filter
         const totalVal  = parseFloat(document.getElementById('db-total-val').value);
@@ -543,31 +673,31 @@
             return r.money_out === moVal;
         });
 
-        dbFiltered = rows;
-        dbRender();
+        dbDaybookFiltered = rows;
+        dbDaybookRender();
     };
 
     /* ─── render table ─── */
-    function dbRender() {
+    function dbDaybookRender() {
         const tbody    = document.getElementById('db-tbody');
         const emptyRow = document.getElementById('db-empty-row');
         const tfoot    = document.getElementById('db-tfoot');
 
         // update summary cards
-        const totalMoneyIn  = dbFiltered.reduce((s,r) => s + r.money_in,  0);
-        const totalMoneyOut = dbFiltered.reduce((s,r) => s + r.money_out, 0);
-        const totalAmount   = dbFiltered.reduce((s,r) => s + r.total,     0);
+        const totalMoneyIn  = dbDaybookFiltered.reduce((s,r) => s + r.money_in,  0);
+        const totalMoneyOut = dbDaybookFiltered.reduce((s,r) => s + r.money_out, 0);
+        const totalAmount   = dbDaybookFiltered.reduce((s,r) => s + r.total,     0);
 
         document.getElementById('db-total-money-in').textContent  = fmt(totalMoneyIn);
         document.getElementById('db-total-money-out').textContent = fmt(totalMoneyOut);
         document.getElementById('db-total-amount').textContent    = fmt(totalAmount);
-        document.getElementById('db-total-count').textContent     = dbFiltered.length;
-        document.getElementById('db-row-count').textContent       = dbFiltered.length + ' records';
+        document.getElementById('db-total-count').textContent     = dbDaybookFiltered.length;
+        document.getElementById('db-row-count').textContent       = dbDaybookFiltered.length + ' records';
 
         // remove old dynamic rows
         tbody.querySelectorAll('.db-data-row').forEach(el => el.remove());
 
-        if (!dbFiltered.length) {
+        if (!dbDaybookFiltered.length) {
             emptyRow.style.display = '';
             tfoot.style.display = 'none';
             return;
@@ -581,7 +711,7 @@
         document.getElementById('db-foot-moneyout').textContent = fmt(totalMoneyOut);
 
         // rows
-        dbFiltered.forEach((r, idx) => {
+        dbDaybookFiltered.forEach((r, idx) => {
             const tr = document.createElement('tr');
             tr.className = 'db-data-row';
             tr.style.cssText = 'border-bottom:1px solid #f3f4f6; cursor:pointer;';
@@ -608,11 +738,11 @@
                 <td style="padding:12px 14px; text-align:center; background:${rowBg};">
                     <div class="d-flex align-items-center justify-content-center gap-2">
                         <button class="btn btn-sm p-0 border-0 bg-transparent" title="Print"
-                                onclick="dbOpenRowAction(event, ${r.id})">
+                                onclick="dbDaybookOpenRowAction(event, ${r.id})">
                             <i class="fa-solid fa-print" style="color:#6b7280;font-size:14px;"></i>
                         </button>
                         <button class="btn btn-sm p-0 border-0 bg-transparent" title="Share"
-                                onclick="dbOpenRowAction(event, ${r.id})">
+                                onclick="dbDaybookOpenRowAction(event, ${r.id})">
                             <i class="fa-solid fa-share-nodes" style="color:#6b7280;font-size:14px;"></i>
                         </button>
                         <div class="dropdown">
@@ -620,11 +750,11 @@
                                 <i class="fa-solid fa-ellipsis-vertical" style="color:#9ca3af;font-size:14px;"></i>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:13px;min-width:160px;">
-                                <li><a class="dropdown-item" href="#" onclick="dbOpenRowAction(event,${r.id})">
+                                <li><a class="dropdown-item" href="#" onclick="dbDaybookOpenRowAction(event,${r.id})">
                                     <i class="fa-solid fa-print me-2 text-secondary"></i>Print</a></li>
-                                <li><a class="dropdown-item" href="#" onclick="dbOpenRowAction(event,${r.id})">
+                                <li><a class="dropdown-item" href="#" onclick="dbDaybookOpenRowAction(event,${r.id})">
                                     <i class="fa-brands fa-whatsapp me-2 text-success"></i>WhatsApp</a></li>
-                                <li><a class="dropdown-item" href="#" onclick="dbOpenRowAction(event,${r.id})">
+                                <li><a class="dropdown-item" href="#" onclick="dbDaybookOpenRowAction(event,${r.id})">
                                     <i class="fa-regular fa-envelope me-2 text-primary"></i>Email</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item text-danger" href="#">
@@ -639,7 +769,7 @@
     }
 
     /* ─── clear individual column filter ─── */
-    window.dbClearColFilter = function (col) {
+    window.dbDaybookClearColFilter = function (col) {
         const map = {
             name:     () => { document.getElementById('db-name-val').value = ''; document.getElementById('db-name-match').value = 'contains'; },
             ref:      () => { document.getElementById('db-ref-val').value  = ''; },
@@ -650,40 +780,40 @@
             moneyout: () => { document.getElementById('db-moneyout-val').value = ''; },
         };
         if (map[col]) map[col]();
-        dbApplyFilters();
+        dbDaybookApplyFilters();
     };
 
     /* ─── row action modal ─── */
-    window.dbOpenRowAction = function (e, id) {
+    window.dbDaybookOpenRowAction = function (e, id) {
         e.preventDefault();
         e.stopPropagation();
-        dbActiveRow = dbAllRows.find(r => r.id === id);
-        if (!dbActiveRow) return;
+        dbDaybookActiveRow = dbDaybookAllRows.find(r => r.id === id);
+        if (!dbDaybookActiveRow) return;
         document.getElementById('dbRowActionTitle').textContent =
-            dbActiveRow.type + ' — ' + dbActiveRow.name;
+            dbDaybookActiveRow.type + ' — ' + dbDaybookActiveRow.name;
         new bootstrap.Modal(document.getElementById('dbRowActionModal')).show();
     };
 
-    window.dbRowPrint = function () {
-        if (!dbActiveRow) return;
+    window.dbDaybookRowPrint = function () {
+        if (!dbDaybookActiveRow) return;
         const w = window.open('', '_blank');
         w.document.write(`<html><body style="font-family:sans-serif;padding:32px;">
             <h3>Day Book Voucher</h3>
-            <p><b>Name:</b> ${dbActiveRow.name}</p>
-            <p><b>Type:</b> ${dbActiveRow.type}</p>
-            <p><b>Ref:</b> ${dbActiveRow.ref || '—'}</p>
-            <p><b>Payment Type:</b> ${dbActiveRow.pay_type || '—'}</p>
-            <p><b>Total:</b> Rs ${dbActiveRow.total}</p>
-            <p><b>Money In:</b> Rs ${dbActiveRow.money_in}</p>
-            <p><b>Money Out:</b> Rs ${dbActiveRow.money_out}</p>
+            <p><b>Name:</b> ${dbDaybookActiveRow.name}</p>
+            <p><b>Type:</b> ${dbDaybookActiveRow.type}</p>
+            <p><b>Ref:</b> ${dbDaybookActiveRow.ref || '—'}</p>
+            <p><b>Payment Type:</b> ${dbDaybookActiveRow.pay_type || '—'}</p>
+            <p><b>Total:</b> Rs ${dbDaybookActiveRow.total}</p>
+            <p><b>Money In:</b> Rs ${dbDaybookActiveRow.money_in}</p>
+            <p><b>Money Out:</b> Rs ${dbDaybookActiveRow.money_out}</p>
         </body></html>`);
         w.document.close();
         w.print();
     };
 
-    window.dbRowShare = function (method) {
-        if (!dbActiveRow) return;
-        const text = `Day Book Entry\nName: ${dbActiveRow.name}\nType: ${dbActiveRow.type}\nTotal: Rs ${dbActiveRow.total}`;
+    window.dbDaybookRowShare = function (method) {
+        if (!dbDaybookActiveRow) return;
+        const text = `Day Book Entry\nName: ${dbDaybookActiveRow.name}\nType: ${dbDaybookActiveRow.type}\nTotal: Rs ${dbDaybookActiveRow.total}`;
         if (method === 'whatsapp') {
             window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
         } else {
@@ -696,9 +826,9 @@
     };
 
     /* ─── excel export ─── */
-    function dbExportExcel() {
+    function dbDaybookExportExcel() {
         let csv = 'Name,Ref No,Type,Payment Type,Total,Money In,Money Out\n';
-        dbFiltered.forEach(r => {
+        dbDaybookFiltered.forEach(r => {
             csv += `"${r.name}","${r.ref}","${r.type}","${r.pay_type}",${r.total},${r.money_in},${r.money_out}\n`;
         });
         const blob = new Blob([csv], {type:'text/csv'});
@@ -709,7 +839,7 @@
     }
 
     /* ─── print all ─── */
-    function dbPrintAll() {
+    function dbDaybookPrintAll() {
         const date = document.getElementById('db-date').value;
         let html = `<html><head><title>Day Book</title>
         <style>body{font-family:sans-serif;font-size:12px;padding:24px}
@@ -725,7 +855,7 @@
         <thead><tr><th>Name</th><th>Ref</th><th>Type</th><th>Payment Type</th><th style="text-align:right">Total</th><th style="text-align:right">Money In</th><th style="text-align:right">Money Out</th></tr></thead>
         <tbody>`;
 
-        dbFiltered.forEach(r => {
+        dbDaybookFiltered.forEach(r => {
             html += `<tr>
                 <td>${r.name}</td><td>${r.ref||''}</td><td>${r.type}</td><td>${r.pay_type||'—'}</td>
                 <td style="text-align:right">Rs ${r.total.toLocaleString()}</td>
@@ -734,9 +864,9 @@
             </tr>`;
         });
 
-        const mi  = dbFiltered.reduce((s,r) => s+r.money_in,  0);
-        const mo  = dbFiltered.reduce((s,r) => s+r.money_out, 0);
-        const tot = dbFiltered.reduce((s,r) => s+r.total,     0);
+        const mi  = dbDaybookFiltered.reduce((s,r) => s+r.money_in,  0);
+        const mo  = dbDaybookFiltered.reduce((s,r) => s+r.money_out, 0);
+        const tot = dbDaybookFiltered.reduce((s,r) => s+r.total,     0);
 
         html += `</tbody>
         <tfoot><tr><td colspan="4">Totals</td>
@@ -753,15 +883,15 @@
     }
 
     /* ─── bind events ─── */
-    function dbBindEvents() {
+    function dbDaybookBindEvents() {
         // top-bar filters trigger fetch
         ['db-date','db-firm','db-type','db-payment-type'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.addEventListener('change', dbFetchData);
+            if (el) el.addEventListener('change', dbDaybookFetchData);
         });
 
         // search bar — live filter
-        document.getElementById('db-search').addEventListener('input', dbApplyFilters);
+        document.getElementById('db-search').addEventListener('input', dbDaybookApplyFilters);
 
         // total range toggle
         document.getElementById('db-total-cond').addEventListener('change', function () {
@@ -769,10 +899,10 @@
         });
 
         // excel
-        document.getElementById('db-excel-btn').addEventListener('click', dbExportExcel);
+        document.getElementById('db-excel-btn').addEventListener('click', dbDaybookExportExcel);
 
         // print
-        document.getElementById('db-print-btn').addEventListener('click', dbPrintAll);
+        document.getElementById('db-print-btn').addEventListener('click', dbDaybookPrintAll);
 
         // fullscreen
         document.getElementById('db-fullscreen-btn').addEventListener('click', function () {
@@ -792,14 +922,14 @@
     document.addEventListener('DOMContentLoaded', function () {
         // If this tab is active by default
         if (!document.getElementById('tab-Daybook').classList.contains('d-none')) {
-            dbInit();
+            dbDaybookInit();
         }
 
         // Listen for nav-link clicks that activate Daybook
         document.querySelectorAll('.reports-nav .nav-link[data-target="Daybook"]').forEach(link => {
             link.addEventListener('click', function () {
                 // small delay to allow DOM to show tab
-                setTimeout(dbInit, 50);
+                setTimeout(dbDaybookInit, 50);
             });
         });
     });

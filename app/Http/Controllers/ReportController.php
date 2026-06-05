@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use App\Models\Party;
 use App\Models\Category;
+use Illuminate\Support\Carbon;
 use Symfony\Component\Process\Process;
 
 class ReportController extends Controller
@@ -863,6 +864,23 @@ class ReportController extends Controller
     // ============================================================
     // 8. ALL TRANSACTIONS
     // ============================================================
+    
+        // if (Schema::hasTable('purchases')) {
+        //     $rows = $rows->merge(
+        //         DB::table('purchases as pu')
+        //             ->leftJoin('parties as p', 'p.id', '=', 'pu.party_id')
+        //             ->whereBetween('pu.bill_date', [$from, $to])
+        //             ->select(
+        //                 'pu.id',
+        //                 DB::raw("'Purchase' as type"),
+        //                 'pu.bill_number as reference',
+        //                 'pu.bill_date as date',
+        //                 'p.name as party_name',
+        //                 'pu.total_amount as amount',
+        //                 DB::raw("COALESCE(pu.payment_type, 'Cash') as payment_type")
+        //             )->get()
+        //     );
+        // }
     public function allTransactions(Request $request)
     {
         [$from, $to] = $this->dateRange($request);
@@ -884,24 +902,10 @@ class ReportController extends Controller
                     )->get()
             );
         }
+    
 
-        if (Schema::hasTable('purchases')) {
-            $rows = $rows->merge(
-                DB::table('purchases as pu')
-                    ->leftJoin('parties as p', 'p.id', '=', 'pu.party_id')
-                    ->whereBetween('pu.bill_date', [$from, $to])
-                    ->select(
-                        'pu.id',
-                        DB::raw("'Purchase' as type"),
-                        'pu.bill_number as reference',
-                        'pu.bill_date as date',
-                        'p.name as party_name',
-                        'pu.total_amount as amount',
-                        DB::raw("COALESCE(pu.payment_type, 'Cash') as payment_type")
-                    )->get()
-            );
-        }
 
+        // return $rows;
         if (Schema::hasTable('payment_ins')) {
             $rows = $rows->merge(
                 DB::table('payment_ins as pi')
@@ -954,7 +958,7 @@ class ReportController extends Controller
         }
 
         $rows = $rows->sortByDesc('date')->values();
-
+    
         return response()->json([
             'success'      => true,
             'transactions' => $rows->toArray(),
@@ -963,6 +967,93 @@ class ReportController extends Controller
         ]);
     }
 
+    public function dayBook(Request $request){
+        //    [$from, $to] = $this->dateRange($request);
+       
+        $date=Carbon::today();
+        $rows = collect();
+
+        if (Schema::hasTable('sales')) {
+            $rows = $rows->merge(
+                DB::table('sales as s')
+                    ->leftJoin('parties as p', 'p.id', '=', 's.party_id')
+                    ->where('s.invoice_date', $date)
+                    ->select(
+                        's.id',
+                        DB::raw("'Sale' as type"),
+                        's.bill_number as reference',
+                        's.invoice_date as date',
+                        'p.name as party_name',
+                        's.total_amount as amount',
+                        DB::raw("COALESCE(s.payment_type, 'Cash') as payment_type")
+                    )->get()
+            );
+        }
+    
+
+
+        // return $rows;
+        if (Schema::hasTable('payment_ins')) {
+            $rows = $rows->merge(
+                DB::table('payment_ins as pi')
+                    ->leftJoin('parties as p', 'p.id', '=', 'pi.party_id')
+                    ->where('pi.date', $date)
+                    ->select(
+                        'pi.id',
+                        DB::raw("'Payment In' as type"),
+                        'pi.reference_no as reference',
+                        'pi.date as date',
+                        'p.name as party_name',
+                        'pi.amount as amount',
+                        'pi.payment_type'
+                    )->get()
+            );
+        }
+
+        if (Schema::hasTable('payment_outs')) {
+            $rows = $rows->merge(
+                DB::table('payment_outs as po')
+                    ->leftJoin('parties as p', 'p.id', '=', 'po.party_id')
+                    ->where('po.date', $date)
+                    ->select(
+                        'po.id',
+                        DB::raw("'Payment Out' as type"),
+                        'po.reference_no as reference',
+                        'po.date as date',
+                        'p.name as party_name',
+                        'po.amount as amount',
+                        'po.payment_type'
+                    )->get()
+            );
+        }
+
+        // expenses: expense_date, total_amount, payment_type
+        if (Schema::hasTable('expenses')) {
+            $rows = $rows->merge(
+                DB::table('expenses as e')
+                    ->where('e.expense_date', $date)
+                    ->select(
+                        'e.id',
+                        DB::raw("'Expense' as type"),
+                        DB::raw("COALESCE(e.expense_no, '') as reference"),
+                        'e.expense_date as date',
+                        DB::raw("COALESCE(e.party, '') as party_name"),
+                        'e.total_amount as amount',
+                        DB::raw("COALESCE(e.payment_type, 'Cash') as payment_type")
+                    )->get()
+            );
+        }
+
+        $rows = $rows->sortByDesc('date')->values();
+    
+        return response()->json([
+            'success'      => true,
+            'transactions' => $rows->toArray(),
+            'total_amount' => $this->fmt($rows->sum('amount')),
+            'period'       => ['from' => $date],
+        ]);
+        
+    }
     // ============================================================
     // 9. CASH FLOW
     // ─ sales        → payment_type column EXISTS ✓
@@ -1010,19 +1101,19 @@ class ReportController extends Controller
         }
 
         // Purchases cash-out
-        if (Schema::hasTable('purchases')) {
-            $purchase = DB::table('purchases')
-                ->whereBetween('bill_date', [$from, $to])
-                ->where('payment_type', 'Cash')
-                ->select(
-                    DB::raw("'Purchase' as category"),
-                    DB::raw('SUM(total_amount) as amount'),
-                    DB::raw("'out' as flow")
-                )
-                ->groupBy(DB::raw("'Purchase'"))
-                ->first();
-            if ($purchase && $purchase->amount) { $cashOut += $purchase->amount; $rows->push($purchase); }
-        }
+        // if (Schema::hasTable('purchases')) {
+        //     $purchase = DB::table('purchases')
+        //         ->whereBetween('bill_date', [$from, $to])
+        //         ->where('payment_type', 'Cash')
+        //         ->select(
+        //             DB::raw("'Purchase' as category"),
+        //             DB::raw('SUM(total_amount) as amount'),
+        //             DB::raw("'out' as flow")
+        //         )
+        //         ->groupBy(DB::raw("'Purchase'"))
+        //         ->first();
+        //     if ($purchase && $purchase->amount) { $cashOut += $purchase->amount; $rows->push($purchase); }
+        // }
 
         // Payment-outs cash-out
         if (Schema::hasTable('payment_outs')) {
