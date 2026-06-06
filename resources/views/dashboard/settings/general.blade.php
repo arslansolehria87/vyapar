@@ -282,53 +282,67 @@
         <section class="section section--more-transactions">
           <div class="section__title">More Transactions</div>
 
-          <label class="check-row check-row--sm">
-            <input type="checkbox" class="check-row__input" checked />
-            <span class="check-row__label">Estimate/Quotation</span>
-            <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
-          </label>
+          <form method="POST" action="{{ route('settings.general.update') }}" id="moreTransactionsForm">
+            @csrf
 
-          <label class="check-row check-row--sm">
-            <input type="checkbox" class="check-row__input" checked />
-            <span class="check-row__label">Proforma Invoice</span>
-            <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
-          </label>
-
-          <label class="check-row check-row--sm">
-            <input type="checkbox" class="check-row__input" checked />
-            <span class="check-row__label">Sale/Purchase Order</span>
-            <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
-          </label>
-
-          <label class="check-row check-row--sm">
-            <input type="checkbox" class="check-row__input" />
-            <span class="check-row__label">Other Income</span>
-            <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
-          </label>
-
-          <label class="check-row check-row--sm">
-            <input type="checkbox" class="check-row__input" />
-            <span class="check-row__label">Fixed Assets (FA)</span>
-            <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
-          </label>
-
-          <label class="check-row check-row--sm">
-            <input type="checkbox" class="check-row__input" id="deliveryChallanCheck" />
-            <span class="check-row__label">Delivery Challan</span>
-            <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
-          </label>
-          <div id="deliveryChallanOptions" class="d-none">
-            <label class="check-row check-row--sm ps-4">
-              <input type="checkbox" class="check-row__input" />
-              <span class="check-row__label">Goods return on <span class="fw-bold"> Delivery Challan</span></span>
+            <label class="check-row check-row--sm">
+              <input type="hidden" name="more_transactions[estimate_quotation_enabled]" value="0">
+              <input type="checkbox" class="check-row__input" id="estimateQuotationCheck" name="more_transactions[estimate_quotation_enabled]" value="1" {{ !empty(data_get($generalSettings ?? [], 'more_transactions.estimate_quotation_enabled')) ? 'checked' : '' }} />
+              <span class="check-row__label">Estimate/Quotation</span>
               <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
             </label>
-            <label class="check-row check-row--sm ps-4">
-              <input type="checkbox" class="check-row__input" />
-              <span class="check-row__label">Print amount in <span class="fw-bold">Delivery Challan</span></span>
+
+            <label class="check-row check-row--sm">
+              <input type="hidden" name="more_transactions[proforma_invoice_enabled]" value="0">
+              <input type="checkbox" class="check-row__input" id="proformaInvoiceCheck" name="more_transactions[proforma_invoice_enabled]" value="1" {{ !empty(data_get($generalSettings ?? [], 'more_transactions.proforma_invoice_enabled')) ? 'checked' : '' }} />
+              <span class="check-row__label">Proforma Invoice</span>
               <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
             </label>
-          </div>
+
+            <label class="check-row check-row--sm">
+              <input type="hidden" name="more_transactions[sale_purchase_order_enabled]" value="0">
+              <input type="checkbox" class="check-row__input" id="salePurchaseOrderCheck" name="more_transactions[sale_purchase_order_enabled]" value="1" {{ !empty(data_get($generalSettings ?? [], 'more_transactions.sale_purchase_order_enabled')) ? 'checked' : '' }} />
+              <span class="check-row__label">Sale/Purchase Order</span>
+              <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
+            </label>
+
+            <label class="check-row check-row--sm">
+              <input type="hidden" name="more_transactions[other_income_enabled]" value="0">
+              <input type="checkbox" class="check-row__input" id="otherIncomeCheck" name="more_transactions[other_income_enabled]" value="1" {{ !empty(data_get($generalSettings ?? [], 'more_transactions.other_income_enabled')) ? 'checked' : '' }} />
+              <span class="check-row__label">Other Income</span>
+              <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
+            </label>
+
+            <label class="check-row check-row--sm">
+              <input type="hidden" name="more_transactions[fixed_assets_enabled]" value="0">
+              <input type="checkbox" class="check-row__input" id="fixedAssetsCheck" name="more_transactions[fixed_assets_enabled]" value="1" {{ !empty(data_get($generalSettings ?? [], 'more_transactions.fixed_assets_enabled')) ? 'checked' : '' }} />
+              <span class="check-row__label">Fixed Assets (FA)</span>
+              <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
+            </label>
+
+            <label class="check-row check-row--sm">
+              <input type="hidden" name="more_transactions[delivery_challan_enabled]" value="0">
+              <input type="checkbox" class="check-row__input" id="deliveryChallanCheck" name="more_transactions[delivery_challan_enabled]" value="1" {{ !empty(data_get($generalSettings ?? [], 'more_transactions.delivery_challan_enabled')) ? 'checked' : '' }} />
+              <span class="check-row__label">Delivery Challan</span>
+              <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
+            </label>
+            <div id="deliveryChallanOptions" class="{{ !empty(data_get($generalSettings ?? [], 'more_transactions.delivery_challan_enabled')) ? '' : 'd-none' }}">
+              <label class="check-row check-row--sm ps-4">
+                <input type="hidden" name="more_transactions[goods_return_on_delivery_challan]" value="0">
+                <input type="checkbox" class="check-row__input" id="goodsReturnOnDeliveryChallanCheck" name="more_transactions[goods_return_on_delivery_challan]" value="1" {{ !empty(data_get($generalSettings ?? [], 'more_transactions.goods_return_on_delivery_challan')) ? 'checked' : '' }} />
+                <span class="check-row__label">Goods return on <span class="fw-bold"> Delivery Challan</span></span>
+                <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
+              </label>
+              <label class="check-row check-row--sm ps-4">
+                <input type="hidden" name="more_transactions[print_amount_in_delivery_challan]" value="0">
+                <input type="checkbox" class="check-row__input" id="printAmountInDeliveryChallanCheck" name="more_transactions[print_amount_in_delivery_challan]" value="1" {{ !empty(data_get($generalSettings ?? [], 'more_transactions.print_amount_in_delivery_challan')) ? 'checked' : '' }} />
+                <span class="check-row__label">Print amount in <span class="fw-bold">Delivery Challan</span></span>
+                <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
+              </label>
+            </div>
+
+            <button type="submit" class="apply-btn mt-3" style="padding:6px 14px;font-size:13px;width:auto;min-width:160px;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;">Save More Transactions</button>
+          </form>
         </section>
 
         <!-- Column 2 (top): Multi Firm -->

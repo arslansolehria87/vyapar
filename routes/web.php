@@ -248,6 +248,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
 
     Route::get('settings/general', [SettingController::class, 'general'])->name('settings.general');
     Route::post('settings/general', [SettingController::class, 'updateGeneral'])->name('settings.general.update');
+    Route::get('settings/general/sidebar-config', [SettingController::class, 'generalSidebarConfig'])->name('settings.general.sidebar-config');
     Route::get('settings/transactions', [SettingController::class, 'transactions'])->name('settings.transactions');
     Route::post('settings/transactions', [SettingController::class, 'updateTransactions'])->name('settings.transactions.update');
     Route::get('settings/taxes', [SettingController::class, 'taxes'])->name('settings.taxes');

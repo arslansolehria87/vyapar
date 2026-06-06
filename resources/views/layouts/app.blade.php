@@ -24,6 +24,9 @@
 <body data-page="@yield('page')">
 
 <script>
+  @php
+    $generalSidebarSettings = json_decode((string) \App\Models\AppSetting::getValue('general_settings', '{}'), true) ?: [];
+  @endphp
  window.App = {
     isAuthenticated: @json(Auth::check()),
     user: {
@@ -34,7 +37,8 @@
     },
     logoutUrl: "{{ route('logout') }}",
     csrfToken: "{{ csrf_token() }}",
-    current_company_id: @json(session('current_company_id') ?? Auth::user()?->current_company_id ?? null)
+    current_company_id: @json(session('current_company_id') ?? Auth::user()?->current_company_id ?? null),
+    generalSettings: @json($generalSidebarSettings)
   };
 </script>
 

@@ -159,8 +159,6 @@ a:hover {
   overflow-y: auto;
   overflow-x: hidden;
   transition: width .25s ease;
-   z-index: 100001;
-     width: 260px;
 }
 
 /* Sidebar Search */
@@ -529,6 +527,7 @@ a:hover {
   padding: 20px 24px;
 
   width: calc(100% - var(--sidebar-width));
+  min-width: 0;
   box-sizing: border-box;
 }
 

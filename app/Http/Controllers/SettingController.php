@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AppSetting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Hash;
 
 class SettingController extends Controller
@@ -14,6 +15,7 @@ class SettingController extends Controller
     {
         return view('dashboard.settings.general', [
             'bankAccountPasswordSet' => filled(AppSetting::getValue('bank_account_password')),
+            'generalSettings' => $this->getGeneralSettings(),
         ]);
     }
 
@@ -21,15 +23,31 @@ class SettingController extends Controller
     {
         $data = $request->validate([
             'bank_account_password' => ['nullable', 'string', 'min:4', 'max:255'],
+            'more_transactions.estimate_quotation_enabled' => ['nullable', 'boolean'],
+            'more_transactions.proforma_invoice_enabled' => ['nullable', 'boolean'],
+            'more_transactions.sale_purchase_order_enabled' => ['nullable', 'boolean'],
+            'more_transactions.other_income_enabled' => ['nullable', 'boolean'],
+            'more_transactions.fixed_assets_enabled' => ['nullable', 'boolean'],
+            'more_transactions.delivery_challan_enabled' => ['nullable', 'boolean'],
+            'more_transactions.goods_return_on_delivery_challan' => ['nullable', 'boolean'],
+            'more_transactions.print_amount_in_delivery_challan' => ['nullable', 'boolean'],
         ]);
 
         if (!empty($data['bank_account_password'])) {
             AppSetting::setValue('bank_account_password', Hash::make($data['bank_account_password']));
         }
 
+        $generalSettings = array_replace_recursive($this->getGeneralSettings(), Arr::only($data, ['more_transactions']));
+        AppSetting::setValue('general_settings', json_encode($generalSettings));
+
         return redirect()
             ->route('settings.general')
             ->with('success', 'General settings updated successfully.');
+    }
+
+    public function generalSidebarConfig()
+    {
+        return response()->json($this->getGeneralSettings());
     }
 
     public function transactions()
@@ -60,6 +78,11 @@ class SettingController extends Controller
             'more_transaction_features.link_payment_to_invoices' => ['nullable', 'boolean'],
             'more_transaction_features.passcode_enabled' => ['nullable', 'boolean'],
             'more_transaction_features.do_not_show_invoice_preview' => ['nullable', 'boolean'],
+            'transaction_totals.discount_enabled' => ['nullable', 'boolean'],
+            'transaction_totals.tax_enabled' => ['nullable', 'boolean'],
+            'transaction_totals.round_total_enabled' => ['nullable', 'boolean'],
+            'transaction_totals.round_total_mode' => ['nullable', 'in:nearest,down-to,up-to'],
+            'transaction_totals.round_total_precision' => ['nullable', 'integer', 'in:1,10,50,100,1000'],
             'sale_prefix.enabled' => ['nullable', 'boolean'],
             'sale_prefix.active' => ['nullable', 'string', 'max:20'],
             'sale_prefix.options' => ['nullable', 'array'],
@@ -106,6 +129,13 @@ class SettingController extends Controller
         if (!empty($data['transaction_passcode'])) {
             $settings['more_transaction_features']['transaction_passcode_hash'] = Hash::make($data['transaction_passcode']);
             $settings['more_transaction_features']['passcode_enabled'] = true;
+        }
+        if ($request->has('transaction_totals')) {
+            $settings['transaction_totals']['discount_enabled'] = !empty(data_get($data, 'transaction_totals.discount_enabled'));
+            $settings['transaction_totals']['tax_enabled'] = !empty(data_get($data, 'transaction_totals.tax_enabled'));
+            $settings['transaction_totals']['round_total_enabled'] = !empty(data_get($data, 'transaction_totals.round_total_enabled'));
+            $settings['transaction_totals']['round_total_mode'] = data_get($data, 'transaction_totals.round_total_mode', data_get($settings, 'transaction_totals.round_total_mode', 'down-to'));
+            $settings['transaction_totals']['round_total_precision'] = (int) data_get($data, 'transaction_totals.round_total_precision', data_get($settings, 'transaction_totals.round_total_precision', 100));
         }
 
         AppSetting::setValue('transaction_items_count_enabled', !empty(data_get($settings, 'items_table.count_enabled')) ? '1' : '0');
@@ -252,6 +282,32 @@ class SettingController extends Controller
         ];
     }
 
+    private function defaultGeneralSettings(): array
+    {
+        return [
+            'more_transactions' => [
+                'estimate_quotation_enabled' => true,
+                'proforma_invoice_enabled' => true,
+                'sale_purchase_order_enabled' => true,
+                'other_income_enabled' => false,
+                'fixed_assets_enabled' => false,
+                'delivery_challan_enabled' => true,
+                'goods_return_on_delivery_challan' => false,
+                'print_amount_in_delivery_challan' => false,
+            ],
+        ];
+    }
+
+    private function getGeneralSettings(): array
+    {
+        $stored = json_decode((string) AppSetting::getValue('general_settings', '{}'), true);
+        if (!is_array($stored)) {
+            $stored = [];
+        }
+
+        return array_replace_recursive($this->defaultGeneralSettings(), $stored);
+    }
+
     private function defaultTransactionSettings(): array
     {
         return [
@@ -275,6 +331,13 @@ class SettingController extends Controller
                 'passcode_enabled' => false,
                 'transaction_passcode_hash' => null,
                 'do_not_show_invoice_preview' => false,
+            ],
+            'transaction_totals' => [
+                'discount_enabled' => true,
+                'tax_enabled' => true,
+                'round_total_enabled' => true,
+                'round_total_mode' => 'down-to',
+                'round_total_precision' => 100,
             ],
             'sale_prefix' => [
                 'enabled' => true,

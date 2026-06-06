@@ -94,7 +94,7 @@
     }
 
     function refreshPaymentTypeDropdowns(record, selectNewOption) {
-        const optionValue = 'bank-' + record.id;
+        const optionValue = 'bank:' + record.id;
         const optionLabel = getBankLabel(record);
         const rawBankValue = String(record.id);
 

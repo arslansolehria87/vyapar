@@ -88,6 +88,248 @@
   const userName = appUser?.name || 'Grocery Store';
   const userInitials = getInitials(appUser?.name);
   const currentUrl = window.location.pathname;
+  const sidebarVisibilityStorageKey = 'vyaparGeneralSidebarConfig';
+  const sidebarVisibilityEndpoint = '/dashboard/settings/general/sidebar-config';
+  const sidebarWidthStorageKey = 'vyaparSidebarWidth';
+  const sidebarCompactModeStorageKey = 'vyaparSidebarCompactMode';
+  const sidebarUserModeStorageKey = 'vyaparSidebarUserMode';
+  const sidebarMinWidth = 68;
+  const sidebarCollapsedThreshold = 90;
+  const sidebarMaxWidth = 420;
+
+  const defaultSidebarVisibilityConfig = {
+    more_transactions: {
+      estimate_quotation_enabled: true,
+      proforma_invoice_enabled: true,
+      sale_purchase_order_enabled: true,
+      other_income_enabled: false,
+      fixed_assets_enabled: false,
+      delivery_challan_enabled: true,
+      goods_return_on_delivery_challan: false,
+      print_amount_in_delivery_challan: false,
+    },
+  };
+
+  const toBooleanish = (value) => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      return ['1', 'true', 'yes', 'on'].includes(normalized);
+    }
+    return false;
+  };
+
+  const normalizeSidebarVisibilityConfig = (config) => {
+    const merged = {
+      ...defaultSidebarVisibilityConfig,
+      ...(config && typeof config === 'object' ? config : {}),
+    };
+    merged.more_transactions = {
+      ...defaultSidebarVisibilityConfig.more_transactions,
+      ...(config?.more_transactions && typeof config.more_transactions === 'object' ? config.more_transactions : {}),
+    };
+    Object.keys(merged.more_transactions).forEach((key) => {
+      if (key.endsWith('_enabled') || key.includes('_enabled') || key.includes('_return') || key.includes('_amount')) {
+        merged.more_transactions[key] = toBooleanish(merged.more_transactions[key]);
+      }
+    });
+    return merged;
+  };
+
+  const getStoredSidebarWidth = () => {
+    const userModeStored = localStorage.getItem(sidebarUserModeStorageKey);
+    if (userModeStored !== '1') {
+      return 250;
+    }
+
+    const stored = Number.parseInt(localStorage.getItem(sidebarWidthStorageKey) || '', 10);
+    if (Number.isFinite(stored)) {
+      return Math.min(sidebarMaxWidth, Math.max(sidebarMinWidth, stored));
+    }
+    return 250;
+  };
+
+  const applySidebarWidth = (width) => {
+    const resolved = Math.min(sidebarMaxWidth, Math.max(sidebarMinWidth, Number(width) || 250));
+    document.documentElement.style.setProperty('--sidebar-width', `${resolved}px`);
+    localStorage.setItem(sidebarWidthStorageKey, String(resolved));
+    localStorage.setItem(sidebarUserModeStorageKey, '1');
+
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+      sidebar.classList.toggle('is-collapsed', resolved <= sidebarCollapsedThreshold);
+      sidebar.classList.toggle('is-expanded', resolved > sidebarCollapsedThreshold);
+    }
+    const minimizeBtnIcon = document.querySelector('#sidebarMinimizeBtn i');
+    if (minimizeBtnIcon) {
+      minimizeBtnIcon.className = resolved <= sidebarCollapsedThreshold ? 'fa-solid fa-angles-right' : 'fa-solid fa-angles-left';
+    }
+    localStorage.setItem(sidebarCompactModeStorageKey, resolved <= sidebarCollapsedThreshold ? '1' : '0');
+
+    const shortcutOverlay = document.getElementById('shortcutsOverlay');
+    if (shortcutOverlay) {
+      shortcutOverlay.style.left = `${resolved}px`;
+      shortcutOverlay.style.width = `calc(100% - ${resolved}px)`;
+    }
+
+    const privacyOverlay = document.getElementById('privacyOverlay');
+    if (privacyOverlay) {
+      privacyOverlay.style.left = `${resolved}px`;
+    }
+
+    return resolved;
+  };
+
+  const initSidebarResize = () => {
+    const sidebar = document.getElementById('sidebar');
+    const handle = document.getElementById('sidebarResizeHandle');
+    if (!sidebar || !handle) return;
+
+    let isResizing = false;
+    let startWidth = getStoredSidebarWidth();
+    const minWidth = sidebarMinWidth;
+    const maxWidth = sidebarMaxWidth;
+
+    const onMouseMove = (event) => {
+      if (!isResizing) return;
+      const nextWidth = Math.min(maxWidth, Math.max(minWidth, event.clientX));
+      applySidebarWidth(nextWidth);
+    };
+
+    const stopResizing = () => {
+      if (!isResizing) return;
+      isResizing = false;
+      document.body.classList.remove('sidebar-is-resizing');
+      document.documentElement.classList.remove('sidebar-is-resizing');
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', stopResizing);
+      document.removeEventListener('mouseleave', stopResizing);
+    };
+
+    handle.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      isResizing = true;
+      startWidth = applySidebarWidth(getStoredSidebarWidth());
+      document.body.classList.add('sidebar-is-resizing');
+      document.documentElement.classList.add('sidebar-is-resizing');
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', stopResizing);
+      document.addEventListener('mouseleave', stopResizing);
+    });
+
+    sidebar.addEventListener('dblclick', () => {
+      applySidebarWidth(startWidth > sidebarCollapsedThreshold ? 250 : getStoredSidebarWidth());
+    });
+  };
+
+  const initSidebarControls = () => {
+    const sidebar = document.getElementById('sidebar');
+    const minimizeBtn = document.getElementById('sidebarMinimizeBtn');
+    if (!sidebar) return;
+
+    const clearFlyoutState = (exceptItem = null) => {
+      sidebar.querySelectorAll('.sidebar-nav > .nav-item.flyout-open').forEach((item) => {
+        if (exceptItem && item === exceptItem) return;
+        item.classList.remove('flyout-open');
+        const submenu = item.querySelector('.sidebar-submenu');
+        const toggle = item.querySelector('.sidebar-dropdown-toggle');
+        if (submenu) {
+          submenu.classList.remove('open');
+          submenu.removeAttribute('style');
+        }
+        if (toggle) toggle.classList.remove('expanded');
+      });
+    };
+
+    const positionFlyout = (item) => {
+      const submenu = item.querySelector('.sidebar-submenu');
+      const toggle = item.querySelector('.sidebar-dropdown-toggle');
+      if (!submenu || !toggle) return;
+
+      const sidebarRect = sidebar.getBoundingClientRect();
+      const toggleRect = toggle.getBoundingClientRect();
+      submenu.style.position = 'fixed';
+      submenu.style.left = `${Math.round(sidebarRect.right)}px`;
+      submenu.style.top = `${Math.max(50, Math.round(toggleRect.top))}px`;
+      submenu.style.width = '230px';
+      submenu.style.maxHeight = '320px';
+      submenu.style.overflowY = 'auto';
+      submenu.style.zIndex = '1055';
+      submenu.style.display = 'block';
+    };
+
+    if (minimizeBtn) {
+      minimizeBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const collapsed = sidebar.classList.contains('is-collapsed');
+        applySidebarWidth(collapsed ? 250 : sidebarMinWidth);
+        clearFlyoutState();
+      });
+    }
+
+    sidebar.addEventListener('click', (event) => {
+      const toggle = event.target.closest('.sidebar-dropdown-toggle');
+      if (!toggle) return;
+
+      const item = toggle.closest('.nav-item');
+      const submenu = item?.querySelector('.sidebar-submenu');
+      if (!item || !submenu) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const collapsed = sidebar.classList.contains('is-collapsed');
+      const isOpen = item.classList.contains('flyout-open') || submenu.classList.contains('open');
+      if (collapsed) {
+        if (isOpen) {
+          clearFlyoutState();
+          return;
+        }
+        clearFlyoutState(item);
+        item.classList.add('flyout-open');
+        submenu.classList.add('open');
+        positionFlyout(item);
+        return;
+      }
+
+      clearFlyoutState(item);
+      if (isOpen) {
+        submenu.classList.remove('open');
+        toggle.classList.remove('expanded');
+      } else {
+        submenu.classList.add('open');
+        toggle.classList.add('expanded');
+        item.classList.add('flyout-open');
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      const openItem = sidebar.querySelector('.sidebar-nav > .nav-item.flyout-open');
+      if (openItem && sidebar.classList.contains('is-collapsed')) {
+        positionFlyout(openItem);
+      }
+    });
+  };
+
+  const sidebarFeatureEnabled = (config, feature) => {
+    const moreTransactions = config?.more_transactions || {};
+    switch (feature) {
+      case 'sales.estimate':
+        return toBooleanish(moreTransactions.estimate_quotation_enabled);
+      case 'sales.proforma':
+        return toBooleanish(moreTransactions.proforma_invoice_enabled);
+      case 'sales.order':
+      case 'purchase.order':
+        return toBooleanish(moreTransactions.sale_purchase_order_enabled);
+      case 'sales.delivery_challan':
+        return toBooleanish(moreTransactions.delivery_challan_enabled);
+      default:
+        return true;
+    }
+  };
 
   const canViewRole = isSuperAdmin || hasPermission('roles.view');
   const canViewUser = isSuperAdmin || hasPermission('user.view');
@@ -98,240 +340,120 @@
   const menuItems = [
     {
       label: 'Home',
-      icon: 'fa-house',
       href: '/dashboard',
+      icon: 'fa-house',
       dataPage: 'dashboard',
-      permission: null,
     },
     {
       label: 'User Management',
-      icon: 'fa-users-gear',
-      permission: 'roles.view',
+      href: '#',
+      icon: 'fa-users',
       children: [
-        { label: 'Roles', href: '/dashboard/roles', dataPage: 'roles', permission: 'roles.view' },
         { label: 'Users', href: '/dashboard/users', dataPage: 'users', permission: 'user.view' },
+        { label: 'Roles', href: '/dashboard/roles', dataPage: 'roles', permission: 'roles.view' },
       ],
     },
     {
-      label: `
-        <span style="position:relative;display:block;">
-          Parties
-          <span class="menu-plus-btn" data-modal="addPartyModal" style="position:absolute;right:-127px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
-        </span>
-      `,
-      icon: 'fa-users',
+      label: 'Parties',
       href: '/dashboard/parties',
+      icon: 'fa-user-group',
       dataPage: 'parties',
       permission: 'party.view',
-      add: { label: 'Add Party', modal: 'addPartyModal' },
     },
     {
-      label: `
-        <span style="position:relative;display:block;">
-          Brokers
-          <span class="menu-plus-btn" data-modal="brokerModal" style="position:absolute;right:-124px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
-        </span>
-      `,
-      icon: 'fa-handshake',
+      label: 'Brokers',
       href: '/dashboard/brokers',
+      icon: 'fa-handshake',
       dataPage: 'brokers',
-      permission: 'party.view',
+      permission: 'broker.view',
     },
     {
-      label: `
-        <span style="position:relative;display:block;">
-          Items
-          <span class="menu-plus-btn" data-url="/dashboard/items/create" style="position:absolute;right:-138px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
-        </span>
-      `,
-      icon: 'fa-boxes-stacked',
+      label: 'Items',
       href: '/dashboard/items',
+      icon: 'fa-box',
       dataPage: 'items',
       permission: 'product.view',
-      add: { label: 'Add Item', modal: 'addItemModal' },
     },
     {
       label: 'Sale',
-      icon: 'fa-file-invoice-dollar',
+      href: '#',
+      icon: 'fa-cart-shopping',
       permission: 'sales.view',
       children: [
-{
-  label: `
-    <span style="position:relative;display:block;padding-right:28px;">
-      Sale Invoice
-      <span class="menu-plus-btn" data-url="/dashboard/sale/create" style="position:absolute;right:-74px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
-    </span>
-  `,
-  href: '/dashboard/sales',
-  dataPage: 'invoice',
-  permission: 'sales.invoice'
-},
-
-{
-  label: `
-    <span style="position:relative;display:block;padding-right:28px;">
-      Estimate / Quotation
-      <span class="menu-plus-btn" data-url="/dashboard/estimates/create" style="position:absolute;right:-24px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
-    </span>
-  `,
-  href: '/dashboard/sales/estimate',
-  dataPage: 'estimate',
-  permission: 'sales.estimate'
-},
-
-{
-  label: `
-    <span style="position:relative;display:block;padding-right:28px;">
-      Payment In
-      <span class="menu-plus-btn" data-modal="addPaymentInModal" style="position:absolute;right:-80px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
-    </span>
-  `,
-  href: '/dashboard/payment-in',
-  dataPage: 'payment-in',
-  permission: 'sales.payment_in'
-},
-
-{
-  label: `
-    <span style="position:relative;display:block;padding-right:28px;">
-      Proforma Invoice
-      <span class="menu-plus-btn" data-url="/dashboard/proforma-invoice/create" style="position:absolute;right:-47px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
-    </span>
-  `,
-  href: '/dashboard/proforma-invoice',
-  dataPage: 'proforma-invoice',
-  permission: 'sales.proforma'
-},
-
-{
-  label: `
-    <span style="position:relative;display:block;padding-right:28px;">
-      Sale Order
-      <span class="menu-plus-btn" data-url="/dashboard/sale-order/create" style="position:absolute;right:-87px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
-    </span>
-  `,
-  href: '/dashboard/sale-order',
-  dataPage: 'sale-order',
-  permission: 'sales.order'
-},
-
-{
-  label: `
-    <span style="position:relative;display:block;padding-right:28px;">
-      Delivery Challan
-      <span class="menu-plus-btn" data-url="/dashboard/create-challan" style="position:absolute;right:-57px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
-    </span>
-  `,
-  href: '/dashboard/delivery-challan',
-  dataPage: 'delivery-challan',
-  permission: 'sales.delivery_challan'
-},
-        {
-  label: `
-    <span style="position:relative;display:block;padding-right:28px;">
-      Sale Return / Cr. Note
-      <span class="menu-plus-btn" data-url="/dashboard/sale-return/create" style="position:absolute;right:-25px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
-    </span>
-  `,
-  href: '/dashboard/sale-return',
-  dataPage: 'sale-return',
-  permission: 'sales.sale_return'
-},
-        { label: 'Vyapar POS', href: '/dashboard/sales/pos', dataPage: 'pos', permission: 'sales.pos' },
+        { label: 'Sale Invoices', href: '/dashboard/sales', dataPage: 'sales.index', permission: 'sales.invoice' },
+        { label: 'Estimate/Quotation', href: '/dashboard/sales/estimate', dataPage: 'sales.estimate', permission: 'sales.estimate', feature: 'sales.estimate' },
+        { label: 'Proforma Invoice', href: '/dashboard/proforma-invoice', dataPage: 'sales.proforma', permission: 'sales.proforma', feature: 'sales.proforma' },
+        { label: 'Payment-In', href: '/dashboard/payment-in', dataPage: 'sales.payment_in', permission: 'sales.payment_in' },
+        { label: 'Sale Order', href: '/dashboard/sale-order', dataPage: 'sales.order', permission: 'sales.order', feature: 'sales.order' },
+        { label: 'Delivery Challan', href: '/dashboard/delivery-challan', dataPage: 'sales.delivery_challan', permission: 'sales.delivery_challan', feature: 'sales.delivery_challan' },
+        { label: 'Sale Return / Credit Note', href: '/dashboard/sale-return', dataPage: 'sales.sale_return', permission: 'sales.sale_return' },
+        { label: 'Sale POS', href: '/dashboard/sales/pos', dataPage: 'sales.pos', permission: 'sales.pos' },
       ],
     },
     {
       label: 'Purchase & Expense',
-      icon: 'fa-cart-shopping',
+      href: '#',
+      icon: 'fa-bag-shopping',
       permission: 'purchase.view',
       children: [
-        { label: 'Purchase Bill', href: '/dashboard/purchase-bill', dataPage: 'purchase-bill', permission: 'purchase.bill' },
-        { label: 'Payment Out', href: '/dashboard/payment-out', dataPage: 'payment-out', permission: 'purchase.payment_out' },
-        { label: 'Purchase Return / Dr. Note', href: '/dashboard/purchase-return', dataPage: 'purchase-return', permission: 'purchase.return' },
-        { label: 'Expense', href: '/dashboard/expense', dataPage: 'expense', permission: 'purchase.expense' },
-        { label: 'Purchase Order', href: '/dashboard/purchase-order', dataPage: 'purchase-order', permission: 'purchase.order' },
-
+        { label: 'Purchase Bills', href: '/dashboard/purchase-bill', dataPage: 'purchase.bill', permission: 'purchase.bill' },
+        { label: 'Payment-Out', href: '/dashboard/payment-out', dataPage: 'purchase.payment_out', permission: 'purchase.payment_out' },
+        { label: 'Purchase Return', href: '/dashboard/purchase-return', dataPage: 'purchase.return', permission: 'purchase.return' },
+        { label: 'Purchase Order', href: '/dashboard/purchase-order', dataPage: 'purchase.order', permission: 'purchase.order', feature: 'purchase.order' },
+        { label: 'Expense', href: '/dashboard/expense', dataPage: 'purchase.expense', permission: 'purchase.expense' },
       ],
     },
     {
       label: 'Grow Your Business',
-      icon: 'fa-rocket',
-      href: '#',
-      permission: 'grow.view',
+      href: '/dashboard/grow',
+      icon: 'fa-seedling',
       dataPage: 'grow',
+      permission: 'grow.view',
     },
     {
       label: 'Cash & Bank',
+      href: '#',
       icon: 'fa-wallet',
       permission: 'cashbank.view',
       children: [
-        {
-          label: `
-            <span style="position:relative;display:block;padding-right:28px;">
-              Loan Accounts
-              <span class="menu-plus-btn" data-modal="loanModal" style="position:absolute;right:-60px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
-            </span>
-          `,
-          href: '/dashboard/loan-accounts',
-          dataPage: 'loan-accounts',
-          permission: 'cashbank.loan_accounts'
-        },
-        {
-          label: `
-            <span style="position:relative;display:block;padding-right:28px;">
-              Bank Accounts
-              <span class="menu-plus-btn" data-modal="addBankModal" style="position:absolute;right:-61px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
-            </span>
-          `,
-          href: '/dashboard/bank-accounts',
-          dataPage: 'bank-accounts',
-          permission: 'cashbank.bank_accounts'
-        },
-        {
-          label: `
-            <span style="position:relative;display:block;padding-right:28px;">
-              Cash in Hand
-              <span class="menu-plus-btn" data-modal="exampleModal" style="position:absolute;right:-73px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
-            </span>
-          `,
-          href: '/dashboard/cash-in-hand',
-          dataPage: 'cash-in-hand',
-          permission: 'cashbank.view'
-
-        },
-        {
-          label: `
-            <span style="position:relative;display:block;padding-right:28px;">
-              Cheques
-              <span class="menu-plus-btn" data-modal="addChequeModal" style="position:absolute;right:-95px;top:50%;transform:translateY(-50%);font-weight:800;font-size:20px;opacity:.9;cursor:pointer;display:block;width:20px;height:20px;text-align:center;line-height:20px;">+</span>
-            </span>
-          `,
-          href: '/dashboard/cheques',
-          dataPage: 'cheques',
-          permission: 'cashbank.view'
-        },
+        { label: 'Bank Accounts', href: '/dashboard/bank-accounts', dataPage: 'cashbank.bank_accounts', permission: 'cashbank.bank_accounts' },
+        { label: 'Loan Accounts', href: '/dashboard/loan-accounts', dataPage: 'cashbank.loan_accounts', permission: 'cashbank.loan_accounts' },
+        { label: 'Cheques', href: '/dashboard/cheques', dataPage: 'cashbank.cheques', permission: 'cashbank.cheques' },
       ],
     },
-    { label: 'Reports', icon: 'fa-chart-pie', href: '/dashboard/reports', permission: 'report.view', dataPage: 'reports' },
-    { label: 'Sync / Share / Backup', icon: 'fa-cloud-arrow-up', href: '#', permission: 'sync.view', dataPage: 'sync' },
+    {
+      label: 'Reports',
+      href: '/dashboard/reports',
+      icon: 'fa-chart-simple',
+      dataPage: 'reports',
+    },
+    {
+      label: 'Sync / Share / Backup',
+      href: '/dashboard/sync',
+      icon: 'fa-cloud-arrow-up',
+      dataPage: 'sync',
+    },
     {
       label: 'Utilities',
+      href: '#',
       icon: 'fa-screwdriver-wrench',
-      permission: 'utilities.view',
-      dataPage: 'utilities',
       children: [
-        { label: 'Import Items', href: '/dashboard/utilities/import-items', dataPage: 'import-items', permission: 'utilities.view' },
-        { label: 'Barcode Generator', href: '/dashboard/utilities/barcode-generator', dataPage: 'barcode-generator', permission: 'utilities.view' },
-        { label: 'Update Items In Bulk', href: '/dashboard/utilities/update-items-in-bulk', dataPage: 'update-items-in-bulk', permission: 'utilities.view' },
-        { label: 'Import Parties', href: '/dashboard/utilities/import-parties', dataPage: 'import-parties', permission: 'utilities.view' },
-        { label: 'Exports To Tally', href: '/dashboard/utilities/exports-to-tally', dataPage: 'exports-to-tally', permission: 'utilities.view' },
-        { label: 'Export Items', href: '/dashboard/utilities/export-items', dataPage: 'export-items', permission: 'utilities.view' },
-        { label: 'Verify My Data', href: '/dashboard/utilities/verify-my-data', dataPage: 'verify-my-data', permission: 'utilities.view' },
-        { label: 'Close Financial Year', href: '/dashboard/utilities/close-financial-year', dataPage: 'close-financial-year', permission: 'utilities.view' },
+        { label: 'Import Items', href: '/dashboard/utilities/import-items', dataPage: 'utilities.import_items' },
+        { label: 'Export Items', href: '/dashboard/utilities/export-items', dataPage: 'utilities.export_items' },
+        { label: 'Import Parties', href: '/dashboard/utilities/import-parties', dataPage: 'utilities.import_parties' },
+        { label: 'Barcode Generator', href: '/dashboard/utilities/barcode-generator', dataPage: 'utilities.barcode_generator' },
+        { label: 'Close Financial Year', href: '/dashboard/utilities/close-financial-year', dataPage: 'utilities.close_financial_year' },
       ],
     },
-    { label: 'Settings', icon: 'fa-sliders', href: '/dashboard/settings/general', permission: 'settings.view', dataPage: 'settings' },
+    {
+      label: 'Settings',
+      href: '/dashboard/settings/general',
+      icon: 'fa-gear',
+      dataPage: 'settings.general',
+    },
   ];
+
+ 
 
   const canViewMenuItem = (item) => {
     // Always show Home for authenticated users
@@ -366,9 +488,9 @@
           const href = item.href || '#';
           const activeClass = currentUrl === href || currentUrl === item.dataPage ? 'active' : '';
           return `
-            <li class="nav-item">
+            <li class="nav-item" ${item.feature ? `data-sidebar-feature="${item.feature}"` : ''}>
               <a class="nav-link ${activeClass}" data-page="${item.dataPage || ''}" href="${href}">
-                ${currentIcon}<span>${item.label}</span>
+                ${currentIcon}<span class="sidebar-item-label">${item.label}</span>
               </a>
             </li>
           `;
@@ -379,7 +501,7 @@
           .map((child) => {
             const activeClass = currentUrl === child.href || currentUrl === child.dataPage ? 'active' : '';
             return `
-              <li class="${activeClass}"><a class="nav-link" data-page="${child.dataPage || ''}" href="${child.href}"><span>${child.label}</span></a></li>
+              <li class="${activeClass}" ${child.feature ? `data-sidebar-feature="${child.feature}"` : ''}><a class="nav-link" data-page="${child.dataPage || ''}" href="${child.href}"><span class="sidebar-item-label">${child.label}</span></a></li>
             `;
           })
           .join('');
@@ -387,9 +509,9 @@
         if (!submenuHtml) return '';
 
         return `
-          <li class="nav-item">
+          <li class="nav-item" ${item.feature ? `data-sidebar-feature="${item.feature}"` : ''}>
             <a class="nav-link sidebar-dropdown-toggle" href="#">
-              <i class="fa-solid ${item.icon}"></i> <span>${item.label}</span>
+              <i class="fa-solid ${item.icon}"></i> <span class="sidebar-item-label">${item.label}</span>
               <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
             </a>
             <ul class="sidebar-submenu">${submenuHtml}</ul>
@@ -399,8 +521,12 @@
       .join('');
   };
 
-  const sidebarHTML = `
+const sidebarHTML = `
   <aside class="sidebar" id="sidebar">
+    <div class="sidebar-resize-handle" id="sidebarResizeHandle" title="Resize sidebar" aria-label="Resize sidebar"></div>
+    <button type="button" class="sidebar-minimize-btn" id="sidebarMinimizeBtn" title="Minimize sidebar" aria-label="Minimize sidebar">
+      <i class="fa-solid fa-angles-left"></i>
+    </button>
 
     <div class="sidebar-search position-relative">
       <i class="fa-solid fa-magnifying-glass search-icon"></i>
@@ -662,6 +788,141 @@ const layoutFixStyles = `
     flex-shrink: 0 !important;
     white-space: nowrap !important;
   }
+  #sidebar {
+    position: fixed !important;
+    transition: width .18s ease, min-width .18s ease;
+    overflow-x: hidden !important;
+  }
+  #sidebar .sidebar-resize-handle {
+    position: absolute;
+    top: 0;
+    right: -1px;
+    width: 14px;
+    height: 100%;
+    cursor: ew-resize;
+    z-index: 1200;
+    background: linear-gradient(to right, transparent 0%, rgba(255,255,255,.06) 100%);
+    border-left: 1px solid rgba(255,255,255,.18);
+    box-shadow: inset -1px 0 0 rgba(0,0,0,.25);
+    pointer-events: auto;
+  }
+  #sidebar .sidebar-resize-handle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2px;
+    height: 34px;
+    transform: translate(-50%, -50%);
+    border-radius: 2px;
+    background: rgba(255,255,255,.55);
+    box-shadow: -4px 0 0 rgba(255,255,255,.32), 4px 0 0 rgba(255,255,255,.32);
+  }
+  #sidebar .sidebar-resize-handle:hover,
+  #sidebar .sidebar-resize-handle:active {
+    background: linear-gradient(to right, transparent 0%, rgba(255,255,255,.18) 100%);
+  }
+  #sidebar .sidebar-minimize-btn {
+    position: absolute;
+    top: 8px;
+    right: 20px;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255,255,255,.08);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1201;
+    cursor: pointer;
+    transition: background .18s ease, transform .18s ease;
+  }
+  #sidebar .sidebar-minimize-btn:hover {
+    background: rgba(255,255,255,.16);
+    transform: translateY(-1px);
+  }
+  body.sidebar-is-resizing,
+  body.sidebar-is-resizing * {
+    cursor: ew-resize !important;
+    user-select: none !important;
+  }
+  #sidebar.is-collapsed .sidebar-search,
+  #sidebar.is-collapsed .sidebar-promo,
+  #sidebar.is-collapsed .sidebar-company .company-info,
+  #sidebar.is-collapsed .sidebar-company .company-dropdown,
+  #sidebar.is-collapsed .sidebar-nav .sidebar-item-label,
+  #sidebar.is-collapsed .sidebar-nav .badge-plus,
+  #sidebar.is-collapsed .sidebar-nav .dropdown-arrow,
+  #sidebar.is-collapsed .sidebar-submenu {
+    display: none !important;
+  }
+  #sidebar.is-collapsed .sidebar-nav > .nav-item {
+    position: relative;
+  }
+  #sidebar.is-collapsed .sidebar-nav .nav-link {
+    justify-content: center !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  #sidebar.is-collapsed .sidebar-nav .nav-link i {
+    margin: 0 !important;
+  }
+  #sidebar.is-collapsed .sidebar-company {
+    justify-content: center !important;
+  }
+  #sidebar.is-collapsed .sidebar-company .company-avatar {
+    margin-right: 0 !important;
+  }
+  #sidebar.is-collapsed .sidebar-minimize-btn {
+    right: 14px;
+  }
+  #sidebar.is-collapsed .sidebar-nav > .nav-item.flyout-open > .sidebar-submenu {
+    display: block !important;
+    position: fixed !important;
+    left: var(--sidebar-width, 250px);
+    top: auto;
+    width: 220px;
+    max-height: none !important;
+    overflow: auto !important;
+    background: #212734 !important;
+    border: 1px solid rgba(255,255,255,.08);
+    box-shadow: 0 10px 26px rgba(0,0,0,.3);
+    border-radius: 10px;
+    padding: 6px 0 !important;
+    z-index: 1055;
+    pointer-events: auto;
+  }
+  #sidebar.is-collapsed .sidebar-nav > .nav-item.flyout-open > .sidebar-submenu > li {
+    display: block !important;
+    width: 100% !important;
+  }
+  #sidebar.is-collapsed .sidebar-nav > .nav-item.flyout-open > .sidebar-submenu .nav-link {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    gap: 10px !important;
+    color: #f3f4f6 !important;
+    min-height: 42px !important;
+    width: 100% !important;
+    white-space: nowrap !important;
+  }
+  #sidebar.is-collapsed .sidebar-nav > .nav-item.flyout-open > .sidebar-submenu .nav-link:hover {
+    background: rgba(255,255,255,.08) !important;
+    color: #fff !important;
+  }
+  #sidebar.is-collapsed .sidebar-nav > .nav-item.flyout-open > .sidebar-submenu .sidebar-item-label {
+    display: inline-block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    color: inherit !important;
+  }
+  #sidebar.is-collapsed .sidebar-nav > .nav-item.flyout-open > .sidebar-submenu .nav-link i {
+    color: inherit !important;
+  }
 `;
 const layoutFixTag = document.createElement('style');
 layoutFixTag.innerText = layoutFixStyles;
@@ -796,16 +1057,76 @@ window.saveNavRename = async function() {
 
 
 
+  const applySidebarVisibility = (config) => {
+    const resolved = normalizeSidebarVisibilityConfig(config);
+    const featureNodes = document.querySelectorAll('.sidebar-nav [data-sidebar-feature]');
+    featureNodes.forEach((node) => {
+      const feature = node.getAttribute('data-sidebar-feature');
+      const shouldShow = sidebarFeatureEnabled(resolved, feature);
+      node.style.display = shouldShow ? '' : 'none';
+      node.classList.toggle('is-hidden-by-setting', !shouldShow);
+    });
+
+    const parentItems = document.querySelectorAll('.sidebar-nav > .nav-item');
+    parentItems.forEach((parent) => {
+      const submenu = parent.querySelector('.sidebar-submenu');
+      if (!submenu) return;
+      const visibleChildren = Array.from(submenu.children).filter((child) => child.style.display !== 'none');
+      parent.style.display = visibleChildren.length ? '' : 'none';
+    });
+  };
+
+  const loadSidebarVisibilityConfig = async () => {
+    try {
+      const appConfig = window.App?.generalSettings;
+      if (appConfig && typeof appConfig === 'object') {
+        const resolved = normalizeSidebarVisibilityConfig(appConfig);
+        localStorage.setItem(sidebarVisibilityStorageKey, JSON.stringify(resolved));
+        applySidebarVisibility(resolved);
+        return;
+      }
+    } catch (error) {
+      // ignore app config issues
+    }
+
+    try {
+      const cached = localStorage.getItem(sidebarVisibilityStorageKey);
+      if (cached) {
+        applySidebarVisibility(JSON.parse(cached));
+      }
+    } catch (error) {
+      // ignore cache parse issues
+    }
+
+    try {
+      const response = await fetch(sidebarVisibilityEndpoint, {
+        headers: { Accept: 'application/json' },
+        credentials: 'same-origin',
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      const resolved = normalizeSidebarVisibilityConfig(data);
+      localStorage.setItem(sidebarVisibilityStorageKey, JSON.stringify(resolved));
+      applySidebarVisibility(resolved);
+    } catch (error) {
+      // keep cached/default visibility
+    }
+  };
+
   // ── Inject into page ──
   document.body.insertAdjacentHTML('afterbegin', sidebarHTML);
   document.body.insertAdjacentHTML('afterbegin', navbarHTML);
+  applySidebarWidth(getStoredSidebarWidth());
+  initSidebarResize();
+  initSidebarControls();
+  loadSidebarVisibilityConfig();
 
 const shortcutModalsHTML = `
 <div id="shortcutsOverlay" style="
     display: none;
     position: fixed;
     top: 50px;
-    left: 260px;
+    left: var(--sidebar-width, 250px);
     right: 0;
     bottom: 0;
     background: #ffffff;
@@ -1522,7 +1843,7 @@ document.body.insertAdjacentHTML('beforeend', `
     display: none;
     position: fixed;
     top: 50px;
-    left: 260px;
+    left: var(--sidebar-width, 250px);
     right: 0;
     bottom: 0;
     background: rgba(255,255,255,0.4);

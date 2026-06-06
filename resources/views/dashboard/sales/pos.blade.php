@@ -372,11 +372,12 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
               <th style="width:110px">PRICE/UNIT (Rs)</th>
               <th style="width:80px">DISCOUNT (Rs)</th>
               <th style="width:100px">TOTAL (Rs)</th>
+              <th style="width:90px">Date</th>
             </tr>
           </thead>
           <tbody id="bill-body">
             <tr class="empty-msg">
-              <td colspan="8">Start scanning items to add them to the bill.</td>
+              <td colspan="9">Start scanning items to add them to the bill.</td>
             </tr>
           </tbody>
         </table>
@@ -753,7 +754,7 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
         <textarea id="nc-billing" placeholder="Billing Address"></textarea>
       </div>
       <div class="mfield span2">
-    
+
         <label>Shipping Address</label>
         <textarea id="nc-shipping" placeholder="Shipping Address"></textarea>
       </div>
@@ -1033,8 +1034,9 @@ function saveAdditionalCharges() {
 
 function renderBill() {
   const tb = document.getElementById('bill-body');
+  const billDate = document.getElementById('date-display').textContent || '{{ now()->format("d/m/Y") }}';
   if (!billItems.length) {
-    tb.innerHTML = '<tr class="empty-msg"><td colspan="8">Start scanning items to add them to the bill.</td></tr>';
+    tb.innerHTML = '<tr class="empty-msg"><td colspan="9">Start scanning items to add them to the bill.</td></tr>';
   } else {
     tb.innerHTML = billItems.map((it, i) => `
       <tr class="${i === selRow ? 'sel' : ''}"
@@ -1048,6 +1050,7 @@ function renderBill() {
         <td>${parseFloat(it.sale_price).toFixed(2)}</td>
         <td style="color:${it.discount > 0 ? '#e53935' : '#222'}">${it.discount > 0 ? '-' + it.discount.toFixed(2) : '0.00'}</td>
         <td><strong>${rowTotal(it).toFixed(2)}</strong></td>
+        <td>${billDate}</td>
       </tr>`).join('');
   }
   updateSummary();

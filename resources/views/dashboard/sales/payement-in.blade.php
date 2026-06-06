@@ -62,6 +62,12 @@
   }
 </style>
 
+  @php
+    $bankAccountsCollection = collect($bankAccounts ?? []);
+    $defaultBankAccount = $bankAccountsCollection->firstWhere('is_active', 1) ?? $bankAccountsCollection->first();
+    $defaultBankAccountId = $defaultBankAccount->id ?? null;
+  @endphp
+
    <script>
     // Ensure window.App is always initialized, even if Auth is null
     const authUser = @json(Auth::user());
@@ -76,6 +82,7 @@
       logoutUrl: "{{ route('logout') }}",
       csrfToken: "{{ csrf_token() }}",
     };
+    window.paymentInDefaultBankAccountId = @json($defaultBankAccountId);
     console.log('App initialized:', window.App);
   </script>
 
@@ -233,8 +240,327 @@
       color: #94a3b8;
     }
 
-    .unused-amount-negative {
+  .unused-amount-negative {
       color: #dc2626;
+    }
+
+    .party-balance-display {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #f8fbff;
+      border: 1px solid #dbe6f1;
+      color: #334155;
+      font-size: 13px;
+      font-weight: 600;
+      width: fit-content;
+      max-width: 100%;
+    }
+
+    .party-balance-display .balance-value {
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .party-balance-display.balance-positive .balance-value {
+      color: #16a34a;
+    }
+
+    .party-balance-display.balance-negative .balance-value {
+      color: #dc2626;
+    }
+
+  .party-balance-display.balance-zero .balance-value {
+      color: #475569;
+    }
+
+    .payment-in-modal .modal-dialog {
+      width: calc(100vw - 28px);
+      max-width: 1280px;
+      margin: 14px auto;
+    }
+
+    .payment-in-modal .modal-content {
+      border: 0;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+      min-height: calc(100vh - 28px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .payment-in-modal .modal-header {
+      border-bottom: 0;
+      padding: 16px 22px 10px;
+      flex: 0 0 auto;
+    }
+
+    .payment-in-modal .modal-body {
+      padding: 6px 22px 14px;
+      flex: 1 1 auto;
+      overflow: auto;
+    }
+
+    .payment-in-sheet {
+      min-height: 0;
+    }
+
+    .payment-in-party-bar {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .payment-in-party-bar .party-dropdown-wrapper {
+      flex: 0 0 240px;
+      max-width: 240px;
+    }
+
+    .payment-in-party-bar .party-search-input {
+      height: 38px;
+      border-radius: 4px;
+      border: 1px solid #cfd6e0;
+      background: #fff;
+      box-shadow: none;
+      font-size: 14px;
+      padding-left: 12px;
+      padding-right: 34px;
+    }
+
+    .payment-in-party-bar .party-search-input::placeholder {
+      color: #9ca3af;
+      font-weight: 500;
+    }
+
+    .payment-entry-card {
+      width: 100%;
+      max-width: 404px;
+      border: 1px solid #d9dee7;
+      border-radius: 4px;
+      background: #fff;
+      padding: 14px 14px 12px;
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+    }
+
+    .payment-in-meta-card {
+      padding-top: 4px;
+    }
+
+    .payment-in-meta-grid {
+      display: grid;
+      grid-template-columns: 92px minmax(160px, 190px);
+      column-gap: 16px;
+      row-gap: 14px;
+      align-items: center;
+      max-width: 320px;
+      margin-left: auto;
+    }
+
+    .payment-in-meta-grid .meta-label {
+      color: #a3aab7;
+      font-size: 13px;
+      text-align: right;
+      font-weight: 500;
+    }
+
+    .payment-in-meta-grid .meta-value {
+      height: 36px;
+      border: 0;
+      border-bottom: 1px solid #dde4ee;
+      border-radius: 0;
+      padding: 0 2px;
+      box-shadow: none;
+      background: transparent;
+      font-size: 14px;
+      color: #111827;
+    }
+
+    .payment-in-summary-grid {
+      margin-top: 58px;
+      display: grid;
+      grid-template-columns: 110px minmax(0, 1fr);
+      column-gap: 16px;
+      row-gap: 16px;
+      align-items: center;
+      max-width: 340px;
+      margin-left: auto;
+    }
+
+    .payment-in-summary-grid .summary-label {
+      color: #a3aab7;
+      font-size: 14px;
+      text-align: right;
+    }
+
+    .payment-in-summary-grid .summary-input {
+      height: 38px;
+      border-radius: 4px;
+      border: 1px solid #d7dde6;
+      background: #fff;
+      box-shadow: none;
+    }
+
+    .payment-in-summary-grid .summary-total {
+      font-size: 15px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .payment-in-summary-grid .summary-total-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1d4ed8;
+      text-align: right;
+    }
+
+    .payment-extra-stack {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 404px;
+    }
+
+    .payment-extra-stack .btn-outline-light-like {
+      border: 1px solid #d8dee7;
+      background: #fff;
+      color: #6b7280;
+      padding: 8px 14px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+    }
+
+    .payment-extra-stack .image-upload-trigger {
+      width: 24px;
+      height: 24px;
+      color: #9ca3af;
+      cursor: pointer;
+    }
+
+    .payment-row-shell {
+      background: #fff;
+      border-radius: 4px;
+    }
+
+    .payment-row-shell .payment-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px !important;
+    }
+
+    .payment-row-shell .payment-row:last-child {
+      margin-bottom: 0 !important;
+    }
+
+    .payment-row-shell .form-label {
+      margin-bottom: 2px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .payment-row-shell .form-select,
+    .payment-row-shell .form-control {
+      height: 34px;
+      border-radius: 4px;
+      border-color: #cfd6e0;
+      box-shadow: none;
+      font-size: 14px;
+    }
+
+    .payment-row-shell .payment-row-line {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: nowrap;
+    }
+
+    .payment-row-shell .payment-type-block {
+      width: 150px;
+      flex: 0 0 150px;
+    }
+
+    .payment-row-shell .payment-type-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .payment-row-shell .payment-amount-block {
+      width: 140px;
+      flex: 0 0 140px;
+    }
+
+    .payment-row-shell .payment-reference-block {
+      width: 100%;
+      max-width: 220px;
+      margin-top: 4px;
+    }
+
+    .payment-row-shell .payment-trash-block {
+      width: 24px;
+      flex: 0 0 24px;
+      padding-top: 30px;
+    }
+
+    .payment-row-shell .payment-type-select {
+      width: 100%;
+    }
+
+    .payment-row-shell .remove-row {
+      margin-bottom: 0;
+      padding: 0;
+    }
+
+    .payment-row-shell .btn-link {
+      font-size: 13px;
+    }
+
+    .payment-row-shell .payment-add-link {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      width: 100%;
+    }
+
+    .payment-row-shell .payment-add-total {
+      margin-left: auto;
+      color: #6b7280;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .payment-in-modal .modal-footer {
+      padding: 14px 22px 16px;
+      border-top: 1px solid #eef2f7;
+    }
+
+    .payment-in-modal .modal-footer .btn {
+      min-width: 96px;
+    }
+
+    .payment-in-modal .modal-footer .btn-secondary {
+      background: #fff;
+      border-color: #d7dde6;
+      color: #475569;
+    }
+
+    .payment-in-modal .modal-footer .dropdown-toggle::after {
+      margin-left: 0.45rem;
     }
   </style>
 </head>
@@ -272,7 +598,7 @@
         <button class="btn rounded-pill" style="background-color: #D4112E;" data-bs-toggle="modal" data-bs-target="#addPaymentInModal">
     <span class="text-light">+ Add Payment-in</span>
 </button>
-   <div class="modal fade" id="addPaymentInModal" tabindex="-1" aria-labelledby="addPaymentInModalLabel" aria-hidden="true">
+   <div class="modal fade payment-in-modal" id="addPaymentInModal" tabindex="-1" aria-labelledby="addPaymentInModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl"> <!-- Expanded modal width -->
     <div class="modal-content">
 
@@ -297,161 +623,145 @@
         @php
           $nextReceiptNo = $nextEntryNo ?? ((int) $paymentIns->max(fn ($paymentIn) => (int) ($paymentIn->receipt_no ?? 0))) + 1;
           $todayDate = now()->format('Y-m-d');
+          $todayTime = now()->format('h:i A');
         @endphp
         <form id="paymentInForm" action="{{ route('payments-in.store') }}" method="POST">
            @csrf
           <input type="hidden" id="paymentInId" value="">
           <input type="hidden" id="linkedRowsJson" value="[]">
 
-          <div class="row">
-
-            <!-- Left Side: Party + Payment Section -->
-            <div class="col-lg-7">
-
-              <!-- Party Selection -->
-              <div class="mb-3">
-                <div class="dropdown party-dropdown-wrapper" data-bs-auto-close="outside">
-                  <input type="text" class="form-control party-search-input w-100" placeholder="Search party..." id="partyDropdownBtn" data-bs-toggle="dropdown" autocomplete="off">
-                  <ul class="dropdown-menu w-100" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu" style="max-height: 300px; overflow-y: auto;">
-                    @foreach($parties as $party)
-                    <li class="party-option dropdown-item d-flex justify-content-between align-items-center" style="cursor: pointer;"
-                        data-id="{{ $party->id }}"
-                        data-opening="{{ $party->opening_balance ?? 0 }}"
-                        data-type="{{ $party->transaction_type ?? '' }}"
-                        data-phone="{{ strtolower($party->phone ?? '') }}"
-                        data-billing="{{ strtolower(addslashes($party->billing_address ?? '')) }}">
-                      <span class="party-name cursor-pointer">{{ $party->name }}</span>
-                      <span class="party-balance small text-muted">
-                        @if($party->transaction_type == 'pay')
-                          <i class="fa-solid fa-arrow-up text-danger me-1"></i> ₹{{ number_format($party->opening_balance, 2) }}
-                        @elseif($party->transaction_type == 'receive')
-                          <i class="fa-solid fa-arrow-down text-success me-1"></i> ₹{{ number_format($party->opening_balance, 2) }}
-                        @else
-                          ₹{{ number_format($party->opening_balance, 2) }}
-                        @endif
-                      </span>
-                    </li>
-                    @endforeach
-                    <li class="dropdown-item text-muted small d-none" id="partySearchNoResults">No matching parties found.</li>
-                    <li class="dropdown-item text-primary" id="addNewPartyBtn">+ Add New Party</li>
-                  </ul>
-                </div>
-
-                <input type="hidden" class="party-id" name="party_id">
-                <input type="hidden" class="phone-input" name="phone-inpur">
-                <input type="hidden" class="billing-address" name="billing_address">
-                <div id="partyBalanceDisplay" class="mt-1"></div>
-              </div>
-
-              <!-- Payment Section -->
-              <div id="paymentContainer">
-
-                <div style="width: auto; height: auto; padding: 22px; border-radius: 1px; border: 1px solid #ced4da; box-shadow: 0 2px 6px rgba(0,0,0,0.12);">
-
-          <div class="row align-items-end payment-row mb-2">
-
-  <div class="col-md-4">
-    <label class="form-label">Payment Type</label>
-    <select class="form-select payment-type-select">
-      <option value="cash">Cash</option>
-      <option value="bank" selected>Bank</option>
-    </select>
-    <select class="form-select payment-bank mt-2" name="bank_account_id">
-      <option value="">-- Select Bank --</option>
-      @foreach($bankAccounts as $bank)
-         @php
-           $accountNumber = preg_replace('/\s+/', '', (string) ($bank->account_number ?? ''));
-           $bankLabel = trim($bank->display_name . ($accountNumber !== '' ? ' - ' . $accountNumber : ''));
-         @endphp
-         <option value="{{ $bank->id }}">{{ $bankLabel }}</option>
-      @endforeach
-      <option value="add_new_bank">+ Add Bank Account</option>
-    </select>
-    <button type="button" class="btn btn-link btn-sm p-0 mt-2 open-bank-account-modal" data-bs-toggle="modal" data-bs-target="#bankAccountModal">+ Add Bank Account</button>
-  </div>
-
-  <div class="col-md-3">
-    <label class="form-label">Amount</label>
-    <input type="number" class="form-control payment-amount" placeholder="Enter amount">
-  </div>
-
-  <div class="col-md-3">
-    <label class="form-label">Reference No</label>
-    <input type="text" class="form-control payment-reference" placeholder="Enter reference number">
-  </div>
-
-  <div class="col-md-2 d-flex align-items-center">
-    <button type="button" class="remove-row border-0 bg-transparent text-secondary" style="display:none; font-size:18px;">
-      <i class="fa-solid fa-trash"></i>
-    </button>
-  </div>
-
-</div>
-<!-- Add Payment Button -->
-<div class="mt-2">
-  <button type="button" id="addPaymentRow" class="btn p-0 text-primary border-0 bg-transparent">
-    + Add Payment
-  </button>
-</div>
-                  <input type="hidden" id="referenceNo" value="">
-
-
-
-                </div>
-
-              </div>
-
-              <!-- Extra Buttons -->
-              <div class="d-flex flex-column gap-2 mt-3 align-items-start">
-                <button type="button" id="toggleDescriptionBtn" class="btn d-flex align-items-center gap-2 border w-auto"
-                        style="border-color:#ced4da; background-color:#fff; padding: 6px 12px;">
-                  <i class="fa-solid fa-file text-secondary" style="font-size:20px;"></i>
-                  <span class="text-secondary">Add Description</span>
-                </button>
-
-                <div id="descriptionBox" class="d-none mt-2 w-100">
-                  <label class="form-label text-secondary">Description</label>
-                  <textarea class="form-control" id="paymentDescription" name="description" rows="4" placeholder="Enter description"></textarea>
-                </div>
-
-                <button type="button" id="toggleImageBtn" class="btn d-flex align-items-center gap-2 border w-auto"
-                        style="border-color:#ced4da; background-color:#fff; padding: 6px 12px;">
-                  <i class="fa-solid fa-camera text-secondary" style="font-size:20px;"></i>
-                  <span class="text-secondary">Upload Image</span>
-                </button>
-
-                <input type="file" id="paymentImageInput" class="d-none" accept="image/*">
-                <div id="imageUploadBox" class="d-none mt-2 w-100">
-                  <div class="border rounded p-3 text-center text-secondary" id="imagePlaceholder" style="cursor:pointer;">
-                    Click to select an image
+          <div class="payment-in-sheet">
+            <div class="row g-4 align-items-start">
+              <div class="col-lg-7">
+                <div class="payment-in-party-bar">
+                  <div class="dropdown party-dropdown-wrapper" data-bs-auto-close="outside">
+                    <input type="text" class="form-control party-search-input w-100" placeholder="Search by Name/Phone *" id="partyDropdownBtn" data-bs-toggle="dropdown" autocomplete="off">
+                    <ul class="dropdown-menu w-100" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu" style="max-height: 300px; overflow-y: auto;">
+                      @foreach($parties as $party)
+                      <li class="party-option dropdown-item d-flex justify-content-between align-items-center" style="cursor: pointer;"
+                          data-id="{{ $party->id }}"
+                          data-current-balance="{{ $party->current_balance ?? $party->opening_balance ?? 0 }}"
+                          data-phone="{{ strtolower($party->phone ?? '') }}"
+                          data-billing="{{ strtolower(addslashes($party->billing_address ?? '')) }}">
+                        <span class="party-name cursor-pointer">{{ $party->name }}</span>
+                        <span class="party-balance small text-muted">
+                          @if(($party->current_balance ?? $party->opening_balance ?? 0) < 0)
+                            <i class="fa-solid fa-arrow-up text-danger me-1"></i>
+                          @elseif(($party->current_balance ?? $party->opening_balance ?? 0) > 0)
+                            <i class="fa-solid fa-arrow-down text-success me-1"></i>
+                          @endif
+                          Rs {{ number_format((float) ($party->current_balance ?? $party->opening_balance ?? 0), 2) }}
+                        </span>
+                      </li>
+                      @endforeach
+                      <li class="dropdown-item text-muted small d-none" id="partySearchNoResults">No matching parties found.</li>
+                      <li class="dropdown-item text-primary" id="addNewPartyBtn">+ Add New Party</li>
+                    </ul>
                   </div>
-                  <div id="imageSelectedName" class="small text-muted mt-2 d-none"></div>
+
+                  <input type="hidden" class="party-id" name="party_id">
+                  <input type="hidden" class="phone-input" name="phone-input">
+                  <input type="hidden" class="billing-address" name="billing_address">
+                  <div id="partyBalanceDisplay" class="party-balance-display balance-zero d-none">
+                    <span>Current Balance:</span>
+                    <span class="balance-value">Rs 0.00</span>
+                  </div>
+                </div>
+
+                <div id="paymentContainer" class="payment-entry-card">
+                  <div class="payment-row-shell">
+                    <div class="payment-row payment-row--entry">
+                      <div class="payment-row-line">
+                        <div class="payment-type-block">
+                          <label class="form-label">Payment Type</label>
+                          <div class="payment-type-line">
+                            <select class="form-select payment-type-select payment-type-entry" data-default-payment-type="cash"></select>
+
+                          </div>
+                          <input type="hidden" class="payment-bank" name="bank_account_id" value="">
+                        </div>
+
+                        <div class="payment-amount-block">
+                          <label class="form-label">Amount</label>
+                          <input type="number" class="form-control payment-amount" placeholder="0">
+                        </div>
+
+                        <div class="payment-trash-block d-flex align-items-center justify-content-center">
+                          <button type="button" class="remove-row border-0 bg-transparent text-secondary" style="font-size:18px;">
+                            <i class="fa-solid fa-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div class="payment-reference-block d-none">
+                        <label class="form-label text-secondary">Reference No</label>
+                        <input type="text" class="form-control payment-reference d-none" placeholder="Reference No.">
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="payment-add-link">
+                    <button type="button" id="addPaymentRow" class="btn p-0 text-primary border-0 bg-transparent">
+                      + Add Payment Type
+                    </button>
+                    <div class="payment-add-total">
+                      Total payment: <span id="paymentRowTotalDisplay">0</span>
+                    </div>
+                  </div>
+                  <input type="hidden" id="referenceNo" value="">
+                </div>
+
+                <div class="payment-extra-stack">
+                  <button type="button" id="toggleDescriptionBtn" class="btn-outline-light-like">
+                    <i class="fa-solid fa-file text-secondary" style="font-size:18px;"></i>
+                    <span>Add Description</span>
+                  </button>
+
+                  <div id="descriptionBox" class="d-none mt-1 w-100">
+                    <label class="form-label text-secondary">Description</label>
+                    <textarea class="form-control" id="paymentDescription" name="description" rows="4" placeholder="Enter description"></textarea>
+                  </div>
+
+                  <button type="button" id="toggleImageBtn" class="btn-outline-light-like">
+                    <i class="fa-solid fa-camera text-secondary" style="font-size:18px;"></i>
+                    <span>Upload Image</span>
+                  </button>
+
+                  <input type="file" id="paymentImageInput" class="d-none" accept="image/*">
+                  <div id="imageUploadBox" class="d-none mt-1 w-100">
+                    <div class="border rounded p-3 text-center text-secondary" id="imagePlaceholder" style="cursor:pointer;">
+                      Click to select an image
+                    </div>
+                    <div id="imageSelectedName" class="small text-muted mt-2 d-none"></div>
+                  </div>
                 </div>
               </div>
 
-            </div> <!-- End Left Side -->
+              <div class="col-lg-5 payment-in-meta-card">
+                <div class="payment-in-meta-grid">
+                  <label class="meta-label">Receipt No</label>
+                  <input type="text" class="form-control meta-value" id="receiptNo" name="receipt_no" placeholder="Receipt No" value="{{ old('receipt_no', $nextReceiptNo > 0 ? $nextReceiptNo : 1) }}">
 
-            <!-- Right Side: Receipt No + Date + Received -->
-            <div class="col-lg-5">
+                  <label class="meta-label">Date</label>
+                  <input type="date" class="form-control meta-value" name="date" value="{{ old('date', $todayDate) }}">
 
-              <div class="mb-3">
-                <label class="form-label text-secondary">Receipt No</label>
-              <input type="text" class="form-control" id="receiptNo" name="receipt_no" placeholder="Receipt No" value="{{ old('receipt_no', $nextReceiptNo > 0 ? $nextReceiptNo : 1) }}">
+                  <label class="meta-label">Time</label>
+                  <input type="text" class="form-control meta-value" value="{{ $todayTime }}" readonly>
+                </div>
+
+                <div class="payment-in-summary-grid">
+                  <div class="summary-label">Received</div>
+                  <input type="text" class="form-control summary-input" id="receivedAmount" placeholder="Received" readonly>
+
+                  <div class="summary-label">Discount</div>
+                  <input type="text" class="form-control summary-input" id="paymentInDiscountDisplay" value="0" readonly>
+
+                  <div class="summary-total">Total</div>
+                  <div class="summary-total-value" id="paymentInTotalDisplay">0</div>
+                </div>
               </div>
-
-              <div class="mb-3">
-                <label class="form-label text-secondary">Date</label>
-                <input type="date" class="form-control" name="date" value="{{ old('date', $todayDate) }}">
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label text-secondary">Received</label>
-                <input type="text" class="form-control" id="receivedAmount" placeholder="Received" readonly>
-              </div>
-
-            </div> <!-- End Right Side -->
-
-          </div> <!-- End Main Row -->
+            </div>
+          </div>
 
         </form>
       </div>
@@ -1951,8 +2261,7 @@
             const partyId = option.dataset.id || '';
             const phone = option.dataset.phone || '';
             const billing = option.dataset.billing || '';
-            const opening = parseFloat(option.dataset.opening || 0) || 0;
-            const type = option.dataset.type || '';
+            const currentBalance = parseFloat(option.dataset.currentBalance || 0) || 0;
 
             dropdownBtn.value = partyName;
             partyIdInput.value = partyId;
@@ -1960,9 +2269,16 @@
             billingInput.value = billing;
             resetLinkPaymentState();
 
-            balanceDisplay.innerHTML = type === 'pay'
-                ? `<span class="text-danger">₹${opening.toFixed(2)}</span>`
-                : `<span class="text-success">₹${opening.toFixed(2)}</span>`;
+            if (balanceDisplay) {
+                balanceDisplay.classList.remove('d-none', 'balance-positive', 'balance-negative', 'balance-zero');
+                balanceDisplay.classList.add(
+                    currentBalance > 0 ? 'balance-positive' : currentBalance < 0 ? 'balance-negative' : 'balance-zero'
+                );
+                const valueNode = balanceDisplay.querySelector('.balance-value');
+                if (valueNode) {
+                    valueNode.textContent = `Rs ${Math.abs(currentBalance).toFixed(2)}`;
+                }
+            }
 
             filterPartyOptions('');
             hidePartyDropdown();
@@ -2008,13 +2324,13 @@
                 newOption.className = 'party-option dropdown-item d-flex justify-content-between align-items-center';
                 newOption.style.cursor = 'pointer';
                 newOption.dataset.id = party.id;
-                newOption.dataset.opening = party.opening_balance || 0;
+                newOption.dataset.currentBalance = party.current_balance ?? party.opening_balance ?? 0;
                 newOption.dataset.type = party.transaction_type || '';
                 newOption.dataset.phone = party.phone || '';
                 newOption.dataset.billing = party.billing_address || '';
                 newOption.innerHTML = `
                     <span class="party-name cursor-pointer">${party.name}</span>
-                    <span class="party-balance small text-muted">₹${parseFloat(party.opening_balance || 0).toFixed(2)}</span>
+                    <span class="party-balance small text-muted">Rs ${parseFloat(party.current_balance ?? party.opening_balance ?? 0).toFixed(2)}</span>
                 `;
 
                 // Insert before the "Add New Party" button
@@ -2027,6 +2343,17 @@
                 partyIdInput.value = party.id;
                 phoneInput.value = party.phone || '';
                 billingInput.value = party.billing_address || '';
+                if (balanceDisplay) {
+                    const newBalance = parseFloat(party.current_balance ?? party.opening_balance ?? 0) || 0;
+                    balanceDisplay.classList.remove('d-none', 'balance-positive', 'balance-negative', 'balance-zero');
+                    balanceDisplay.classList.add(
+                        newBalance > 0 ? 'balance-positive' : newBalance < 0 ? 'balance-negative' : 'balance-zero'
+                    );
+                    const valueNode = balanceDisplay.querySelector('.balance-value');
+                    if (valueNode) {
+                        valueNode.textContent = `Rs ${Math.abs(newBalance).toFixed(2)}`;
+                    }
+                }
                 resetLinkPaymentState();
 
                 // Close the modal
@@ -2062,51 +2389,50 @@
 
   <script>
 document.getElementById("addPaymentRow").addEventListener("click", function () {
-
     const container = document.getElementById("paymentContainer");
 
     const newRow = document.createElement("div");
-    newRow.classList.add("row", "align-items-end", "payment-row", "mb-2");
+    newRow.classList.add("payment-row", "payment-row--entry");
 
     newRow.innerHTML = `
-        <div class="col-md-4">
-            <label class="form-label">Payment Type</label>
-            <select class="form-select payment-type-select">
-                <option value="cash">Cash</option>
-                <option value="bank" selected>Bank</option>
-            </select>
-            <select class="form-select payment-bank mt-2" name="bank_account_id">
-                <option value="">-- Select Bank --</option>
-                @foreach($bankAccounts as $bank)
-                    @php
-                        $accountNumber = preg_replace('/\s+/', '', (string) ($bank->account_number ?? ''));
-                        $bankLabel = trim($bank->display_name . ($accountNumber !== '' ? ' - ' . $accountNumber : ''));
-                    @endphp
-                    <option value="{{ $bank->id }}">{{ $bankLabel }}</option>
-                @endforeach
-                <option value="add_new_bank">+ Add Bank Account</option>
-            </select>
-            <button type="button" class="btn btn-link btn-sm p-0 mt-2 open-bank-account-modal" data-bs-toggle="modal" data-bs-target="#bankAccountModal">+ Add Bank Account</button>
+        <div class="payment-row-line">
+            <div class="payment-type-block">
+              <label class="form-label">Payment Type</label>
+              <div class="payment-type-line">
+                <select class="form-select payment-type-select payment-type-entry" data-default-payment-type="cash"></select>
+                <button type="button" class="btn btn-link p-0 text-primary border-0 bg-transparent small open-bank-account-modal">
+                  + Add Bank Account
+                </button>
+              </div>
+              <input type="hidden" class="payment-bank" name="bank_account_id" value="">
+            </div>
+
+            <div class="payment-amount-block">
+                <label class="form-label">Amount</label>
+                <input type="number" class="form-control payment-amount" placeholder="0">
+            </div>
+
+            <div class="payment-trash-block d-flex align-items-center justify-content-center">
+                <button type="button" class="remove-row border-0 bg-transparent text-secondary" style="font-size:18px;">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
         </div>
 
-        <div class="col-md-3">
-            <label class="form-label">Amount</label>
-            <input type="number" class="form-control payment-amount" placeholder="Enter amount">
-        </div>
-
-        <div class="col-md-3">
-            <label class="form-label">Reference No</label>
-            <input type="text" class="form-control payment-reference" placeholder="Enter reference number">
-        </div>
-
-        <div class="col-md-2 d-flex align-items-center">
-            <button type="button" class="remove-row border-0 bg-transparent text-secondary" style="font-size:18px;">
-                <i class="fa-solid fa-trash"></i>
-            </button>
+        <div class="payment-reference-block">
+            <label class="form-label text-secondary">Reference No</label>
+            <input type="text" class="form-control payment-reference" placeholder="Reference No.">
         </div>
     `;
-  $('#paymentContainer > div:first').append(newRow);
+  const shell = container.querySelector('.payment-row-shell');
+  const addLink = shell?.querySelector('.payment-add-link');
+  if (shell && addLink) {
+    shell.insertBefore(newRow, addLink);
+  } else {
+    shell?.appendChild(newRow);
+  }
   const $newRow = $(newRow);
+  populatePaymentTypeSelect($newRow.find('.payment-type-select'));
   togglePaymentBankRow($newRow);
   updateReceivedTotal();
 });
@@ -2120,14 +2446,25 @@ document.addEventListener("click", function (e) {
 });
 
 function togglePaymentBankRow($row) {
-    const type = $row.find('.payment-type-select').val() || 'bank';
-    const $bankSelect = $row.find('.payment-bank');
-    if (type === 'cash') {
-        $bankSelect.val('');
-        $bankSelect.addClass('d-none');
+  const type = $row.find('.payment-type-select').val() || '';
+  const $bankInput = $row.find('.payment-bank');
+
+  if ($bankInput.length) {
+    if (type === 'bank' || type === 'cheque' || String(type).startsWith('bank:')) {
+      const currentValue = String($bankInput.val() || '').trim();
+      const extractedBankId = extractBankAccountId(type);
+      if (extractedBankId) {
+        $bankInput.val(extractedBankId);
+      } else
+      if (!currentValue && window.paymentInDefaultBankAccountId) {
+        $bankInput.val(window.paymentInDefaultBankAccountId);
+      }
     } else {
-        $bankSelect.removeClass('d-none');
+      $bankInput.val('');
     }
+  }
+
+  return type;
 }
 
 document.addEventListener("change", function (e) {
@@ -2137,11 +2474,60 @@ document.addEventListener("change", function (e) {
 });
 
 document.addEventListener("DOMContentLoaded", function () {
-    const firstRow = $('#paymentContainer .payment-row').first();
-    if (firstRow.length) {
-        togglePaymentBankRow(firstRow);
-    }
+  populateAllPaymentTypeSelects();
+  const firstRow = $('#paymentContainer .payment-row').first();
+  if (firstRow.length) {
+    togglePaymentBankRow(firstRow);
+  }
 });
+
+function extractBankAccountId(type) {
+  const raw = String(type || '').trim();
+  if (!raw.startsWith('bank:')) return '';
+  if (raw.startsWith('bank:')) return raw.slice(5).trim();
+  if (raw.startsWith('bank-')) return raw.slice(5).trim();
+  return '';
+}
+
+function paymentTypeOptionsHtml(currentValue) {
+  const accounts = Array.isArray(window.bankAccounts) ? window.bankAccounts : [];
+  const options = [];
+  const selected = String(currentValue || 'cash').trim();
+  const escapeHtml = (text) => String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+  options.push(`<option value="cash"${selected === 'cash' ? ' selected' : ''}>Cash</option>`);
+  options.push(`<option value="bank"${selected === 'bank' ? ' selected' : ''}>Bank</option>`);
+  options.push(`<option value="cheque"${selected === 'cheque' ? ' selected' : ''}>Cheque</option>`);
+  if (accounts.length) {
+    options.push('<option value="" disabled>──────── Bank Accounts ────────</option>');
+    accounts.forEach(function(acc) {
+      const label = acc.display_name || acc.bank_name || acc.account_holder_name || ('Account ' + (acc.id || ''));
+      const suffix = acc.account_number ? ' - ' + String(acc.account_number).replace(/\s+/g, '') : '';
+      const value = `bank:${acc.id}`;
+      options.push(`<option value="${value}"${selected === value ? ' selected' : ''}>${escapeHtml(label + suffix)}</option>`);
+    });
+    // special option to add a new bank account (handled by bank-account-modal.js)
+    options.push('<option value="add_new_bank">+ Add Bank Account</option>');
+  }
+  return options.join('');
+}
+
+function populatePaymentTypeSelect($select) {
+  if (!$select || !$select.length) return;
+  const currentValue = String($select.val() || $select.data('default-payment-type') || 'cash').trim();
+  $select.html(paymentTypeOptionsHtml(currentValue));
+}
+
+function populateAllPaymentTypeSelects() {
+  document.querySelectorAll('.payment-type-select').forEach(function(el) {
+    populatePaymentTypeSelect($(el));
+  });
+}
 
 function updateReceivedTotal() {
     let total = 0;
@@ -2157,6 +2543,21 @@ function updateReceivedTotal() {
     const linkReceivedInput = document.getElementById('linkPaymentReceivedInput');
     if (linkReceivedInput) {
         linkReceivedInput.value = total.toFixed(2);
+    }
+
+    const totalDisplay = document.getElementById('paymentInTotalDisplay');
+    if (totalDisplay) {
+        totalDisplay.textContent = total.toFixed(2).replace(/\.00$/, '');
+    }
+
+    const rowTotalDisplay = document.getElementById('paymentRowTotalDisplay');
+    if (rowTotalDisplay) {
+        rowTotalDisplay.textContent = total.toFixed(2).replace(/\.00$/, '');
+    }
+
+    const discountDisplay = document.getElementById('paymentInDiscountDisplay');
+    if (discountDisplay && !discountDisplay.value) {
+        discountDisplay.value = '0';
     }
 
     refreshLinkPaymentSummary();
@@ -2516,10 +2917,20 @@ $('#paymentInForm').on('submit', function(e) {
 
     const payments = [];
     $('#paymentContainer .payment-row').each(function() {
-        const type = $(this).find('.payment-type-select').val();
+        const rawType = String($(this).find('.payment-type-select').val() || '').trim();
+        let type = rawType;
         const amount = $(this).find('.payment-amount').val();
-        const bank_account_id = $(this).find('.payment-bank').val();
+        let bank_account_id = $(this).find('.payment-bank').val();
         const reference = $(this).find('.payment-reference').val();
+
+        if (rawType.startsWith('bank:')) {
+            bank_account_id = extractBankAccountId(rawType);
+            type = 'bank';
+        }
+
+        if ((rawType === 'bank' || rawType === 'cheque') && !bank_account_id && window.paymentInDefaultBankAccountId) {
+            bank_account_id = window.paymentInDefaultBankAccountId;
+        }
 
         if(type && amount) {
             payments.push({ type, amount, bank_account_id, reference });

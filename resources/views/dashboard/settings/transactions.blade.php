@@ -159,6 +159,44 @@
 
         </section>
 
+        <section class="section section--backup">
+          <div class="section__title">Taxes, Discount &amp; Total</div>
+
+          <label class="check-row check-row--sm">
+            <input type="checkbox" class="check-row__input" id="transactionDiscountCheckbox" {{ data_get($transactionSettings ?? [], 'transaction_totals.discount_enabled', true) ? 'checked' : '' }} />
+            <span class="check-row__label">Transaction wise discount</span>
+            <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
+          </label>
+
+          <label class="check-row check-row--sm">
+            <input type="checkbox" class="check-row__input" id="transactionTaxCheckbox" {{ data_get($transactionSettings ?? [], 'transaction_totals.tax_enabled', true) ? 'checked' : '' }} />
+            <span class="check-row__label">Transaction wise tax</span>
+            <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
+          </label>
+
+          <label class="check-row check-row--sm">
+            <input type="checkbox" class="check-row__input" id="roundTotalCheck" {{ data_get($transactionSettings ?? [], 'transaction_totals.round_total_enabled', true) ? 'checked' : '' }} />
+            <span class="check-row__label">Round of total</span>
+            <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
+          </label>
+          <div id="roundTotalOptions" class="ms-4 mb-3 mt-1 {{ data_get($transactionSettings ?? [], 'transaction_totals.round_total_enabled', true) ? '' : 'd-none' }}">
+            <select id="roundTotalModeSelect" style="border:none; border-bottom:1px solid black; padding-bottom:2px;">
+              <option value="nearest" {{ data_get($transactionSettings ?? [], 'transaction_totals.round_total_mode', 'down-to') === 'nearest' ? 'selected' : '' }}>Nearest</option>
+              <option value="down-to" {{ data_get($transactionSettings ?? [], 'transaction_totals.round_total_mode', 'down-to') === 'down-to' ? 'selected' : '' }}>Down to</option>
+              <option value="up-to" {{ data_get($transactionSettings ?? [], 'transaction_totals.round_total_mode', 'down-to') === 'up-to' ? 'selected' : '' }}>Up to</option>
+            </select>
+            <span class="mx-3 text-dark">To</span>
+            @php($roundPrecision = (string) data_get($transactionSettings ?? [], 'transaction_totals.round_total_precision', 100))
+            <select id="roundTotalPrecisionSelect" style="border:none; border-bottom:1px solid black; padding-bottom:2px;">
+              <option value="1" {{ $roundPrecision === '1' ? 'selected' : '' }}>1</option>
+              <option value="10" {{ $roundPrecision === '10' ? 'selected' : '' }}>10</option>
+              <option value="50" {{ $roundPrecision === '50' ? 'selected' : '' }}>50</option>
+              <option value="100" {{ $roundPrecision === '100' ? 'selected' : '' }}>100</option>
+              <option value="1000" {{ $roundPrecision === '1000' ? 'selected' : '' }}>1000</option>
+            </select>
+          </div>
+        </section>
+
         <!-- Column 2 (top): Multi Firm -->
         <section class="section section--multi-firm">
           <div class="section__title">Items table</div>
@@ -341,47 +379,7 @@
         </section>
 
         <!-- Column 3 (top): Backup & History -->
-        <section class="section section--backup">
-          <div class="section__title">Taxes, Discount &amp; Total</div>
-
-          <label class="check-row check-row--sm">
-            <input type="checkbox" class="check-row__input" />
-            <span class="check-row__label">Transaction wise tax</span>
-            <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
-          </label>
-          <label class="check-row check-row--sm">
-            <input type="checkbox" class="check-row__input" />
-            <span class="check-row__label">Transaction wise discount</span>
-            <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
-          </label>
-          <label class="check-row check-row--sm">
-            <input type="checkbox" class="check-row__input" id="roundTotalCheck" />
-            <span class="check-row__label">Round of total</span>
-            <i class="fa fa-info-circle check-row__info" aria-hidden="true"></i>
-          </label>
-          <div id="roundTotalOptions" class="d-none ms-4 mb-3 mt-1">
-            <select name="" id="" style="border:none; border-bottom:1px solid black; padding-bottom:2px;">
-              <option value="nearest">Nearest</option>
-              <option value="down-to" selected>Down to</option>
-              <option value="up-to">Up to</option>
-            </select>
-            <span class="mx-3 text-dark">
-              To
-            </span>
-            <select name="" id="" style="border:none; border-bottom:1px solid black; padding-bottom:2px;">
-              <option value="nearest">1</option>
-              <option value="down-to">10</option>
-              <option value="up-to">50</option>
-              <option value="up-to" selected>100</option>
-              <option value="up-to">1000</option>
-            </select>
-          </div>
-
-
-
-
-        </section>
-
+     
         <section class="section section--customize ps-5">
           <div class="section__title">Billing Type</div>
 
@@ -807,6 +805,7 @@
         transaction_header: { invoice_number_enabled: true, transaction_time_enabled: false, cash_sale_default: false, billing_name_enabled: true, customer_po_enabled: false },
         items_table: { free_item_qty_enabled: false, count_enabled: false, count_label: 'Count' },
         more_transaction_features: { terms_conditions_enabled: true, due_dates_payment_terms_enabled: true, quick_entry: false, link_payment_to_invoices: true, passcode_enabled: false, do_not_show_invoice_preview: false },
+        transaction_totals: { discount_enabled: true, tax_enabled: true, round_total_enabled: true, round_total_mode: 'down-to', round_total_precision: 100 },
         sale_prefix: { enabled: true, active: 'INV', options: ['INV'] },
         transaction_prefixes: {
           sale: { active: 'INV', options: ['INV'] },
@@ -896,6 +895,13 @@
             link_payment_to_invoices: !!qs('#linkPaymentsCheckbox')?.checked,
             due_dates_payment_terms_enabled: !!qs('#paymentTermsCheckbox')?.checked,
             terms_conditions_enabled: !!qs('#termsConditionsCheckbox')?.checked
+          },
+          transaction_totals: {
+            discount_enabled: !!qs('#transactionDiscountCheckbox')?.checked,
+            tax_enabled: !!qs('#transactionTaxCheckbox')?.checked,
+            round_total_enabled: !!qs('#roundTotalCheck')?.checked,
+            round_total_mode: String(qs('#roundTotalModeSelect')?.value || 'down-to'),
+            round_total_precision: parseInt(qs('#roundTotalPrecisionSelect')?.value || 100, 10) || 100
           },
           payment_terms: {
             enabled: !!qs('#paymentTermsCheckbox')?.checked,
@@ -1005,6 +1011,12 @@
         qs('#linkPaymentsCheckbox').checked = !!transactionSettings.more_transaction_features.link_payment_to_invoices;
         qs('#paymentTermsCheckbox').checked = !!transactionSettings.more_transaction_features.due_dates_payment_terms_enabled;
         qs('#termsConditionsCheckbox').checked = !!transactionSettings.more_transaction_features.terms_conditions_enabled;
+        qs('#transactionDiscountCheckbox').checked = !!transactionSettings.transaction_totals.discount_enabled;
+        qs('#transactionTaxCheckbox').checked = !!transactionSettings.transaction_totals.tax_enabled;
+        qs('#roundTotalCheck').checked = !!transactionSettings.transaction_totals.round_total_enabled;
+        qs('#roundTotalModeSelect').value = transactionSettings.transaction_totals.round_total_mode || 'down-to';
+        qs('#roundTotalPrecisionSelect').value = String(transactionSettings.transaction_totals.round_total_precision || 100);
+        qs('#roundTotalOptions')?.classList.toggle('d-none', !transactionSettings.transaction_totals.round_total_enabled);
         qs('#paymentTermsEditor')?.classList.toggle('d-none', !transactionSettings.more_transaction_features.due_dates_payment_terms_enabled);
         qs('#paymentTermNameInput').value = transactionSettings.payment_terms.name || 'Net 15';
         qs('#paymentTermDaysInput').value = transactionSettings.payment_terms.days || 0;
@@ -1032,7 +1044,7 @@
         preview.value = `${yyyy}-${mm}-${dd}`;
       }
 
-      qsa('#invoiceNoCheckbox,#transactionTimeCheckbox,#cashSaleDefaultCheckbox,#billingNameCheckbox,#customerPoDetailsCheckbox,#freeItemQtyCheckbox,#countCheckbox,#quickEntryCheckbox,#invoicePreviewCheckbox,#linkPaymentsCheckbox,#paymentTermsCheckbox,#termsConditionsCheckbox').forEach(el => {
+      qsa('#invoiceNoCheckbox,#transactionTimeCheckbox,#cashSaleDefaultCheckbox,#billingNameCheckbox,#customerPoDetailsCheckbox,#freeItemQtyCheckbox,#countCheckbox,#quickEntryCheckbox,#invoicePreviewCheckbox,#linkPaymentsCheckbox,#paymentTermsCheckbox,#termsConditionsCheckbox,#transactionDiscountCheckbox,#transactionTaxCheckbox,#roundTotalModeSelect,#roundTotalPrecisionSelect').forEach(el => {
         el?.addEventListener('change', () => saveSettings().catch(() => {}));
       });
 
@@ -1049,6 +1061,11 @@
       qs('#paymentTermNameInput')?.addEventListener('input', () => saveSettings().catch(() => {}));
       qs('#paymentTermDaysInput')?.addEventListener('input', () => {
         updatePaymentTermsPreview();
+        saveSettings().catch(() => {});
+      });
+
+      qs('#roundTotalCheck')?.addEventListener('change', function() {
+        qs('#roundTotalOptions')?.classList.toggle('d-none', !this.checked);
         saveSettings().catch(() => {});
       });
 

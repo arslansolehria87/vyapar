@@ -403,6 +403,13 @@ function initializeForm(context) {
             transaction_passcode_hash: null,
             do_not_show_invoice_preview: false
         },
+        transaction_totals: {
+            discount_enabled: true,
+            tax_enabled: true,
+            round_total_enabled: true,
+            round_total_mode: 'down-to',
+            round_total_precision: 100
+        },
         sale_prefix: {
             enabled: true,
             active: 'INV',
@@ -564,6 +571,11 @@ function initializeForm(context) {
         merged.more_transaction_features.passcode_enabled = toBooleanish(merged.more_transaction_features?.passcode_enabled);
         merged.more_transaction_features.quick_entry = merged.quick_entry;
         merged.more_transaction_features.link_payment_to_invoices = merged.link_payment_to_invoices;
+        merged.transaction_totals.discount_enabled = toBooleanish(merged.transaction_totals?.discount_enabled);
+        merged.transaction_totals.tax_enabled = toBooleanish(merged.transaction_totals?.tax_enabled);
+        merged.transaction_totals.round_total_enabled = toBooleanish(merged.transaction_totals?.round_total_enabled);
+        merged.transaction_totals.round_total_mode = String(merged.transaction_totals?.round_total_mode || 'down-to');
+        merged.transaction_totals.round_total_precision = parseInt(merged.transaction_totals?.round_total_precision || 100, 10) || 100;
         return merged;
     };
 
@@ -646,6 +658,40 @@ function initializeForm(context) {
             : dt.toLocaleTimeString('en-PK', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Karachi' });
         $display.val(text);
         $group.removeClass('d-none');
+    };
+
+    const renderTransactionTotalsControls = () => {
+        const totalsSettings = saleFormSettings.transaction_totals || {};
+        const discountEnabled = !!totalsSettings.discount_enabled;
+        const taxEnabled = !!totalsSettings.tax_enabled;
+        const roundTotalEnabled = !!totalsSettings.round_total_enabled;
+
+        const $discountRow = uiFind('.transaction-discount-row, .calc-row.transaction-discount-row').first();
+        const $taxRow = uiFind('.transaction-tax-row, .calc-row.transaction-tax-row').first();
+        const $roundRow = uiFind('.transaction-round-total-row, .calc-row.transaction-round-total-row').first();
+        const $roundCheck = uiFind('.round-off-check');
+        const $roundOptions = uiFind('#roundTotalOptions');
+        const $roundMode = uiFind('#roundTotalModeSelect');
+        const $roundPrecision = uiFind('#roundTotalPrecisionSelect');
+
+        $discountRow.toggleClass('d-none', !discountEnabled);
+        $taxRow.toggleClass('d-none', !taxEnabled);
+        $roundRow.toggleClass('d-none', !roundTotalEnabled);
+        $roundCheck.prop('checked', roundTotalEnabled);
+        $roundOptions.toggleClass('d-none', !roundTotalEnabled);
+        $roundMode.prop('disabled', !roundTotalEnabled);
+        $roundPrecision.prop('disabled', !roundTotalEnabled);
+
+        if (!discountEnabled) {
+            $ctx.find('.discount-pct, .discount-rs').val('');
+        }
+        if (!taxEnabled) {
+            $ctx.find('.tax-select').val('0');
+            $ctx.find('.tax-amount-display').text('0');
+        }
+        if (!roundTotalEnabled) {
+            $ctx.find('.round-off-val').val('0');
+        }
     };
 
     const renderTransportationFields = () => {
@@ -1047,6 +1093,7 @@ function initializeForm(context) {
         populateDynamicInvoiceFields();
         renderAdditionalChargeLiveRows();
         renderTransportationFields();
+        renderTransactionTotalsControls();
         updateAdditionalChargeRowTotals();
         renderItemSettingsColumns();
         updatePrefixPreview();
@@ -4313,20 +4360,24 @@ shipping_address: document.getElementById('pscShipping')?.value || $ctx.find('.s
 
     function applyDiscountTax(base) {
         let finalBase = base;
+        const totalsSettings = saleFormSettings.transaction_totals || {};
+        const discountEnabled = !!totalsSettings.discount_enabled;
+        const taxEnabled = !!totalsSettings.tax_enabled;
+        const roundTotalEnabled = !!totalsSettings.round_total_enabled;
 
-        const discPct = parseFloat($ctx.find('.discount-pct').val()) || 0;
-        if (discPct > 0) {
+        const discPct = discountEnabled ? (parseFloat($ctx.find('.discount-pct').val()) || 0) : 0;
+        if (discountEnabled && discPct > 0) {
             finalBase -= (finalBase * discPct / 100);
         }
 
-        const discRs = parseFloat($ctx.find('.discount-rs').val()) || 0;
-        if (discRs > 0) {
+        const discRs = discountEnabled ? (parseFloat($ctx.find('.discount-rs').val()) || 0) : 0;
+        if (discountEnabled && discRs > 0) {
             finalBase -= discRs;
         }
 
-        const taxPct = parseFloat($ctx.find('.tax-select').val()) || 0;
+        const taxPct = taxEnabled ? (parseFloat($ctx.find('.tax-select').val()) || 0) : 0;
         let taxAmount = 0;
-        if (taxPct > 0) {
+        if (taxEnabled && taxPct > 0) {
             taxAmount = (finalBase * taxPct / 100);
             finalBase += taxAmount;
         }
@@ -4348,7 +4399,7 @@ shipping_address: document.getElementById('pscShipping')?.value || $ctx.find('.s
         finalBase += getAdditionalChargesTotal();
         updateAdditionalChargeRowTotals();
 
-        const roundOffEnabled = $ctx.find('.round-off-check').is(':checked');
+        const roundOffEnabled = roundTotalEnabled && $ctx.find('.round-off-check').is(':checked');
         let roundOffVal = roundOffEnabled ? (parseFloat($ctx.find('.round-off-val').val()) || 0) : 0;
         let grandTotal = finalBase + roundOffVal;
 

@@ -2745,7 +2745,7 @@ textarea.meta-control[readonly]{
 
 
                                 <!-- Discount -->
-                                <div class="calc-row">
+                                <div class="calc-row transaction-discount-row">
                                     <div class="calc-label">Discount</div>
                                     <div class="calc-inputs">
                                         <input type="number" class="mini-input discount-pct" placeholder="%">
@@ -2755,7 +2755,7 @@ textarea.meta-control[readonly]{
                                 </div>
 
                                 <!-- Tax -->
-                                <div class="calc-row">
+                                <div class="calc-row transaction-tax-row">
                                     <div class="calc-label">Tax</div>
                                     <div class="calc-inputs">
                                         <select class="mini-input tax-select" style="width: 100px;">
@@ -2779,7 +2779,7 @@ textarea.meta-control[readonly]{
                                 </div>
 
                                 <!-- Round Off -->
-                                <div class="calc-row">
+                                <div class="calc-row transaction-round-total-row">
                                     <div class="checkbox-group">
                                         <input type="checkbox" class="custom-checkbox round-off-check" checked>
                                         <label class="link-text">Round Off</label>
