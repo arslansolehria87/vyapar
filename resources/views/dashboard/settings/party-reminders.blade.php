@@ -215,7 +215,7 @@
 
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="{{ asset('js/components.js') }}"></script>
+  <script src="{{ asset('js/components.js') }}?v={{ filemtime(public_path('js/components.js')) }}"></script>
   <script>
     (function () {
       const defaultPaymentReminderMessage = @json($partySettings['payment_reminder_message'] ?? "Dear [Party Name],\n\nYour payment of [Amount] is pending with [Business Name].\n\n[Additional Message]\n\nIf you already have made the payment, kindly ignore this message.");
@@ -364,3 +364,4 @@
   </script>
 </body>
 </html>
+

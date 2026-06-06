@@ -343,7 +343,7 @@
       max-width: 404px;
       border: 1px solid #d9dee7;
       border-radius: 4px;
-      background: #fff;
+      background: #f2f2f2;
       padding: 14px 14px 12px;
       box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
     }
@@ -449,7 +449,7 @@
     }
 
     .payment-row-shell {
-      background: #fff;
+      background: #f2f2f2;
       border-radius: 4px;
     }
 
@@ -1464,7 +1464,7 @@
       store: "{{ route('bank-accounts.store') }}"
     };
   </script>
-  <script src="{{ asset('js/components.js') }}"></script>
+  <script src="{{ asset('js/components.js') }}?v={{ filemtime(public_path('js/components.js')) }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
   <script src="{{ asset('js/payment_in.js') }}"></script>
   <script>
@@ -2400,9 +2400,7 @@ document.getElementById("addPaymentRow").addEventListener("click", function () {
               <label class="form-label">Payment Type</label>
               <div class="payment-type-line">
                 <select class="form-select payment-type-select payment-type-entry" data-default-payment-type="cash"></select>
-                <button type="button" class="btn btn-link p-0 text-primary border-0 bg-transparent small open-bank-account-modal">
-                  + Add Bank Account
-                </button>
+
               </div>
               <input type="hidden" class="payment-bank" name="bank_account_id" value="">
             </div>
@@ -3255,3 +3253,4 @@ function useCalculatorResult() {
     document.addEventListener('DOMContentLoaded', init);
   })();
 </script>
+

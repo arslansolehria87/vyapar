@@ -206,9 +206,11 @@ a:hover {
 }
 
 .sidebar-nav .nav-link {
+  position: relative;
   display: flex;
   align-items: center;
   padding: 10px 18px;
+  padding-right: 42px;
   color: var(--sidebar-text);
   font-size: 13.5px;
   font-weight: 400;
@@ -278,7 +280,8 @@ a:hover {
   background: rgba(0,0,0,.12);
 }
 .sidebar-submenu.open {
-  max-height: 300px;
+  display: block;
+  max-height: 420px;
 }
 .sidebar-submenu .nav-link {
   padding-left: 52px;
@@ -389,6 +392,59 @@ a:hover {
 .sidebar-company .company-role {
   font-size: 11px;
   color: rgba(255,255,255,.45);
+}
+
+body.sidebar-compact .sidebar {
+  width: 72px;
+  overflow-x: visible;
+}
+body.sidebar-compact .sidebar-search,
+body.sidebar-compact .sidebar-promo,
+body.sidebar-compact .sidebar-company .company-info,
+body.sidebar-compact .sidebar-nav .nav-link span,
+body.sidebar-compact .sidebar-nav .nav-link .badge-plus,
+body.sidebar-compact .sidebar-nav .nav-link .menu-plus-btn,
+body.sidebar-compact .sidebar-nav .nav-link .dropdown-arrow {
+  display: none !important;
+}
+body.sidebar-compact .sidebar-nav .nav-link {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+  gap: 0;
+}
+body.sidebar-compact .sidebar-nav .nav-link i {
+  margin: 0;
+}
+body.sidebar-compact .sidebar-nav .nav-link .fa-chevron-down {
+  display: none !important;
+}
+body.sidebar-compact .sidebar-nav .nav-item {
+  overflow: visible;
+}
+body.sidebar-compact .sidebar-nav .sidebar-submenu {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  width: 240px;
+  max-height: none !important;
+  overflow: visible !important;
+  display: none;
+  background: #23293a;
+  border-left: 1px solid rgba(255,255,255,.08);
+  box-shadow: 8px 0 24px rgba(0,0,0,.25);
+  z-index: 1200;
+}
+body.sidebar-compact .sidebar-nav .sidebar-submenu.open {
+  display: block !important;
+}
+body.sidebar-compact .sidebar-nav .sidebar-submenu .nav-link {
+  justify-content: flex-start;
+  padding-left: 18px;
+  padding-right: 18px;
+}
+body.sidebar-compact .sidebar-nav .sidebar-submenu .nav-link span {
+  display: inline !important;
 }
 
   .company-dropdown {
