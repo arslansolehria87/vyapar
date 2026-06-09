@@ -477,12 +477,127 @@ function filterStockDetail() {
     });
 }
 
-// Item Detail — hide inactive dates
+// Item Detail — fetch selected item date-wise movement
+let itemDetailFetchTimer = null;
+
+function handleItemDetailInput() {
+    const input = document.getElementById('id-item-name');
+    const hidden = document.getElementById('id-item-id');
+    const rows = Array.from(document.querySelectorAll('#id-item-picker-list .id-item-picker-row'));
+    const q = (input?.value || '').trim().toLowerCase();
+    let visibleCount = 0;
+
+    if (hidden) {
+        hidden.value = '';
+    }
+
+    rows.forEach(row => {
+        const matches = !q || (row.dataset.search || '').includes(q);
+        row.style.display = matches ? '' : 'none';
+        if (matches) visibleCount++;
+    });
+
+    toggleItemDetailEmpty(visibleCount === 0);
+    openItemDetailPicker();
+    clearTimeout(itemDetailFetchTimer);
+    itemDetailFetchTimer = setTimeout(filterItemDetail, 250);
+}
+
+function openItemDetailPicker() {
+    document.getElementById('id-item-picker-panel')?.classList.add('open');
+}
+
+function closeItemDetailPicker() {
+    document.getElementById('id-item-picker-panel')?.classList.remove('open');
+}
+
+function toggleItemDetailEmpty(show) {
+    const list = document.getElementById('id-item-picker-list');
+    if (!list) return;
+
+    let empty = list.querySelector('.id-item-picker-empty.js-filter-empty');
+    if (!empty) {
+        empty = document.createElement('div');
+        empty.className = 'id-item-picker-empty js-filter-empty';
+        empty.textContent = 'No items found';
+        list.appendChild(empty);
+    }
+    empty.style.display = show ? '' : 'none';
+}
+
+function selectItemDetailRow(row) {
+    const input = document.getElementById('id-item-name');
+    const hidden = document.getElementById('id-item-id');
+
+    if (input) input.value = row.dataset.name || '';
+    if (hidden) hidden.value = row.dataset.id || '';
+
+    closeItemDetailPicker();
+    filterItemDetail();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('#id-item-picker-list .id-item-picker-row').forEach(row => {
+        row.addEventListener('mousedown', event => {
+            event.preventDefault();
+            selectItemDetailRow(row);
+        });
+    });
+
+    document.addEventListener('mousedown', event => {
+        const picker = document.getElementById('id-item-picker');
+        if (picker && !picker.contains(event.target)) {
+            closeItemDetailPicker();
+        }
+    });
+});
+
+function renderItemDetailEmpty(message) {
+    const tbody = document.getElementById('id-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-5">${message}</td></tr>`;
+}
+
 function filterItemDetail() {
     const hide = document.getElementById('hideInactiveDates')?.checked;
-    const rows = document.querySelectorAll('.id-row');
-    rows.forEach(row => {
-        row.style.display = hide && row.dataset.active === '0' ? 'none' : '';
+    const itemId = document.getElementById('id-item-id')?.value || '';
+    const fromDate = document.getElementById('id-from-picker')?.value || '';
+    const toDate = document.getElementById('id-to-picker')?.value || '';
+    const inputValue = (document.getElementById('id-item-name')?.value || '').trim();
+
+    if (!itemId) {
+        renderItemDetailEmpty(inputValue ? 'Select an item from the list.' : 'No data to show');
+        return;
+    }
+
+    const params = new URLSearchParams({ item_id: itemId, from: fromDate, to: toDate });
+
+    fetch(`{{ route('reports.item-detail') }}?${params}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        const tbody = document.getElementById('id-tbody');
+        if (!tbody) return;
+
+        const rows = Array.isArray(data.rows) ? data.rows : [];
+        if (!rows.length) {
+            renderItemDetailEmpty('No data to show');
+            return;
+        }
+
+        tbody.innerHTML = rows.map(row => `
+            <tr class="id-row" data-active="${row.active ? '1' : '0'}" style="border-bottom: 1px solid #f3f4f6; ${hide && !row.active ? 'display:none;' : ''}">
+                <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; border-right: 1px solid #e5e7eb;">${row.date ?? ''}</td>
+                <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">${row.sale_qty ?? 0}</td>
+                <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">${row.purchase_qty ?? 0}</td>
+                <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">${row.adjustment_qty ?? 0}</td>
+                <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right;">${row.closing_qty ?? 0}</td>
+            </tr>
+        `).join('');
+    })
+    .catch(() => {
+        renderItemDetailEmpty('Unable to load item detail.');
     });
 }
 

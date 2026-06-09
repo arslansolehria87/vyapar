@@ -355,6 +355,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/reports/cash-flow/export', [ReportController::class, 'cashFlowExport']);
 
     Route::get('reports/item-wise-discount', [ReportController::class, 'itemWiseDiscount'])->name('reports.item-wise-discount');
+    Route::get('reports/item-detail', [ReportController::class, 'itemDetail'])->name('reports.item-detail');
     Route::get('reports/item-report-by-party', [ReportController::class, 'itemReportByParty'])->name('reports.item-report-by-party');
     Route::get('reports/party-statement', [ReportController::class, 'partyStatement']);
     Route::get('reports/party-statement/{partyId}', [ReportController::class, 'partyStatement']);

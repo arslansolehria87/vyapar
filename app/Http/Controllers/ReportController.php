@@ -41,7 +41,7 @@ class ReportController extends Controller
         $parties    = Party::all();
         $partyGroups = PartyGroup::orderBy('name')->get(['id', 'name']);
         $brokers    = Broker::orderBy('name')->get(['id', 'name', 'phone']);
-        $items      = DB::table('items')->orderBy('name')->get(['id', 'name', 'category_id']);
+        $items      = DB::table('items')->orderBy('name')->get();
 
         // Stock Summary
         $stockSummary = DB::table('items')
@@ -1893,7 +1893,106 @@ class ReportController extends Controller
     }
 
     // ============================================================
-    // 24. ITEM CATEGORY WISE P&L
+    // 24. ITEM DETAIL
+    // ============================================================
+    public function itemDetail(Request $request)
+    {
+        [$from, $to] = $this->dateRange($request);
+        $itemId = $request->input('item_id');
+
+        if (! $itemId || ! Schema::hasTable('items')) {
+            return response()->json(['success' => true, 'rows' => []]);
+        }
+
+        $item = DB::table('items')->where('id', $itemId)->first(['id', 'name', 'opening_qty']);
+        if (! $item) {
+            return response()->json(['success' => true, 'rows' => []]);
+        }
+
+        $openingQty = $this->fmt($item->opening_qty ?? 0);
+        $priorSaleQty = 0;
+        $priorPurchaseQty = 0;
+        $saleRows = collect();
+        $purchaseRows = collect();
+
+        if (Schema::hasTable('sales') && Schema::hasTable('sale_items') && Schema::hasColumn('sale_items', 'item_id')) {
+            $priorSaleQty = DB::table('sale_items as si')
+                ->join('sales as s', 's.id', '=', 'si.sale_id')
+                ->where('si.item_id', $item->id)
+                ->whereIn('s.type', ['invoice', 'pos'])
+                ->whereDate('s.invoice_date', '<', $from)
+                ->sum(DB::raw('COALESCE(si.quantity, 0)'));
+
+            $saleRows = DB::table('sale_items as si')
+                ->join('sales as s', 's.id', '=', 'si.sale_id')
+                ->where('si.item_id', $item->id)
+                ->whereIn('s.type', ['invoice', 'pos'])
+                ->whereDate('s.invoice_date', '>=', $from)
+                ->whereDate('s.invoice_date', '<=', $to)
+                ->select(
+                    DB::raw('DATE(s.invoice_date) as date'),
+                    DB::raw('SUM(COALESCE(si.quantity, 0)) as sale_qty')
+                )
+                ->groupBy(DB::raw('DATE(s.invoice_date)'))
+                ->get()
+                ->keyBy('date');
+        }
+
+        if (Schema::hasTable('purchases') && Schema::hasTable('purchase_items') && Schema::hasColumn('purchase_items', 'item_id')) {
+            $priorPurchaseQty = DB::table('purchase_items as pi')
+                ->join('purchases as pu', 'pu.id', '=', 'pi.purchase_id')
+                ->where('pi.item_id', $item->id)
+                ->where('pu.type', 'purchase_bill')
+                ->whereDate('pu.bill_date', '<', $from)
+                ->sum(DB::raw('COALESCE(pi.quantity, 0)'));
+
+            $purchaseRows = DB::table('purchase_items as pi')
+                ->join('purchases as pu', 'pu.id', '=', 'pi.purchase_id')
+                ->where('pi.item_id', $item->id)
+                ->where('pu.type', 'purchase_bill')
+                ->whereDate('pu.bill_date', '>=', $from)
+                ->whereDate('pu.bill_date', '<=', $to)
+                ->select(
+                    DB::raw('DATE(pu.bill_date) as date'),
+                    DB::raw('SUM(COALESCE(pi.quantity, 0)) as purchase_qty')
+                )
+                ->groupBy(DB::raw('DATE(pu.bill_date)'))
+                ->get()
+                ->keyBy('date');
+        }
+
+        $dates = $saleRows->keys()
+            ->merge($purchaseRows->keys())
+            ->unique()
+            ->sort()
+            ->values();
+
+        $closingQty = $this->fmt($openingQty + $priorPurchaseQty - $priorSaleQty);
+        $rows = $dates->map(function ($date) use ($saleRows, $purchaseRows, &$closingQty) {
+            $saleQty = $this->fmt($saleRows->get($date)->sale_qty ?? 0);
+            $purchaseQty = $this->fmt($purchaseRows->get($date)->purchase_qty ?? 0);
+            $adjustmentQty = 0;
+            $closingQty = $this->fmt($closingQty + $purchaseQty + $adjustmentQty - $saleQty);
+
+            return [
+                'date' => Carbon::parse($date)->format('d/m/Y'),
+                'sale_qty' => $saleQty,
+                'purchase_qty' => $purchaseQty,
+                'adjustment_qty' => $adjustmentQty,
+                'closing_qty' => $closingQty,
+                'active' => ($saleQty + $purchaseQty + $adjustmentQty) > 0,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'rows' => $rows->values()->toArray(),
+            'item' => ['id' => $item->id, 'name' => $item->name],
+        ]);
+    }
+
+    // ============================================================
+    // 25. ITEM CATEGORY WISE P&L
     // ============================================================
     public function itemCategoryPnL(Request $request)
     {

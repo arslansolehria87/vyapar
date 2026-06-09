@@ -567,6 +567,108 @@
      7. ITEM DETAIL
      ============================================================ --}}
 <div  id="tab-item-details" class="report-tab-content d-none">
+    <style>
+        #tab-item-details .id-item-picker {
+            position: relative;
+            width: 360px;
+        }
+        #tab-item-details .id-item-picker-input {
+            width: 100%;
+            height: 48px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 14px;
+            background: #fff;
+        }
+        #tab-item-details .id-item-picker-input:focus {
+            border-color: #2684ff;
+            box-shadow: 0 0 0 3px rgba(38, 132, 255, 0.16);
+            outline: 0;
+        }
+        #tab-item-details .id-item-picker-panel {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            z-index: 1050;
+            width: 620px;
+            max-width: calc(100vw - 360px);
+            overflow: hidden;
+            background: #fff;
+            border: 1px solid #d8e1ee;
+            border-radius: 8px;
+            box-shadow: 0 14px 34px rgba(15, 23, 42, 0.14);
+        }
+        #tab-item-details .id-item-picker-panel.open {
+            display: block;
+        }
+        #tab-item-details .id-item-picker-head,
+        #tab-item-details .id-item-picker-row {
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) 95px 110px 80px 95px;
+            gap: 12px;
+            align-items: center;
+        }
+        #tab-item-details .id-item-picker-head {
+            padding: 10px 16px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #7b8798;
+            text-transform: uppercase;
+            background: #f8fbff;
+            border-bottom: 1px solid #e5edf6;
+        }
+        #tab-item-details .id-item-picker-list {
+            max-height: 290px;
+            overflow-y: auto;
+        }
+        #tab-item-details .id-item-picker-row {
+            padding: 12px 16px;
+            font-size: 13px;
+            color: #1f2937;
+            cursor: pointer;
+            border-bottom: 1px solid #edf2f7;
+        }
+        #tab-item-details .id-item-picker-row:hover {
+            background: #f3f8ff;
+        }
+        #tab-item-details .id-item-picker-name {
+            min-width: 0;
+            font-weight: 600;
+            color: #1672f3;
+        }
+        #tab-item-details .id-item-picker-name small {
+            display: block;
+            color: #64748b;
+            font-weight: 500;
+            margin-top: 2px;
+        }
+        #tab-item-details .id-item-picker-empty {
+            padding: 18px;
+            color: #6b7280;
+            text-align: center;
+        }
+        @media (max-width: 900px) {
+            #tab-item-details .id-item-picker {
+                width: min(360px, 100%);
+            }
+            #tab-item-details .id-item-picker-panel {
+                width: min(620px, calc(100vw - 48px));
+                max-width: min(620px, calc(100vw - 48px));
+            }
+            #tab-item-details .id-item-picker-head,
+            #tab-item-details .id-item-picker-row {
+                grid-template-columns: minmax(0, 1fr) 80px 70px;
+            }
+            #tab-item-details .id-item-picker-head span:nth-child(3),
+            #tab-item-details .id-item-picker-head span:nth-child(5),
+            #tab-item-details .id-item-picker-row > div:nth-child(3),
+            #tab-item-details .id-item-picker-row > div:nth-child(5) {
+                display: none;
+            }
+        }
+    </style>
     <div class="d-flex flex-column" style="min-height: 100vh; padding: 24px; background-color: #ffffff;">
 
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -575,19 +677,19 @@
                 <input type="text" id="id-from-display" readonly
                     style="width: 100px; border: 1px solid #d1d5db; border-radius: 4px; padding: 5px 8px; font-size: 13px; cursor: pointer; background: #fff;"
                     placeholder="From date"
-                    onclick="openCalendar('id-from-picker','id-from-display','')">
+                    onclick="openCalendar('id-from-picker','id-from-display','filterItemDetail')">
                 <input type="date" id="id-from-picker" style="position:absolute;opacity:0;pointer-events:none;"
-                    onchange="syncDisplay(this,'id-from-display')">
-                <i class="fa-regular fa-calendar" style="color:#9ca3af;cursor:pointer;" onclick="openCalendar('id-from-picker','id-from-display','')"></i>
+                    onchange="syncDisplay(this,'id-from-display'); filterItemDetail()">
+                <i class="fa-regular fa-calendar" style="color:#9ca3af;cursor:pointer;" onclick="openCalendar('id-from-picker','id-from-display','filterItemDetail')"></i>
 
                 <span style="font-size: 13px; color: #6b7280;">To</span>
                 <input type="text" id="id-to-display" readonly
                     style="width: 100px; border: 1px solid #d1d5db; border-radius: 4px; padding: 5px 8px; font-size: 13px; cursor: pointer; background: #fff;"
                     placeholder="To date"
-                    onclick="openCalendar('id-to-picker','id-to-display','')">
+                    onclick="openCalendar('id-to-picker','id-to-display','filterItemDetail')">
                 <input type="date" id="id-to-picker" style="position:absolute;opacity:0;pointer-events:none;"
-                    onchange="syncDisplay(this,'id-to-display')">
-                <i class="fa-regular fa-calendar" style="color:#9ca3af;cursor:pointer;" onclick="openCalendar('id-to-picker','id-to-display','')"></i>
+                    onchange="syncDisplay(this,'id-to-display'); filterItemDetail()">
+                <i class="fa-regular fa-calendar" style="color:#9ca3af;cursor:pointer;" onclick="openCalendar('id-to-picker','id-to-display','filterItemDetail')"></i>
             </div>
             <div class="d-flex" style="gap: 8px;">
                 <button class="btn d-flex align-items-center justify-content-center p-0"
@@ -608,8 +710,41 @@
         <div class="mb-3 d-flex align-items-center" style="gap: 16px;">
             <div class="d-flex align-items-center" style="gap: 8px;">
                 <label style="font-size: 13px; color: #374151;">Item name</label>
-                <input type="text" class="form-control form-control-sm" id="id-item-name"
-                    placeholder="" style="width: 180px;" oninput="filterItemDetail()">
+                <div class="id-item-picker" id="id-item-picker">
+                    <input type="text" class="id-item-picker-input" id="id-item-name"
+                        placeholder="" autocomplete="off" onfocus="openItemDetailPicker()" oninput="handleItemDetailInput()">
+                    <input type="hidden" id="id-item-id">
+                    <div class="id-item-picker-panel" id="id-item-picker-panel">
+                        <div class="id-item-picker-head">
+                            <span>Item</span>
+                            <span>Sale Price</span>
+                            <span>Purchase Price</span>
+                            <span>Stock</span>
+                            <span>Location</span>
+                        </div>
+                        <div class="id-item-picker-list" id="id-item-picker-list">
+                            @forelse($items ?? [] as $itemOption)
+                                <div class="id-item-picker-row"
+                                    data-id="{{ $itemOption->id }}"
+                                    data-name="{{ $itemOption->name }}"
+                                    data-search="{{ strtolower(($itemOption->name ?? '') . ' ' . ($itemOption->item_code ?? '') . ' ' . ($itemOption->location ?? '')) }}">
+                                    <div class="id-item-picker-name">
+                                        {{ $itemOption->name }}
+                                        @if(!empty($itemOption->item_code))
+                                            <small>{{ $itemOption->item_code }}</small>
+                                        @endif
+                                    </div>
+                                    <div>{{ number_format((float) ($itemOption->sale_price ?? $itemOption->price ?? 0), 2, '.', '') }}</div>
+                                    <div>{{ number_format((float) ($itemOption->purchase_price ?? 0), 2, '.', '') }}</div>
+                                    <div>{{ (float) ($itemOption->opening_qty ?? 0) }}</div>
+                                    <div>{{ $itemOption->location ?? '' }}</div>
+                                </div>
+                            @empty
+                                <div class="id-item-picker-empty">No items found</div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="form-check mb-0 d-flex align-items-center" style="gap: 8px;">
                 <input class="form-check-input mt-0" type="checkbox" id="hideInactiveDates" onchange="filterItemDetail()">
