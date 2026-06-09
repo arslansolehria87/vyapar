@@ -5,9 +5,9 @@
         onclick="showTab('stock-summary'); return false;">
         Stock Summary
     </a>
-    <a href="#" class="report-nav-link" data-tab="party-report-summary"
-        onclick="showTab('party-report-summary'); return false;">
-        Party report by items
+    <a href="#" class="report-nav-link" data-tab="item-report-by-party"
+        onclick="showTab('item-report-by-party'); return false;">
+        Item Report By Party
     </a>
     <a href="#" class="report-nav-link" data-tab="item-wise-profit-and-loss"
         onclick="showTab('item-wise-profit-and-loss'); return false;">

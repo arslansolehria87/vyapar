@@ -11,11 +11,17 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use App\Models\Party;
 use App\Models\Category;
+use App\Services\Reports\ItemReportByPartyService;
 use Illuminate\Support\Carbon;
 use Symfony\Component\Process\Process;
 
 class ReportController extends Controller
 {
+    public function __construct(
+        private readonly ItemReportByPartyService $itemReportByPartyService
+    ) {
+    }
+
     // ─── COLUMN MAP (verified from phpMyAdmin screenshots) ────────────────────
     // sales        : invoice_date, total_amount, payment_type, discount_pct,
     //                discount_rs, tax_amount, tax_pct, received_amount, balance,
@@ -114,6 +120,13 @@ class ReportController extends Controller
 
         $partyReport        = collect();
         $partyReportTotals  = ['sale_qty' => 0, 'sale_amount' => 0, 'purchase_qty' => 0, 'purchase_amount' => 0];
+        $itemReportByParty  = collect();
+        $itemReportByPartyTotals = [
+            'sale_quantity' => 0,
+            'sale_amount' => 0,
+            'purchase_quantity' => 0,
+            'purchase_amount' => 0,
+        ];
         $itemCategoryPnL    = collect();
         $salePurchaseByCat  = collect();
         $itemWiseDiscount   = collect();
@@ -125,6 +138,7 @@ class ReportController extends Controller
             'lowStock', 'stockDetail', 'stockDetailTotals',
             'itemWisePnL', 'itemWisePnLTotal',
             'stockSummaryByCat', 'partyReport', 'partyReportTotals',
+            'itemReportByParty', 'itemReportByPartyTotals',
             'itemCategoryPnL', 'salePurchaseByCat',
             'itemWiseDiscount', 'itemDetail'
         ));
@@ -745,6 +759,24 @@ class ReportController extends Controller
     }
 
     // ============================================================
+    // 6. ITEM REPORT BY PARTY
+    // ============================================================
+    public function itemReportByParty(Request $request)
+    {
+        $data = $this->itemReportByPartyService->report([
+            'from' => $request->input('from', now()->startOfMonth()->toDateString()),
+            'to' => $request->input('to', now()->endOfMonth()->toDateString()),
+            'party_id' => $request->filled('party_id') ? (int) $request->input('party_id') : null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'rows' => $data['rows']->values()->all(),
+            'totals' => $data['totals'],
+        ]);
+    }
+
+    // ============================================================
     // 6. SALE REPORT
     // ============================================================
     public function saleReport(Request $request)
@@ -864,7 +896,7 @@ class ReportController extends Controller
     // ============================================================
     // 8. ALL TRANSACTIONS
     // ============================================================
-    
+
         // if (Schema::hasTable('purchases')) {
         //     $rows = $rows->merge(
         //         DB::table('purchases as pu')
@@ -902,7 +934,7 @@ class ReportController extends Controller
                     )->get()
             );
         }
-    
+
 
 
         // return $rows;
@@ -958,7 +990,7 @@ class ReportController extends Controller
         }
 
         $rows = $rows->sortByDesc('date')->values();
-    
+
         return response()->json([
             'success'      => true,
             'transactions' => $rows->toArray(),
@@ -969,7 +1001,7 @@ class ReportController extends Controller
 
     public function dayBook(Request $request){
         //    [$from, $to] = $this->dateRange($request);
-       
+
         $date=Carbon::today();
         $rows = collect();
 
@@ -989,7 +1021,7 @@ class ReportController extends Controller
                     )->get()
             );
         }
-    
+
 
 
         // return $rows;
@@ -1045,14 +1077,14 @@ class ReportController extends Controller
         }
 
         $rows = $rows->sortByDesc('date')->values();
-    
+
         return response()->json([
             'success'      => true,
             'transactions' => $rows->toArray(),
             'total_amount' => $this->fmt($rows->sum('amount')),
             'period'       => ['from' => $date],
         ]);
-        
+
     }
     // ============================================================
     // 9. CASH FLOW

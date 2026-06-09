@@ -48,7 +48,7 @@
                 </button>
                 <button class="btn d-flex align-items-center justify-content-center p-0"
                     style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb;"
-                    onclick="printReport('stock-summary-table', 'STOCK SUMMARY')">
+                    onclick="openStockSummaryPrintOptions()">
                     <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
                 </button>
             </div>
@@ -102,56 +102,61 @@
 
 
 {{-- ============================================================
-     2. ITEM REPORT BY PARTY TAB
+     2. ITEM REPORT BY PARTY
      ============================================================ --}}
-<div  id="tab-party-report-summary" class="report-tab-content d-none">
+<div id="tab-item-report-by-party" class="report-tab-content d-none">
     <div class="d-flex flex-column" style="min-height: 100vh; padding: 24px; background-color: #ffffff;">
 
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <div class="d-flex align-items-center" style="gap: 8px;">
-                <input type="text" id="irp-from-display" readonly
+            <div class="d-flex align-items-center" style="gap: 12px; flex-wrap: wrap;">
+                <span style="font-size: 13px; color: #6b7280;">From</span>
+                <input type="text" id="irbp-from-display" readonly
                     style="width: 100px; border: 1px solid #d1d5db; border-radius: 4px; padding: 5px 8px; font-size: 13px; cursor: pointer; background: #fff;"
-                    placeholder="From date"
-                    onclick="openCalendar('irp-from-picker', 'irp-from-display', 'filterItemReportParty')">
-                <input type="date" id="irp-from-picker" style="position:absolute;opacity:0;pointer-events:none;"
-                    onchange="syncDisplay(this,'irp-from-display'); filterItemReportParty()">
-                <i class="fa-regular fa-calendar" style="color:#9ca3af;cursor:pointer;" onclick="openCalendar('irp-from-picker','irp-from-display','filterItemReportParty')"></i>
+                    value="{{ now()->startOfMonth()->format('d/m/Y') }}"
+                    onclick="openCalendar('irbp-from-picker','irbp-from-display','filterItemReportByParty')">
+                <input type="date" id="irbp-from-picker"
+                    value="{{ now()->startOfMonth()->format('Y-m-d') }}"
+                    style="position:absolute;opacity:0;pointer-events:none;"
+                    onchange="syncDisplay(this,'irbp-from-display'); filterItemReportByParty()">
+                <i class="fa-regular fa-calendar" style="color:#9ca3af;cursor:pointer;" onclick="openCalendar('irbp-from-picker','irbp-from-display','filterItemReportByParty')"></i>
 
-                <span style="font-size: 14px; color: #6b7280;">To</span>
-
-                <input type="text" id="irp-to-display" readonly
+                <span style="font-size: 13px; color: #6b7280;">To</span>
+                <input type="text" id="irbp-to-display" readonly
                     style="width: 100px; border: 1px solid #d1d5db; border-radius: 4px; padding: 5px 8px; font-size: 13px; cursor: pointer; background: #fff;"
-                    placeholder="To date"
-                    onclick="openCalendar('irp-to-picker', 'irp-to-display', 'filterItemReportParty')">
-                <input type="date" id="irp-to-picker" style="position:absolute;opacity:0;pointer-events:none;"
-                    onchange="syncDisplay(this,'irp-to-display'); filterItemReportParty()">
-                <i class="fa-regular fa-calendar" style="color:#9ca3af;cursor:pointer;" onclick="openCalendar('irp-to-picker','irp-to-display','filterItemReportParty')"></i>
+                    value="{{ now()->endOfMonth()->format('d/m/Y') }}"
+                    onclick="openCalendar('irbp-to-picker','irbp-to-display','filterItemReportByParty')">
+                <input type="date" id="irbp-to-picker"
+                    value="{{ now()->endOfMonth()->format('Y-m-d') }}"
+                    style="position:absolute;opacity:0;pointer-events:none;"
+                    onchange="syncDisplay(this,'irbp-to-display'); filterItemReportByParty()">
+                <i class="fa-regular fa-calendar" style="color:#9ca3af;cursor:pointer;" onclick="openCalendar('irbp-to-picker','irbp-to-display','filterItemReportByParty')"></i>
+
+                <select class="form-select form-select-sm" id="irbp-party-filter" style="width: 220px;" onchange="filterItemReportByParty()">
+                    <option value="">All Parties</option>
+                    @foreach($parties ?? [] as $party)
+                        <option value="{{ $party->id }}">{{ $party->name }}</option>
+                    @endforeach
+                </select>
             </div>
+
             <div class="d-flex" style="gap: 8px;">
                 <button class="btn d-flex align-items-center justify-content-center p-0"
                     style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb;"
-                    onclick="exportReport('party-report-table', 'Item Report By Party')">
+                    onclick="exportReport('irbp-table', 'Item Report By Party')">
                     <i class="fa-solid fa-file-excel" style="color: #10b981; font-size: 18px;"></i>
                 </button>
                 <button class="btn d-flex align-items-center justify-content-center p-0"
                     style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e5e7eb;"
-                    onclick="printReport('party-report-table', 'ITEM REPORT BY PARTY')">
+                    onclick="printReport('irbp-table', 'ITEM REPORT BY PARTY')">
                     <i class="fa-solid fa-print" style="color: #4b5563; font-size: 18px;"></i>
                 </button>
             </div>
         </div>
 
-        <h2 style="font-weight: 700; color: #1f2937; margin-bottom: 16px; font-size: 22px;">DETAILS</h2>
-
-        <div class="mb-3 d-flex align-items-center" style="gap: 8px;">
-            <span style="font-size: 13px; font-weight: 600; color: #6b7280; text-transform: uppercase;">Filters</span>
-            <input type="text" class="form-control form-control-sm" id="irp-party-filter"
-                placeholder="Party filter" style="width: 200px;"
-                oninput="filterItemReportParty()">
-        </div>
+        <h2 style="font-weight: 700; color: #1f2937; margin-bottom: 24px; font-size: 22px;">ITEM REPORT BY PARTY</h2>
 
         <div class="table-responsive">
-            <table class="w-100" id="party-report-table" style="border-collapse: collapse;">
+            <table class="w-100" id="irbp-table" style="border-collapse: collapse;">
                 <thead style="background-color: #f3f4f6;">
                     <tr style="border-bottom: 2px solid #e5e7eb;">
                         <th style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">Item Name</th>
@@ -161,33 +166,34 @@
                         <th style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">Purchase Amount</th>
                     </tr>
                 </thead>
-                <tbody id="irp-tbody">
-                    @forelse($partyReport ?? [] as $item)
-                    <tr class="irp-row" data-party="{{ strtolower($item->party_name) }}"
-                        style="border-bottom: 1px solid #f3f4f6;">
-                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; border-right: 1px solid #e5e7eb;">{{ $item->name }}</td>
-                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">{{ $item->sale_qty }}</td>
-                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">Rs {{ number_format($item->sale_amount, 2) }}</td>
-                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">{{ $item->purchase_qty }}</td>
-                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs {{ number_format($item->purchase_amount, 2) }}</td>
+                <tbody id="irbp-tbody">
+                    @forelse($itemReportByParty ?? [] as $row)
+                    <tr style="border-bottom: 1px solid #f3f4f6;">
+                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; border-right: 1px solid #e5e7eb;">{{ $row['item_name'] }}</td>
+                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">{{ number_format($row['sale_quantity'], 2) }}</td>
+                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">Rs {{ number_format($row['sale_amount'], 2) }}</td>
+                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">{{ number_format($row['purchase_quantity'], 2) }}</td>
+                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs {{ number_format($row['purchase_amount'], 2) }}</td>
                     </tr>
                     @empty
-                    <tr><td colspan="5" class="text-center text-muted py-5">No data to show</td></tr>
+                    <tr id="irbp-empty-row"><td colspan="5" class="text-center text-muted py-5">No data to show</td></tr>
                     @endforelse
                 </tbody>
                 <tfoot>
                     <tr style="border-top: 2px solid #e5e7eb;">
                         <td style="padding: 12px 16px; font-size: 14px; font-weight: 700;">Total</td>
-                        <td style="padding: 12px 16px; text-align: right; font-weight: 700;">{{ $partyReportTotals['sale_qty'] ?? 0 }}</td>
-                        <td style="padding: 12px 16px; text-align: right; font-weight: 700;">Rs {{ number_format($partyReportTotals['sale_amount'] ?? 0, 2) }}</td>
-                        <td style="padding: 12px 16px; text-align: right; font-weight: 700;">{{ $partyReportTotals['purchase_qty'] ?? 0 }}</td>
-                        <td style="padding: 12px 16px; text-align: right; font-weight: 700;">Rs {{ number_format($partyReportTotals['purchase_amount'] ?? 0, 2) }}</td>
+                        <td id="irbp-total-sale-qty" style="padding: 12px 16px; font-size: 14px; font-weight: 700; text-align: right; border-right: 1px solid #e5e7eb;">{{ number_format($itemReportByPartyTotals['sale_quantity'] ?? 0, 2) }}</td>
+                        <td id="irbp-total-sale-amount" style="padding: 12px 16px; font-size: 14px; font-weight: 700; text-align: right; border-right: 1px solid #e5e7eb;">Rs {{ number_format($itemReportByPartyTotals['sale_amount'] ?? 0, 2) }}</td>
+                        <td id="irbp-total-purchase-qty" style="padding: 12px 16px; font-size: 14px; font-weight: 700; text-align: right; border-right: 1px solid #e5e7eb;">{{ number_format($itemReportByPartyTotals['purchase_quantity'] ?? 0, 2) }}</td>
+                        <td id="irbp-total-purchase-amount" style="padding: 12px 16px; font-size: 14px; font-weight: 700; text-align: right;">Rs {{ number_format($itemReportByPartyTotals['purchase_amount'] ?? 0, 2) }}</td>
                     </tr>
                 </tfoot>
             </table>
         </div>
     </div>
 </div>
+
+
 
 
 {{-- ============================================================

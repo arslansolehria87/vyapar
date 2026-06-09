@@ -241,9 +241,9 @@
 </li>
 <li class="nav-item">
   <a href="#" class="nav-link py-2 px-4 report-nav-link" 
-     data-tab="party-report-summary"
-     onclick="showTab('party-report-summary'); return false;">
-    <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Party report by items
+     data-tab="item-report-by-party"
+     onclick="showTab('item-report-by-party'); return false;">
+    <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Item Report By Party
   </a>
 </li>
 <li class="nav-item">

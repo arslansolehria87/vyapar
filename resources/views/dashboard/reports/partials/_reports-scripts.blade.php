@@ -186,6 +186,94 @@ function printReport(tableId, title) {
     modal.show();
 }
 
+function openStockSummaryPrintOptions() {
+    const modalEl = document.getElementById('stockSummaryPrintOptionsModal');
+    if (!modalEl) {
+        printReport('stock-summary-table', 'STOCK SUMMARY');
+        return;
+    }
+
+    modalEl.querySelectorAll('.stock-summary-print-option').forEach(function(option) {
+        option.checked = true;
+    });
+
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+}
+
+function confirmStockSummaryPrintOptions() {
+    const table = document.getElementById('stock-summary-table');
+    if (!table) { showToast('Nothing to print.', 'danger'); return; }
+
+    const selectedColumns = Array.from(document.querySelectorAll('.stock-summary-print-option:checked'))
+        .map(function(option) { return parseInt(option.value, 10); });
+
+    const printableTable = buildStockSummaryPrintableTable(table, selectedColumns);
+
+    document.getElementById('print-preview-title').textContent = 'Preview';
+    document.getElementById('print-preview-heading').textContent = 'STOCK SUMMARY';
+    document.getElementById('print-preview-date').textContent =
+        'Duration: ' + new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit', year:'numeric' });
+    document.getElementById('print-preview-body').innerHTML = printableTable.outerHTML;
+    document.getElementById('print-table-id').value = 'stock-summary-table';
+    document.getElementById('print-report-title').value = 'STOCK SUMMARY';
+
+    const showPreview = function() {
+        const previewModal = new bootstrap.Modal(document.getElementById('printPreviewModal'));
+        previewModal.show();
+    };
+    const optionsModalEl = document.getElementById('stockSummaryPrintOptionsModal');
+    const optionsModal = bootstrap.Modal.getInstance(optionsModalEl);
+    if (optionsModal) {
+        optionsModalEl.addEventListener('hidden.bs.modal', showPreview, { once: true });
+        optionsModal.hide();
+    } else {
+        showPreview();
+    }
+}
+
+function buildStockSummaryPrintableTable(table, selectedColumns) {
+    const clone = table.cloneNode(true);
+    const optionalColumns = [2, 3, 4, 5];
+    const columnsToRemove = optionalColumns.filter(function(index) {
+        return !selectedColumns.includes(index);
+    }).sort(function(a, b) { return b - a; });
+    const visibleColumnCount = 2 + selectedColumns.length;
+
+    clone.querySelectorAll('thead tr, tbody tr').forEach(function(row) {
+        if (row.children.length === 1 && row.children[0].colSpan > 1) {
+            row.children[0].colSpan = visibleColumnCount;
+            return;
+        }
+
+        columnsToRemove.forEach(function(columnIndex) {
+            const cell = row.children[columnIndex];
+            if (cell) cell.remove();
+        });
+    });
+
+    const footer = clone.querySelector('tfoot');
+    if (footer) {
+        const totalQty = table.querySelector('#ss-total-qty')?.textContent || '';
+        const totalValue = table.querySelector('#ss-total-val')?.textContent || '';
+        const emptyCellStyle = 'padding: 12px 16px;';
+        const totalCellStyle = 'padding: 12px 16px; font-size: 14px; font-weight: 700;';
+        const totalQtyStyle = totalCellStyle + ' color: #ef4444; text-align: right;';
+        const totalValueStyle = totalCellStyle + ' text-align: right;';
+
+        footer.innerHTML = `
+            <tr style="border-top: 2px solid #e5e7eb;">
+                <td colspan="2" style="${totalCellStyle}">Total</td>
+                ${selectedColumns.includes(2) ? `<td style="${emptyCellStyle}"></td>` : ''}
+                ${selectedColumns.includes(3) ? `<td style="${emptyCellStyle}"></td>` : ''}
+                ${selectedColumns.includes(4) ? `<td style="${totalQtyStyle}">${totalQty}</td>` : ''}
+                ${selectedColumns.includes(5) ? `<td style="${totalValueStyle}">${totalValue}</td>` : ''}
+            </tr>`;
+    }
+
+    return clone;
+}
+
 function doPrint() {
     const content = document.getElementById('print-preview-body').innerHTML;
     const title   = document.getElementById('print-report-title').value;
@@ -301,11 +389,55 @@ function filterStockSummary() {
 }
 
 // Item Report By Party — party name text filter
-function filterItemReportParty() {
-    const q    = (document.getElementById('irp-party-filter')?.value || '').toLowerCase();
-    const rows = document.querySelectorAll('.irp-row');
-    rows.forEach(row => {
-        row.style.display = !q || row.dataset.party.includes(q) ? '' : 'none';
+function formatReportNumber(value) {
+    return parseFloat(value || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function escapeReportHtml(value) {
+    const div = document.createElement('div');
+    div.textContent = value == null ? '' : value;
+    return div.innerHTML;
+}
+
+function filterItemReportByParty() {
+    const fromDate = document.getElementById('irbp-from-picker')?.value || '';
+    const toDate = document.getElementById('irbp-to-picker')?.value || '';
+    const partyId = document.getElementById('irbp-party-filter')?.value || '';
+    const tbody = document.getElementById('irbp-tbody');
+
+    if (!tbody) return;
+
+    const params = new URLSearchParams({ from: fromDate, to: toDate, party_id: partyId });
+
+    fetch(`{{ route('reports.item-report-by-party') }}?${params}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        const rows = data.rows || [];
+
+        if (!rows.length) {
+            tbody.innerHTML = `<tr id="irbp-empty-row"><td colspan="5" class="text-center text-muted py-5">No data to show</td></tr>`;
+        } else {
+            tbody.innerHTML = rows.map(row => `
+                <tr style="border-bottom: 1px solid #f3f4f6;">
+                    <td style="padding:12px 16px;font-size:14px;color:#1f2937;border-right:1px solid #e5e7eb;">${escapeReportHtml(row.item_name)}</td>
+                    <td style="padding:12px 16px;font-size:14px;color:#1f2937;text-align:right;border-right:1px solid #e5e7eb;">${formatReportNumber(row.sale_quantity)}</td>
+                    <td style="padding:12px 16px;font-size:14px;color:#1f2937;text-align:right;border-right:1px solid #e5e7eb;">Rs ${formatReportNumber(row.sale_amount)}</td>
+                    <td style="padding:12px 16px;font-size:14px;color:#1f2937;text-align:right;border-right:1px solid #e5e7eb;">${formatReportNumber(row.purchase_quantity)}</td>
+                    <td style="padding:12px 16px;font-size:14px;color:#1f2937;text-align:right;">Rs ${formatReportNumber(row.purchase_amount)}</td>
+                </tr>
+            `).join('');
+        }
+
+        const totals = data.totals || {};
+        document.getElementById('irbp-total-sale-qty').textContent = formatReportNumber(totals.sale_quantity);
+        document.getElementById('irbp-total-sale-amount').textContent = 'Rs ' + formatReportNumber(totals.sale_amount);
+        document.getElementById('irbp-total-purchase-qty').textContent = formatReportNumber(totals.purchase_quantity);
+        document.getElementById('irbp-total-purchase-amount').textContent = 'Rs ' + formatReportNumber(totals.purchase_amount);
+    })
+    .catch(() => {
+        tbody.innerHTML = `<tr id="irbp-empty-row"><td colspan="5" class="text-center text-muted py-5">No data to show</td></tr>`;
     });
 }
 
@@ -420,6 +552,9 @@ window.showTab = function(tabName) {
     });
     var activeLink = document.querySelector('[data-tab="' + tabName + '"]');
     if (activeLink) activeLink.classList.add('active');
+    if (tabName === 'item-report-by-party') {
+        filterItemReportByParty();
+    }
 };
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -490,6 +625,44 @@ document.addEventListener('DOMContentLoaded', function () {
 </div>
 
 {{-- ============================================================
+     STOCK SUMMARY PRINT OPTIONS MODAL
+     ============================================================ --}}
+<div class="modal fade" id="stockSummaryPrintOptionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 320px;">
+        <div class="modal-content stock-summary-print-options">
+            <div class="stock-summary-print-options__header">
+                <h6 class="mb-0">Print options</h6>
+                <button type="button" class="stock-summary-print-options__close" data-bs-dismiss="modal" aria-label="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="stock-summary-print-options__body">
+                <label class="stock-summary-print-options__row">
+                    <span>Sale price</span>
+                    <input class="form-check-input stock-summary-print-option" type="checkbox" value="2" checked>
+                </label>
+                <label class="stock-summary-print-options__row">
+                    <span>Purchase price</span>
+                    <input class="form-check-input stock-summary-print-option" type="checkbox" value="3" checked>
+                </label>
+                <label class="stock-summary-print-options__row">
+                    <span>Stock quantity</span>
+                    <input class="form-check-input stock-summary-print-option" type="checkbox" value="4" checked>
+                </label>
+                <label class="stock-summary-print-options__row">
+                    <span>Stock value</span>
+                    <input class="form-check-input stock-summary-print-option" type="checkbox" value="5" checked>
+                </label>
+            </div>
+            <div class="stock-summary-print-options__footer">
+                <button type="button" class="btn btn-link p-0 stock-summary-print-options__action" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-link p-0 stock-summary-print-options__action" onclick="confirmStockSummaryPrintOptions()">Ok</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ============================================================
      PRINT PREVIEW MODAL
      ============================================================ --}}
 <div class="modal fade" id="printPreviewModal" tabindex="-1" aria-hidden="true">
@@ -535,6 +708,61 @@ document.addEventListener('DOMContentLoaded', function () {
 .cal-day.selected { background: #818cf8; color: #fff; }
 .cal-day.other-month { color: #d1d5db; cursor: default; }
 .cal-day.other-month:hover { background: transparent; color: #d1d5db; }
+
+.stock-summary-print-options {
+    border: 0;
+    border-radius: 3px;
+    box-shadow: 0 16px 32px rgba(17, 24, 39, .32);
+    overflow: hidden;
+}
+.stock-summary-print-options__header {
+    align-items: center;
+    background: #cfe3f0;
+    color: #374151;
+    display: flex;
+    font-weight: 700;
+    justify-content: space-between;
+    padding: 8px 14px;
+}
+.stock-summary-print-options__close {
+    align-items: center;
+    background: #f3f4f6;
+    border: 0;
+    border-radius: 50%;
+    color: #6b7280;
+    display: inline-flex;
+    height: 22px;
+    justify-content: center;
+    padding: 0;
+    width: 22px;
+}
+.stock-summary-print-options__body {
+    padding: 10px 14px 8px;
+}
+.stock-summary-print-options__row {
+    align-items: center;
+    color: #374151;
+    display: flex;
+    font-size: 16px;
+    justify-content: space-between;
+    line-height: 1.25;
+    margin: 0 0 4px;
+}
+.stock-summary-print-options__row input {
+    cursor: pointer;
+    margin: 0;
+}
+.stock-summary-print-options__footer {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 14px 12px;
+}
+.stock-summary-print-options__action {
+    color: #111827;
+    font-size: 16px;
+    text-decoration: none;
+}
 
 #print-preview-body table { width:100%; border-collapse:collapse; }
 #print-preview-body th, #print-preview-body td { border:1px solid #e5e7eb; padding:6px 10px; }
