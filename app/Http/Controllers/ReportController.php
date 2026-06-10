@@ -1380,44 +1380,273 @@ class ReportController extends Controller
     public function bankStatement(Request $request)
     {
         [$from, $to] = $this->dateRange($request);
-        $bankId = $request->input('bank_id');
-        $rows   = collect();
+        $bankId = (int) $request->input('bank_id');
 
-        if (Schema::hasTable('bank_transactions')) {
-            $query = DB::table('bank_transactions as bt')
-                ->leftJoin('bank_accounts as ba', 'ba.id', '=', 'bt.bank_account_id')
-                ->whereBetween('bt.date', [$from, $to])
-                ->select(
-                    'bt.date',
-                    'bt.type',
-                    'bt.description',
-                    'bt.amount',
-                    'ba.display_name as bank_name',
-                    'bt.reference'
-                )
-                ->orderBy('bt.date');
-
-            if ($bankId) $query->where('bt.bank_account_id', $bankId);
-
-            $rows = $query->get();
+        if (!$bankId || !Schema::hasTable('bank_accounts')) {
+            return response()->json([
+                'success' => true,
+                'transactions' => [],
+                'total_withdrawal' => 0,
+                'total_deposit' => 0,
+                'opening_balance' => 0,
+                'final_balance' => 0,
+                'period' => ['from' => $from, 'to' => $to],
+            ]);
         }
 
-        $totalIn  = $rows->where('type', 'credit')->sum('amount');
-        $totalOut = $rows->where('type', 'debit')->sum('amount');
+        $bank = DB::table('bank_accounts')->where('id', $bankId)->first();
+
+        if (!$bank) {
+            return response()->json(['success' => false, 'message' => 'Bank account not found.'], 404);
+        }
+
+        $allEntries = $this->bankStatementEntries($bankId);
+        $ledgerNet = $allEntries->sum(fn ($entry) => (float) $entry['deposit_amount'] - (float) $entry['withdrawal_amount']);
+        $baseOpeningBalance = (float) ($bank->opening_balance ?? 0) - $ledgerNet;
+        $openingBalance = $this->fmt(
+            $baseOpeningBalance +
+            $allEntries
+                ->filter(fn ($entry) => $entry['date'] && $entry['date'] < $from)
+                ->sum(fn ($entry) => (float) $entry['deposit_amount'] - (float) $entry['withdrawal_amount'])
+        );
+
+        $balance = $openingBalance;
+        $rows = $allEntries
+            ->filter(fn ($entry) => $entry['date'] >= $from && $entry['date'] <= $to)
+            ->sortBy([
+                ['date', 'asc'],
+                ['sort_id', 'asc'],
+                ['source', 'asc'],
+            ])
+            ->values()
+            ->map(function ($entry) use (&$balance) {
+                $balance += (float) $entry['deposit_amount'] - (float) $entry['withdrawal_amount'];
+                $entry['balance_amount'] = $this->fmt($balance);
+                unset($entry['sort_id']);
+
+                return $entry;
+            });
+
+        $totalDeposit = $this->fmt($rows->sum('deposit_amount'));
+        $totalWithdrawal = $this->fmt($rows->sum('withdrawal_amount'));
 
         return response()->json([
-            'success'   => true,
-            'rows'      => $rows->toArray(),
-            'total_in'  => $this->fmt($totalIn),
-            'total_out' => $this->fmt($totalOut),
-            'net'       => $this->fmt($totalIn - $totalOut),
-            'period'    => ['from' => $from, 'to' => $to],
+            'success'          => true,
+            'bank'             => [
+                'id' => $bank->id,
+                'name' => $bank->display_name ?? $bank->bank_name ?? 'Bank Account',
+                'account_number' => $bank->account_number ?? null,
+            ],
+            'transactions'     => $rows->toArray(),
+            'rows'             => $rows->toArray(),
+            'total_deposit'    => $totalDeposit,
+            'total_withdrawal' => $totalWithdrawal,
+            'opening_balance'  => $openingBalance,
+            'final_balance'    => $this->fmt($balance),
+            'net'              => $this->fmt($totalDeposit - $totalWithdrawal),
+            'period'           => ['from' => $from, 'to' => $to],
         ]);
     }
 
     public function bankStatementExport(Request $request)
     {
         return $this->bankStatement($request);
+    }
+
+    private function bankStatementEntries(int $bankId)
+    {
+        $entries = collect();
+
+        if (Schema::hasTable('bank_transactions')) {
+            $transferTypes = [
+                'bank_to_bank',
+                'bank_transfer_out',
+                'bank_transfer_in',
+                'bank_to_cash',
+                'cash_to_bank',
+                'adjust_balance',
+                'bank_adjust_in',
+                'bank_adjust_out',
+                'opening_balance',
+                'cheque_deposit',
+                'sale_payment',
+                'sale_payment_out',
+                'payment_in',
+                'payment_out',
+                'cash_in',
+                'cash_out',
+                'loan_more',
+                'loan_adjustment',
+                'emi_pay',
+            ];
+
+            $entries = $entries->merge(
+                DB::table('bank_transactions')
+                    ->where(function ($query) use ($bankId) {
+                        $query->where('from_bank_account_id', $bankId)
+                            ->orWhere('to_bank_account_id', $bankId);
+                    })
+                    ->whereIn('type', $transferTypes)
+                    ->select(
+                        'id',
+                        'from_bank_account_id',
+                        'to_bank_account_id',
+                        'type',
+                        'amount',
+                        'transaction_date',
+                        'reference_type',
+                        'description',
+                        'created_at'
+                    )
+                    ->get()
+                    ->map(function ($row) use ($bankId) {
+                        $amount = (float) ($row->amount ?? 0);
+                        $date = $row->transaction_date ?: substr((string) ($row->created_at ?? ''), 0, 10);
+                        $depositTypes = ['opening_balance', 'bank_transfer_in', 'cash_to_bank', 'bank_adjust_in', 'cheque_deposit', 'sale_payment', 'payment_in', 'cash_in', 'loan_more', 'loan_adjustment'];
+                        $withdrawalTypes = ['bank_transfer_out', 'bank_to_cash', 'bank_adjust_out', 'sale_payment_out', 'payment_out', 'cash_out', 'emi_pay'];
+                        $isDeposit = in_array($row->type, $depositTypes, true)
+                            || (!in_array($row->type, $withdrawalTypes, true) && (int) $row->to_bank_account_id === $bankId);
+                        $typeLabel = ucwords(str_replace('_', ' ', (string) $row->type));
+
+                        return [
+                            'date' => (string) $date,
+                            'description' => trim(($row->description ?: $typeLabel) . ($row->reference_type ? ' | ' . $row->reference_type : '')),
+                            'withdrawal_amount' => $isDeposit ? 0 : $amount,
+                            'deposit_amount' => $isDeposit ? $amount : 0,
+                            'balance_amount' => 0,
+                            'source' => 'bank_transaction',
+                            'source_id' => (int) $row->id,
+                            'sort_id' => (int) $row->id,
+                        ];
+                    })
+            );
+        }
+
+        if (Schema::hasTable('payment_ins')) {
+            $entries = $entries->merge(
+                DB::table('payment_ins as pi')
+                    ->leftJoin('parties as p', 'p.id', '=', 'pi.party_id')
+                    ->where('pi.bank_account_id', $bankId)
+                    ->select(
+                        'pi.id',
+                        'pi.amount',
+                        'pi.date',
+                        'pi.receipt_no',
+                        'pi.created_at',
+                        'p.name as party_name'
+                    )
+                    ->get()
+                    ->map(fn ($row) => [
+                        'date' => (string) ($row->date ?: substr((string) ($row->created_at ?? ''), 0, 10)),
+                        'description' => trim('Payment In' . ($row->receipt_no ? ' #' . $row->receipt_no : '') . ' | ' . ($row->party_name ?? 'Party')),
+                        'withdrawal_amount' => 0,
+                        'deposit_amount' => (float) ($row->amount ?? 0),
+                        'balance_amount' => 0,
+                        'source' => 'payment_in',
+                        'source_id' => (int) $row->id,
+                        'sort_id' => (int) $row->id,
+                    ])
+            );
+        }
+
+        if (Schema::hasTable('sale_payments') && Schema::hasTable('sales')) {
+            $entries = $entries->merge(
+                DB::table('sale_payments as sp')
+                    ->leftJoin('sales as s', 's.id', '=', 'sp.sale_id')
+                    ->leftJoin('parties as p', 'p.id', '=', 's.party_id')
+                    ->where('sp.bank_account_id', $bankId)
+                    ->select(
+                        'sp.id',
+                        'sp.amount',
+                        'sp.direction',
+                        'sp.created_at',
+                        's.type as sale_type',
+                        's.bill_number',
+                        's.invoice_date',
+                        'p.name as party_name'
+                    )
+                    ->get()
+                    ->map(function ($row) {
+                        $isOut = ($row->direction ?? 'payment_in') === 'payment_out' || ($row->sale_type ?? null) === 'sale_return';
+                        $amount = (float) ($row->amount ?? 0);
+
+                        return [
+                            'date' => (string) ($row->invoice_date ?: substr((string) ($row->created_at ?? ''), 0, 10)),
+                            'description' => trim(($isOut ? 'Sale Payment Out' : 'Sale Payment') . ($row->bill_number ? ' #' . $row->bill_number : '') . ' | ' . ($row->party_name ?? 'Party')),
+                            'withdrawal_amount' => $isOut ? $amount : 0,
+                            'deposit_amount' => $isOut ? 0 : $amount,
+                            'balance_amount' => 0,
+                            'source' => 'sale_payment',
+                            'source_id' => (int) $row->id,
+                            'sort_id' => (int) $row->id,
+                        ];
+                    })
+            );
+        }
+
+        if (Schema::hasTable('purchase_payments') && Schema::hasTable('purchases')) {
+            $entries = $entries->merge(
+                DB::table('purchase_payments as pp')
+                    ->leftJoin('purchases as pu', 'pu.id', '=', 'pp.purchase_id')
+                    ->leftJoin('parties as p', 'p.id', '=', 'pu.party_id')
+                    ->where('pp.bank_account_id', $bankId)
+                    ->select(
+                        'pp.id',
+                        'pp.amount',
+                        'pp.created_at',
+                        'pu.type as purchase_type',
+                        'pu.bill_number',
+                        'pu.bill_date',
+                        'p.name as party_name'
+                    )
+                    ->get()
+                    ->map(function ($row) {
+                        $isDeposit = ($row->purchase_type ?? null) === 'purchase_return';
+                        $amount = (float) ($row->amount ?? 0);
+
+                        return [
+                            'date' => (string) ($row->bill_date ?: substr((string) ($row->created_at ?? ''), 0, 10)),
+                            'description' => trim(($isDeposit ? 'Purchase Return' : 'Payment Out') . ($row->bill_number ? ' #' . $row->bill_number : '') . ' | ' . ($row->party_name ?? 'Party')),
+                            'withdrawal_amount' => $isDeposit ? 0 : $amount,
+                            'deposit_amount' => $isDeposit ? $amount : 0,
+                            'balance_amount' => 0,
+                            'source' => 'purchase_payment',
+                            'source_id' => (int) $row->id,
+                            'sort_id' => (int) $row->id,
+                        ];
+                    })
+            );
+        }
+
+        if (Schema::hasTable('expenses') && Schema::hasColumn('expenses', 'bank_account_id')) {
+            $entries = $entries->merge(
+                DB::table('expenses as e')
+                    ->leftJoin('expense_categories as ec', 'ec.id', '=', 'e.expense_category_id')
+                    ->where('e.bank_account_id', $bankId)
+                    ->select(
+                        'e.id',
+                        'e.expense_date',
+                        'e.expense_no',
+                        'e.total_amount',
+                        'e.party',
+                        'e.created_at',
+                        'ec.name as category_name'
+                    )
+                    ->get()
+                    ->map(fn ($row) => [
+                        'date' => (string) ($row->expense_date ?: substr((string) ($row->created_at ?? ''), 0, 10)),
+                        'description' => trim('Expense' . ($row->expense_no ? ' #' . $row->expense_no : '') . ' | ' . ($row->category_name ?? $row->party ?? 'Expense')),
+                        'withdrawal_amount' => (float) ($row->total_amount ?? 0),
+                        'deposit_amount' => 0,
+                        'balance_amount' => 0,
+                        'source' => 'expense',
+                        'source_id' => (int) $row->id,
+                        'sort_id' => (int) $row->id,
+                    ])
+            );
+        }
+
+        return $entries->filter(fn ($entry) => filled($entry['date']))->values();
     }
 
     // ============================================================
@@ -1446,6 +1675,34 @@ class ReportController extends Controller
                 ->keyBy('party_id');
         }
 
+        if (Schema::hasTable('sales') && Schema::hasTable('sale_items') && Schema::hasColumn('sale_items', 'discount')) {
+            $saleItemDiscounts = DB::table('sale_items as si')
+                ->join('sales as s', 's.id', '=', 'si.sale_id')
+                ->leftJoin('parties as p', 'p.id', '=', 's.party_id')
+                ->whereBetween('s.invoice_date', [$from, $to])
+                ->where('si.discount', '>', 0)
+                ->select(
+                    DB::raw('COALESCE(p.id, 0) as party_id'),
+                    DB::raw("COALESCE(p.name, 'Walk-in') as party_name"),
+                    DB::raw('SUM(COALESCE(si.discount, 0)) as sale_discount')
+                )
+                ->groupBy('p.id', 'p.name')
+                ->get();
+
+            $saleDiscounts = $saleDiscounts->values()
+                ->merge($saleItemDiscounts)
+                ->groupBy('party_id')
+                ->map(function ($rows) {
+                    $first = $rows->first();
+
+                    return (object) [
+                        'party_id' => $first->party_id,
+                        'party_name' => $first->party_name,
+                        'sale_discount' => $rows->sum('sale_discount'),
+                    ];
+                });
+        }
+
         // Purchase discounts grouped by party — use discount_rs
         $purchaseDiscounts = collect();
         if (Schema::hasTable('purchases')) {
@@ -1461,6 +1718,34 @@ class ReportController extends Controller
                 ->groupBy('p.id', 'p.name')
                 ->get()
                 ->keyBy('party_id');
+        }
+
+        if (Schema::hasTable('purchases') && Schema::hasTable('purchase_items') && Schema::hasColumn('purchase_items', 'discount')) {
+            $purchaseItemDiscounts = DB::table('purchase_items as pi')
+                ->join('purchases as pu', 'pu.id', '=', 'pi.purchase_id')
+                ->leftJoin('parties as p', 'p.id', '=', 'pu.party_id')
+                ->whereBetween('pu.bill_date', [$from, $to])
+                ->where('pi.discount', '>', 0)
+                ->select(
+                    DB::raw('COALESCE(p.id, 0) as party_id'),
+                    DB::raw("COALESCE(p.name, 'Walk-in') as party_name"),
+                    DB::raw('SUM(COALESCE(pi.discount, 0)) as purchase_discount')
+                )
+                ->groupBy('p.id', 'p.name')
+                ->get();
+
+            $purchaseDiscounts = $purchaseDiscounts->values()
+                ->merge($purchaseItemDiscounts)
+                ->groupBy('party_id')
+                ->map(function ($rows) {
+                    $first = $rows->first();
+
+                    return (object) [
+                        'party_id' => $first->party_id,
+                        'party_name' => $first->party_name,
+                        'purchase_discount' => $rows->sum('purchase_discount'),
+                    ];
+                });
         }
 
         $allPartyIds = $saleDiscounts->keys()->merge($purchaseDiscounts->keys())->unique();

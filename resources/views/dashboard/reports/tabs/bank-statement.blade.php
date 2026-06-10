@@ -9,8 +9,8 @@
                     <span style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;">Bank Name</span>
                     <select id="bs-bank-select" style="font-size:13px;border:1px solid #d1d5db;border-radius:4px;padding:5px 10px;color:#374151;outline:none;background:#fff;min-width:160px;">
                         <option value="">-- Select Bank --</option>
-                        @foreach(\App\Models\BankAccount::orderBy('bank_name')->get() as $bsBank)
-    <option value="{{ $bsBank->id }}">{{ $bsBank->bank_name }}</option>
+                        @foreach(\App\Models\BankAccount::active()->orderBy('display_name')->get() as $bsBank)
+                            <option value="{{ $bsBank->id }}">{{ $bsBank->display_with_account ?: ($bsBank->bank_name ?: 'Bank Account') }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -124,8 +124,9 @@
   var _bsData=[];
   var csrf=window.App?.csrfToken||document.querySelector('meta[name="csrf-token"]')?.content||'';
 
-  function fmt(v){var n=parseFloat(v||0);return isNaN(n)?'':'Rs '+Math.abs(n).toLocaleString('en-PK',{minimumFractionDigits:2,maximumFractionDigits:2});}
+  function fmt(v,signed){var n=parseFloat(v||0);return isNaN(n)?'':((signed&&n<0)?'-':'')+'Rs '+Math.abs(n).toLocaleString('en-PK',{minimumFractionDigits:2,maximumFractionDigits:2});}
   function fmtD(s){if(!s)return'';var d=new Date(s);return isNaN(d)?s:d.toLocaleDateString('en-GB');}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 
   document.getElementById('bs-date-toggle').addEventListener('change',function(){
     document.getElementById('bs-date-range').classList.toggle('d-none',!this.checked);
@@ -146,7 +147,7 @@
     document.getElementById('bs-table-wrap').classList.add('d-none');
     fetch('/dashboard/reports/bank-statement?'+p,{headers:{'Accept':'application/json','X-CSRF-TOKEN':csrf}})
       .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
-      .then(function(d){_bsData=d.transactions||[];renderTable(_bsData,d);})
+      .then(function(d){_bsData=d.transactions||d.rows||[];renderTable(_bsData,d);})
       .catch(function(e){console.error(e);renderEmpty('Failed to load. Please try again.');})
       .finally(function(){
         document.getElementById('bs-loading').classList.add('d-none');
@@ -158,8 +159,19 @@
     document.getElementById('bs-foot').style.display='none';_bsData=[];
   }
   function renderTable(rows,summary){
-    if(!rows||!rows.length){renderEmpty('No transactions found.');return;}
-    document.getElementById('bs-body').innerHTML=rows.map(function(r){
+    if((!rows||!rows.length) && !parseFloat(summary.opening_balance||0)){renderEmpty('No transactions found.');return;}
+    var opening=parseFloat(summary.opening_balance||0);
+    var html='';
+    if(opening){
+      html+='<tr style="border-bottom:1px solid #f3f4f6;background:#fcfcfd;">'
+        +'<td style="padding:12px 16px;font-size:13px;color:#6b7280;border-right:1px solid #e5e7eb;">'+fmtD(summary.period?.from||'')+'</td>'
+        +'<td style="padding:12px 16px;font-size:13px;color:#374151;border-right:1px solid #e5e7eb;font-weight:600;">Opening Balance</td>'
+        +'<td style="padding:12px 16px;font-size:13px;color:#9ca3af;text-align:right;border-right:1px solid #e5e7eb;">-</td>'
+        +'<td style="padding:12px 16px;font-size:13px;color:#9ca3af;text-align:right;border-right:1px solid #e5e7eb;">-</td>'
+        +'<td style="padding:12px 16px;font-size:13px;color:#1f2937;text-align:right;font-weight:600;">'+fmt(opening,true)+'</td>'
+        +'</tr>';
+    }
+    html+=rows.map(function(r){
       var wd=parseFloat(r.withdrawal_amount||0),dep=parseFloat(r.deposit_amount||0);
       return'<tr style="border-bottom:1px solid #f3f4f6;">'
         +'<td style="padding:12px 16px;font-size:13px;color:#374151;border-right:1px solid #e5e7eb;">'+fmtD(r.date)+'</td>'
@@ -169,9 +181,10 @@
         +'<td style="padding:12px 16px;font-size:13px;color:#1f2937;text-align:right;">'+fmt(r.balance_amount)+'</td>'
         +'</tr>';
     }).join('');
+    document.getElementById('bs-body').innerHTML=html;
     document.getElementById('bs-total-wd').textContent=fmt(summary.total_withdrawal||0);
     document.getElementById('bs-total-dep').textContent=fmt(summary.total_deposit||0);
-    document.getElementById('bs-final-bal').textContent=fmt(summary.final_balance||0);
+    document.getElementById('bs-final-bal').textContent=fmt(summary.final_balance||0,true);
     document.getElementById('bs-foot').style.display='';
   }
 
