@@ -103,7 +103,23 @@
                         </th>
                         <th style="padding:11px 16px; font-size:12px; font-weight:600; color:#6b7280;
                                    text-align:left; background:#fff; text-transform:uppercase; letter-spacing:.4px;">
+                            Account
+                        </th>
+                        <th style="padding:11px 16px; font-size:12px; font-weight:600; color:#6b7280;
+                                   text-align:left; background:#fff; text-transform:uppercase; letter-spacing:.4px;">
                             TYPE
+                        </th>
+                        <th style="padding:11px 16px; font-size:12px; font-weight:600; color:#6b7280;
+                                   text-align:left; background:#fff; text-transform:uppercase; letter-spacing:.4px;">
+                            Details
+                        </th>
+                        <th style="padding:11px 16px; font-size:12px; font-weight:600; color:#6b7280;
+                                   text-align:right; background:#fff; text-transform:uppercase; letter-spacing:.4px;">
+                            Principal
+                        </th>
+                        <th style="padding:11px 16px; font-size:12px; font-weight:600; color:#6b7280;
+                                   text-align:right; background:#fff; text-transform:uppercase; letter-spacing:.4px;">
+                            Charges
                         </th>
                         <th style="padding:11px 16px; font-size:12px; font-weight:600; color:#6b7280;
                                    text-align:right; background:#fff; text-transform:uppercase; letter-spacing:.4px;">
@@ -117,7 +133,7 @@
                 </thead>
                 <tbody id="loan-stmt-body">
                     <tr>
-                        <td colspan="5"
+                        <td colspan="9"
                             style="padding:60px 16px; text-align:center; color:#9ca3af; font-size:13px;">
                             Loading…
                         </td>

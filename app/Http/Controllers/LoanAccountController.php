@@ -36,6 +36,132 @@ class LoanAccountController extends Controller
         return response()->json($loanAccount);
     }
 
+    public function allJson(Request $request)
+    {
+        $loanQuery = LoanAccount::query()
+            ->with(['lenderBank', 'receivedInBank', 'processingFeeBank'])
+            ->orderBy('display_name');
+
+        if ($request->filled('account_id')) {
+            $loanQuery->whereKey($request->integer('account_id'));
+        }
+
+        $loans = $loanQuery->get();
+
+        if ($loans->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'transactions' => [],
+                'opening_balance' => 0,
+                'balance_due' => 0,
+                'principal_paid' => 0,
+                'principal_due' => 0,
+            ]);
+        }
+
+        $from = $request->filled('from') ? $request->date('from')->toDateString() : null;
+        $to = $request->filled('to') ? $request->date('to')->toDateString() : null;
+        $loanIds = $loans->pluck('id');
+        $statementTypes = [
+            'loan_more',
+            'loan_adjustment',
+            'loan_charge',
+            'emi_pay',
+            'loan_processing_fee',
+            'loan_processing_fee_refund',
+        ];
+
+        $allTransactions = BankTransaction::with(['toBankAccount', 'fromBankAccount'])
+            ->where('reference_type', LoanAccount::class)
+            ->whereIn('reference_id', $loanIds)
+            ->whereIn('type', $statementTypes)
+            ->orderBy('transaction_date')
+            ->orderBy('id')
+            ->get()
+            ->groupBy('reference_id');
+
+        $rows = collect();
+        $openingTotal = 0;
+        $dueTotal = 0;
+        $paidTotal = 0;
+
+        foreach ($loans as $loan) {
+            $loanTransactions = $allTransactions->get($loan->id, collect());
+            $currentBalance = (float) ($loan->current_balance ?? 0);
+            $originalBalance = $currentBalance - $loanTransactions->sum(fn ($tx) => $this->loanStatementBalanceDelta($tx));
+            $balanceAtPeriodStart = $originalBalance;
+
+            if ($from) {
+                $balanceAtPeriodStart += $loanTransactions
+                    ->filter(fn ($tx) => optional($tx->transaction_date)->toDateString() < $from)
+                    ->sum(fn ($tx) => $this->loanStatementBalanceDelta($tx));
+            }
+
+            $openingTotal += $balanceAtPeriodStart;
+            $dueTotal += $currentBalance;
+            $paidTotal += $loanTransactions
+                ->filter(fn ($tx) => $tx->type === 'emi_pay')
+                ->sum(fn ($tx) => (float) (($tx->meta ?? [])['principal'] ?? 0));
+
+            $runningBalance = $balanceAtPeriodStart;
+
+            if (!$from || optional($loan->balance_as_of)->toDateString() >= $from) {
+                $rows->push([
+                    'id' => 'opening-' . $loan->id,
+                    'account_id' => $loan->id,
+                    'account_name' => $loan->display_name,
+                    'date' => optional($loan->balance_as_of)->format('Y-m-d'),
+                    'date_display' => optional($loan->balance_as_of)->format('d/m/Y'),
+                    'type' => 'Opening Loan',
+                    'details' => $loan->description ?: 'Opening balance',
+                    'amount' => $originalBalance,
+                    'principal' => $originalBalance,
+                    'charges' => 0,
+                    'ending_balance' => $originalBalance,
+                ]);
+            }
+
+            foreach ($loanTransactions as $transaction) {
+                $date = optional($transaction->transaction_date)->toDateString();
+                if (($from && $date < $from) || ($to && $date > $to)) {
+                    continue;
+                }
+
+                $runningBalance += $this->loanStatementBalanceDelta($transaction);
+                $meta = $transaction->meta ?? [];
+
+                $rows->push([
+                    'id' => $transaction->id,
+                    'account_id' => $loan->id,
+                    'account_name' => $loan->display_name,
+                    'date' => $date,
+                    'date_display' => optional($transaction->transaction_date)->format('d/m/Y'),
+                    'type' => $this->loanStatementLabel($transaction->type),
+                    'details' => $meta['details'] ?? $transaction->description ?? '',
+                    'amount' => (float) ($transaction->amount ?? 0),
+                    'principal' => (float) ($meta['principal'] ?? 0),
+                    'charges' => (float) ($meta['charges'] ?? 0),
+                    'ending_balance' => $runningBalance,
+                    'bank_name' => $transaction->toBankAccount?->display_with_account
+                        ?: $transaction->fromBankAccount?->display_with_account
+                        ?: '-',
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'transactions' => $rows
+                ->sortBy([['date', 'asc'], ['id', 'asc']])
+                ->values()
+                ->toArray(),
+            'opening_balance' => $openingTotal,
+            'balance_due' => $dueTotal,
+            'principal_paid' => $paidTotal,
+            'principal_due' => $dueTotal,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -419,5 +545,29 @@ class LoanAccountController extends Controller
             'bank_account_id' => $transaction->to_bank_account_id ?: $transaction->from_bank_account_id,
             'bank_name' => $transaction->toBankAccount?->display_with_account ?: $transaction->fromBankAccount?->display_with_account ?: '-',
         ];
+    }
+
+    private function loanStatementBalanceDelta(BankTransaction $transaction): float
+    {
+        $meta = $transaction->meta ?? [];
+        $amount = (float) ($transaction->amount ?? 0);
+
+        return match ($transaction->type) {
+            'emi_pay' => -1 * (float) ($meta['principal'] ?? 0),
+            'loan_more', 'loan_adjustment', 'loan_charge' => $amount,
+            default => 0,
+        };
+    }
+
+    private function loanStatementLabel(?string $type): string
+    {
+        return match ($type) {
+            'loan_more', 'loan_adjustment' => 'Loan Adjustment',
+            'loan_charge' => 'Charges on Loan',
+            'emi_pay' => 'EMI Paid',
+            'loan_processing_fee' => 'Processing Fee',
+            'loan_processing_fee_refund' => 'Processing Fee Refund',
+            default => 'Loan Transaction',
+        };
     }
 }
