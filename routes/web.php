@@ -382,6 +382,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/reports/expense-category-report/export', [ReportController::class, 'expenseCategoryReportExport']);
     Route::get('/reports/expense-item-report', [ReportController::class, 'expenseItemReport']);
     Route::get('/reports/expense-item-report/export', [ReportController::class, 'expenseItemReportExport']);
+    Route::get('/reports/sale-order', [ReportController::class, 'saleOrder'])->name('reports.sale-order');
     Route::get('/reports/sale-order-items', [ReportController::class, 'saleOrderItems'])->name('reports.sale-order-items');
     Route::get('/reports/unreceived-invoices/pdf', [ReportController::class, 'unreceivedInvoicePdf'])->name('reports.unreceived-invoices.pdf');
     Route::get('/reports/daybook', [ReportController::class, 'dayBook'])->name('reports.daybook');

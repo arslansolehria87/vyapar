@@ -1,601 +1,267 @@
-{{-- ============================================================
-     Loan Statement Report Tab
-     resources/views/dashboard/reports/tabs/loan-statement-report.blade.php
-     ============================================================ --}}
-
+{{-- Loan Statement Report Tab --}}
 <div id="tab-loan statement" class="report-tab-content d-none">
-    <div class="d-flex flex-column" style="min-height:100vh; padding:24px; background:#fff; border:1px solid #e5e7eb;">
-
-        {{-- ── Top Filter & Action Row ───────────────────────── --}}
-        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-
-            {{-- Left: Account + Date filters --}}
-            <div class="d-flex align-items-center flex-wrap gap-3">
-
-                {{-- ACCOUNT dropdown --}}
-                <div>
-                    <div style="font-size:11px; font-weight:700; color:#6b7280; text-transform:uppercase;
-                                letter-spacing:.5px; margin-bottom:4px;">Account:</div>
-                    <select id="loan-acct-select"
-                        style="border:1px solid #d1d5db; border-radius:4px; padding:7px 12px;
-                               font-size:13px; color:#374151; background:#fff; outline:none; min-width:200px;">
-                        <option value="">— All Accounts —</option>
-                        @foreach(\App\Models\LoanAccount::orderBy('display_name')->get() as $la)
-                            <option value="{{ $la->id }}">{{ $la->display_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                {{-- Date filter checkbox --}}
-                <div style="display:flex; align-items:center; gap:6px; align-self:flex-end; padding-bottom:8px;">
-                    <input type="checkbox" id="loan-date-filter-enabled" checked
-                           onchange="toggleLoanDateFilter()"
-                           style="width:14px; height:14px; cursor:pointer;">
-                    <label for="loan-date-filter-enabled"
-                           style="font-size:13px; color:#374151; font-weight:600; cursor:pointer; margin:0;">
-                        Date filter
-                    </label>
-                </div>
-
-                {{-- From date --}}
-                <div>
-                    <div style="font-size:11px; font-weight:700; color:#6b7280; text-transform:uppercase;
-                                letter-spacing:.5px; margin-bottom:4px;">From</div>
-                    <input type="date" id="loan-from"
-                        value="{{ now()->startOfMonth()->format('Y-m-d') }}"
-                        style="border:1px solid #d1d5db; border-radius:4px; padding:7px 10px;
-                               font-size:13px; color:#374151; outline:none;">
-                </div>
-
-                {{-- To date --}}
-                <div>
-                    <div style="font-size:11px; font-weight:700; color:#6b7280; text-transform:uppercase;
-                                letter-spacing:.5px; margin-bottom:4px;">To</div>
-                    <input type="date" id="loan-to"
-                        value="{{ now()->format('Y-m-d') }}"
-                        style="border:1px solid #d1d5db; border-radius:4px; padding:7px 10px;
-                               font-size:13px; color:#374151; outline:none;">
-                </div>
-
-                {{-- Apply button --}}
-                <div style="align-self:flex-end;">
-                    <button onclick="loadLoanStatement()"
-                        style="background:#4f46e5; color:#fff; border:none; border-radius:6px;
-                               padding:8px 20px; font-size:13px; font-weight:600; cursor:pointer;">
-                        Apply
-                    </button>
-                </div>
-            </div>
-
-            {{-- Right: Export, Print, Add Loan A/C --}}
-            <div class="d-flex align-items-center gap-2">
-                <button onclick="exportLoanCSV()" title="Export Excel"
-                    style="width:38px; height:38px; border-radius:50%; border:1px solid #e5e7eb;
-                           background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;">
-                    <i class="fa-solid fa-file-excel" style="color:#10b981; font-size:17px;"></i>
-                </button>
-                <button onclick="printLoanStatement()" title="Print"
-                    style="width:38px; height:38px; border-radius:50%; border:1px solid #e5e7eb;
-                           background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;">
-                    <i class="fa-solid fa-print" style="color:#4b5563; font-size:17px;"></i>
-                </button>
-                <button onclick="openAddLoanModal()"
-                    style="background:#2563eb; color:#fff; border:none; border-radius:6px;
-                           padding:8px 18px; font-size:13px; font-weight:600; cursor:pointer;
-                           display:flex; align-items:center; gap:6px; white-space:nowrap;">
-                    <i class="fa-solid fa-plus"></i> Add Loan A/C
-                </button>
-            </div>
+  <div class="d-flex flex-column" style="min-height:100vh;padding:24px;background:#fff;border:1px solid #e5e7eb;">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <div class="d-flex align-items-center flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-2">
+          <span style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;">Loan Account</span>
+          <select id="ls-account-select" style="font-size:13px;border:1px solid #d1d5db;border-radius:4px;padding:5px 10px;color:#374151;outline:none;background:#fff;min-width:220px;">
+            <option value="">-- Select Account --</option>
+            @foreach(\App\Models\LoanAccount::orderBy('display_name')->get() as $loanAccount)
+              <option value="{{ $loanAccount->id }}">{{ $loanAccount->display_name }}</option>
+            @endforeach
+          </select>
         </div>
 
-        {{-- ── Data Table ───────────────────────────────────── --}}
-        <div class="table-responsive">
-            <table class="w-100" id="loan-stmt-table" style="border-collapse:collapse;">
-                <thead>
-                    <tr style="border-bottom:1px solid #e5e7eb;">
-                        <th style="padding:11px 16px; font-size:12px; font-weight:600; color:#6b7280;
-                                   text-align:left; background:#fff; text-transform:uppercase; letter-spacing:.4px;">
-                            #
-                        </th>
-                        <th style="padding:11px 16px; font-size:12px; font-weight:600; color:#6b7280;
-                                   text-align:left; background:#fff; text-transform:uppercase; letter-spacing:.4px;">
-                            DATE
-                        </th>
-                        <th style="padding:11px 16px; font-size:12px; font-weight:600; color:#6b7280;
-                                   text-align:left; background:#fff; text-transform:uppercase; letter-spacing:.4px;">
-                            Account
-                        </th>
-                        <th style="padding:11px 16px; font-size:12px; font-weight:600; color:#6b7280;
-                                   text-align:left; background:#fff; text-transform:uppercase; letter-spacing:.4px;">
-                            TYPE
-                        </th>
-                        <th style="padding:11px 16px; font-size:12px; font-weight:600; color:#6b7280;
-                                   text-align:left; background:#fff; text-transform:uppercase; letter-spacing:.4px;">
-                            Details
-                        </th>
-                        <th style="padding:11px 16px; font-size:12px; font-weight:600; color:#6b7280;
-                                   text-align:right; background:#fff; text-transform:uppercase; letter-spacing:.4px;">
-                            Principal
-                        </th>
-                        <th style="padding:11px 16px; font-size:12px; font-weight:600; color:#6b7280;
-                                   text-align:right; background:#fff; text-transform:uppercase; letter-spacing:.4px;">
-                            Charges
-                        </th>
-                        <th style="padding:11px 16px; font-size:12px; font-weight:600; color:#6b7280;
-                                   text-align:right; background:#fff; text-transform:uppercase; letter-spacing:.4px;">
-                            Amount
-                        </th>
-                        <th style="padding:11px 16px; font-size:12px; font-weight:600; color:#6b7280;
-                                   text-align:right; background:#fff; text-transform:uppercase; letter-spacing:.4px;">
-                            Ending Balance
-                        </th>
-                    </tr>
-                </thead>
-                <tbody id="loan-stmt-body">
-                    <tr>
-                        <td colspan="9"
-                            style="padding:60px 16px; text-align:center; color:#9ca3af; font-size:13px;">
-                            Loading…
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <label class="d-flex align-items-center gap-2 mb-0" style="cursor:pointer;">
+          <input type="checkbox" id="ls-date-toggle" style="width:15px;height:15px;cursor:pointer;">
+          <span style="font-size:14px;color:#6b7280;">Date filter</span>
+        </label>
+
+        <div id="ls-date-range" class="d-flex align-items-center gap-2 d-none">
+          <div style="border:1px solid #d1d5db;border-radius:4px;padding:4px 10px;background:#fff;display:flex;align-items:center;gap:6px;">
+            <span style="font-size:11px;color:#9ca3af;">From</span>
+            <input type="date" id="ls-from" value="{{ now()->startOfMonth()->format('Y-m-d') }}" style="border:none;outline:none;font-size:13px;color:#374151;">
+          </div>
+          <div style="border:1px solid #d1d5db;border-radius:4px;padding:4px 10px;background:#fff;display:flex;align-items:center;gap:6px;">
+            <span style="font-size:11px;color:#9ca3af;">To</span>
+            <input type="date" id="ls-to" value="{{ now()->format('Y-m-d') }}" style="border:none;outline:none;font-size:13px;color:#374151;">
+          </div>
         </div>
 
-        {{-- ── Loan Account Summary ─────────────────────────── --}}
-        <div id="loan-summary-section" style="display:none; margin-top:32px;">
-            <h3 style="font-size:15px; font-weight:700; color:#1f2937; margin-bottom:16px;">
-                Loan Account Summary
-            </h3>
-            <table style="border-collapse:collapse; min-width:400px;">
-                <tbody>
-                    <tr style="border-top:1px solid #e5e7eb;">
-                        <td style="padding:11px 16px; font-size:13px; color:#374151;">Opening Balance</td>
-                        <td style="padding:11px 16px; font-size:13px; color:#374151; text-align:right; font-weight:600;"
-                            id="ls-opening">Rs 0.00</td>
-                    </tr>
-                    <tr style="border-top:1px solid #e5e7eb;">
-                        <td style="padding:11px 16px; font-size:13px; color:#374151;">Balance Due</td>
-                        <td style="padding:11px 16px; font-size:13px; color:#dc2626; text-align:right; font-weight:600;"
-                            id="ls-due">Rs 0.00</td>
-                    </tr>
-                    <tr style="border-top:1px solid #e5e7eb;">
-                        <td style="padding:11px 16px; font-size:13px; color:#374151;">Total Principal Paid</td>
-                        <td style="padding:11px 16px; font-size:13px; color:#16a34a; text-align:right; font-weight:600;"
-                            id="ls-paid">Rs 0.00</td>
-                    </tr>
-                    <tr style="border-top:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb;">
-                        <td style="padding:11px 16px; font-size:13px; color:#374151;">Total Principal Due</td>
-                        <td style="padding:11px 16px; font-size:13px; color:#374151; text-align:right; font-weight:600;"
-                            id="ls-pdue">Rs 0.00</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <button id="ls-apply-btn" style="font-size:12px;padding:6px 16px;background:#6366f1;color:#fff;border:none;border-radius:4px;cursor:pointer;">Apply</button>
+      </div>
 
+      <div class="d-flex gap-2 align-items-center">
+        <button id="ls-excel-btn" title="Export Excel" style="width:38px;height:38px;border-radius:50%;border:1px solid #e5e7eb;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+          <i class="fa-solid fa-file-excel" style="color:#10b981;font-size:17px;"></i>
+        </button>
+        <button id="ls-print-btn" title="Print" style="width:38px;height:38px;border-radius:50%;border:1px solid #e5e7eb;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+          <i class="fa-solid fa-print" style="color:#4b5563;font-size:17px;"></i>
+        </button>
+        <a href="{{ route('loan-accounts') }}" class="btn text-white d-flex align-items-center gap-2" style="background:#2563eb;border:none;border-radius:6px;padding:8px 14px;font-size:13px;font-weight:600;white-space:nowrap;">
+          <i class="fa-solid fa-plus"></i> Add Loan Account
+        </a>
+      </div>
     </div>
+
+    <h2 style="font-weight:700;color:#1f2937;font-size:22px;margin:8px 0 16px;">Loan Statement Report</h2>
+
+    <div id="ls-summary" class="d-flex gap-3 flex-wrap mb-3 d-none">
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px;min-width:170px;">
+        <div style="font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:700;">Opening Balance</div>
+        <div id="ls-opening" style="font-size:17px;color:#111827;font-weight:700;margin-top:4px;">Rs 0.00</div>
+      </div>
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;min-width:170px;">
+        <div style="font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:700;">Total Loan Amount</div>
+        <div id="ls-total-loan" style="font-size:17px;color:#2563eb;font-weight:700;margin-top:4px;">Rs 0.00</div>
+      </div>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 16px;min-width:190px;">
+        <div style="font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:700;">Total Payments Received</div>
+        <div id="ls-total-payments" style="font-size:17px;color:#16a34a;font-weight:700;margin-top:4px;">Rs 0.00</div>
+      </div>
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px 16px;min-width:180px;">
+        <div style="font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:700;">Total Interest Charged</div>
+        <div id="ls-total-interest" style="font-size:17px;color:#c2410c;font-weight:700;margin-top:4px;">Rs 0.00</div>
+      </div>
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;min-width:170px;">
+        <div style="font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:700;">Closing Balance</div>
+        <div id="ls-closing" style="font-size:17px;color:#dc2626;font-weight:700;margin-top:4px;">Rs 0.00</div>
+      </div>
+    </div>
+
+    <div id="ls-loading" class="d-none text-center py-5">
+      <div class="spinner-border text-primary"><span class="visually-hidden">Loading...</span></div>
+    </div>
+
+    <div id="ls-table-wrap" class="table-responsive">
+      <table id="ls-table" style="width:100%;border-collapse:collapse;">
+        <thead style="background:#f3f4f6;">
+          <tr style="border-bottom:2px solid #e5e7eb;">
+            <th style="padding:11px 16px;font-size:12px;font-weight:600;color:#6b7280;text-align:left;border-right:1px solid #e5e7eb;width:70px;">#</th>
+            <th style="padding:11px 16px;font-size:12px;font-weight:600;color:#6b7280;text-align:left;border-right:1px solid #e5e7eb;width:140px;">Date</th>
+            <th style="padding:11px 16px;font-size:12px;font-weight:600;color:#6b7280;text-align:left;border-right:1px solid #e5e7eb;">Type</th>
+            <th style="padding:11px 16px;font-size:12px;font-weight:600;color:#6b7280;text-align:right;border-right:1px solid #e5e7eb;width:170px;">Amount</th>
+            <th style="padding:11px 16px;font-size:12px;font-weight:600;color:#6b7280;text-align:right;width:180px;">Ending Balance</th>
+          </tr>
+        </thead>
+        <tbody id="ls-body">
+          <tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:42px;font-size:14px;">Select an account and click Apply</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
-
-{{-- ============================================================
-     ADD LOAN ACCOUNT MODAL
-     ============================================================ --}}
-<div id="add-loan-modal-backdrop"
-    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45);
-           z-index:9990; align-items:center; justify-content:center;">
-
-    <div style="background:#fff; border-radius:8px; width:100%; max-width:620px;
-                margin:auto; box-shadow:0 20px 60px rgba(0,0,0,.25); overflow:hidden;">
-
-        {{-- Modal Header --}}
-        <div style="display:flex; justify-content:space-between; align-items:center;
-                    padding:18px 24px; border-bottom:1px solid #e5e7eb;">
-            <h3 style="margin:0; font-size:16px; font-weight:700; color:#1f2937;">
-                Add Loan Account
-            </h3>
-            <button onclick="closeAddLoanModal()"
-                style="background:none; border:none; width:28px; height:28px; border-radius:50%;
-                       background:#f3f4f6; cursor:pointer; font-size:16px; color:#6b7280;
-                       display:flex; align-items:center; justify-content:center; line-height:1;">
-                &times;
-            </button>
-        </div>
-
-        {{-- Modal Body --}}
-        <div style="padding:24px;">
-            <form id="add-loan-form" onsubmit="saveLoanAccount(event)">
-                @csrf
-
-                {{-- Row 1: Account Name + Lender Bank --}}
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
-                    <div>
-                        <input type="text" name="account_name" placeholder="Account Name *" required
-                            style="width:100%; border:1px solid #d1d5db; border-radius:6px;
-                                   padding:10px 14px; font-size:13px; color:#374151; outline:none;
-                                   box-sizing:border-box;">
-                    </div>
-                    <div>
-                        <input type="text" name="lender_bank" placeholder="Lender Bank"
-                            style="width:100%; border:1px solid #d1d5db; border-radius:6px;
-                                   padding:10px 14px; font-size:13px; color:#374151; outline:none;
-                                   box-sizing:border-box;">
-                    </div>
-                </div>
-
-                {{-- Row 2: Account Number + Description --}}
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
-                    <div>
-                        <input type="text" name="account_number" placeholder="Account Number"
-                            style="width:100%; border:1px solid #d1d5db; border-radius:6px;
-                                   padding:10px 14px; font-size:13px; color:#374151; outline:none;
-                                   box-sizing:border-box;">
-                    </div>
-                    <div>
-                        <input type="text" name="description" placeholder="Description"
-                            style="width:100%; border:1px solid #d1d5db; border-radius:6px;
-                                   padding:10px 14px; font-size:13px; color:#374151; outline:none;
-                                   box-sizing:border-box;">
-                    </div>
-                </div>
-
-                {{-- Row 3: Current Balance + Balance as of date --}}
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
-                    <div>
-                        <input type="number" name="current_balance" placeholder="Current Balance *"
-                            step="0.01" required
-                            style="width:100%; border:1px solid #d1d5db; border-radius:6px;
-                                   padding:10px 14px; font-size:13px; color:#374151; outline:none;
-                                   box-sizing:border-box;">
-                    </div>
-                    <div style="position:relative;">
-                        <label style="position:absolute; top:-9px; left:10px; font-size:11px;
-                                      color:#6b7280; background:#fff; padding:0 4px;">
-                            Balance as of
-                        </label>
-                        <input type="date" name="balance_as_of"
-                            value="{{ now()->format('Y-m-d') }}"
-                            style="width:100%; border:1px solid #d1d5db; border-radius:6px;
-                                   padding:10px 14px; font-size:13px; color:#374151; outline:none;
-                                   box-sizing:border-box;">
-                    </div>
-                </div>
-
-                {{-- Row 4: Loan received In --}}
-                <div style="margin-bottom:16px;">
-                    <div style="position:relative;">
-                        <label style="position:absolute; top:-9px; left:10px; font-size:11px;
-                                      color:#6b7280; background:#fff; padding:0 4px;">
-                            Loan received In
-                        </label>
-                        <select name="loan_received_in"
-                            style="width:100%; border:1px solid #d1d5db; border-radius:6px;
-                                   padding:10px 14px; font-size:13px; color:#374151; background:#fff;
-                                   outline:none; box-sizing:border-box;">
-                            <option value="Cash">Cash</option>
-                            <option value="Bank">Bank</option>
-                            <option value="Online">Online</option>
-                        </select>
-                    </div>
-                </div>
-
-                {{-- Row 5: Interest Rate + Term Duration --}}
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
-                    <div style="position:relative;">
-                        <input type="number" name="interest_rate" placeholder="Interest Rate"
-                            step="0.01"
-                            style="width:100%; border:1px solid #d1d5db; border-radius:6px;
-                                   padding:10px 48px 10px 14px; font-size:13px; color:#374151;
-                                   outline:none; box-sizing:border-box;">
-                        <span style="position:absolute; right:14px; top:50%; transform:translateY(-50%);
-                                     font-size:12px; color:#9ca3af;">% per annum</span>
-                    </div>
-                    <div>
-                        <input type="number" name="term_duration" placeholder="Term Duration (in Months)"
-                            style="width:100%; border:1px solid #d1d5db; border-radius:6px;
-                                   padding:10px 14px; font-size:13px; color:#374151; outline:none;
-                                   box-sizing:border-box;">
-                    </div>
-                </div>
-
-                {{-- Row 6: Processing Fee + Processing Fee Paid from --}}
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px;">
-                    <div>
-                        <input type="number" name="processing_fee" placeholder="Processing Fee"
-                            step="0.01"
-                            style="width:100%; border:1px solid #d1d5db; border-radius:6px;
-                                   padding:10px 14px; font-size:13px; color:#374151; outline:none;
-                                   box-sizing:border-box;">
-                    </div>
-                    <div style="position:relative;">
-                        <label style="position:absolute; top:-9px; left:10px; font-size:11px;
-                                      color:#6b7280; background:#fff; padding:0 4px;">
-                            Processing Fee Paid from
-                        </label>
-                        <select name="processing_fee_paid_from"
-                            style="width:100%; border:1px solid #d1d5db; border-radius:6px;
-                                   padding:10px 14px; font-size:13px; color:#374151; background:#fff;
-                                   outline:none; box-sizing:border-box;">
-                            <option value="Cash">Cash</option>
-                            <option value="Bank">Bank</option>
-                            <option value="Online">Online</option>
-                        </select>
-                    </div>
-                </div>
-
-                {{-- Save button --}}
-                <div style="display:flex; justify-content:flex-end;">
-                    <button type="submit"
-                        style="background:#2563eb; color:#fff; border:none; border-radius:6px;
-                               padding:10px 32px; font-size:14px; font-weight:600; cursor:pointer;
-                               min-width:100px;">
-                        SAVE
-                    </button>
-                </div>
-
-            </form>
-        </div>
-    </div>
-</div>
-
-
-{{-- ============================================================
-     SCRIPTS
-     ============================================================ --}}
 <script>
+(function(){
+  var rows = [];
+  var summary = {};
+  var appliedFilters = { account: '', accountName: '', dateEnabled: false, from: '', to: '' };
 
-/* ── Helpers ────────────────────────────────────────────────── */
-function lsFmt(val) {
-    return 'Rs ' + parseFloat(val || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-function lsRowBold(type) {
-    return ['Opening Loan','EMI Paid','Loan Adjustment','Processing Fee'].includes(type);
-}
+  function money(value) {
+    var n = parseFloat(value || 0);
+    return 'Rs ' + (isNaN(n) ? 0 : n).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
 
-/* ── Toggle date inputs ─────────────────────────────────────── */
-function toggleLoanDateFilter() {
-    const enabled = document.getElementById('loan-date-filter-enabled').checked;
-    document.getElementById('loan-from').disabled = !enabled;
-    document.getElementById('loan-to').disabled   = !enabled;
-}
+  function dateText(value) {
+    if (!value) return '';
+    var d = new Date(value);
+    return isNaN(d) ? value : d.toLocaleDateString('en-GB');
+  }
 
-/* ── Load Loan Statement ────────────────────────────────────── */
-function loadLoanStatement() {
-    const accountId   = document.getElementById('loan-acct-select').value;
-    const dateEnabled = document.getElementById('loan-date-filter-enabled').checked;
-    const from        = dateEnabled ? document.getElementById('loan-from').value : '';
-    const to          = dateEnabled ? document.getElementById('loan-to').value   : '';
-    const tbody       = document.getElementById('loan-stmt-body');
-    const summary     = document.getElementById('loan-summary-section');
-
-    tbody.innerHTML = `<tr><td colspan="5" style="padding:60px;text-align:center;color:#9ca3af;font-size:13px;">
-        <i class="fa-solid fa-spinner fa-spin me-2"></i>Loading…</td></tr>`;
-    summary.style.display = 'none';
-
-    // If account selected → /dashboard/loan-accounts/{id}
-    // If NO account selected → /dashboard/loan-accounts  (returns ALL)
-   let url = accountId
-    ? `/dashboard/loan-accounts/${accountId}`
-    : `/dashboard/loan-accounts-json`;   // ✅ THIS returns JSON
-
-    const params = [];
-    if (from) params.push(`from=${from}`);
-    if (to)   params.push(`to=${to}`);
-    if (params.length) url += '?' + params.join('&');
-
-    fetch(url, {
-        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-    })
-    .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-    })
-    .then(data => {
-        // Support multiple response shapes your API might return
-        const transactions = data.transactions || data.entries || data.data || [];
-        const opening = parseFloat(data.opening_balance ?? data.loan_amount ?? data.current_balance ?? 0);
-        const due     = parseFloat(data.balance_due     ?? data.current_balance ?? 0);
-        const paid    = parseFloat(data.principal_paid  ?? 0);
-        const pdue    = parseFloat(data.principal_due   ?? due);
-
-        document.getElementById('ls-opening').textContent = lsFmt(opening);
-        document.getElementById('ls-due').textContent     = lsFmt(due);
-        document.getElementById('ls-paid').textContent    = lsFmt(paid);
-        document.getElementById('ls-pdue').textContent    = lsFmt(pdue);
-        summary.style.display = '';
-
-        if (!transactions.length) {
-            tbody.innerHTML = `<tr><td colspan="5" style="padding:60px;text-align:center;color:#9ca3af;font-size:13px;">
-                No transactions found for the selected period.</td></tr>`;
-            return;
-        }
-
-        tbody.innerHTML = transactions.map((t, i) => {
-            const amt    = parseFloat(t.amount ?? t.debit ?? t.credit ?? 0);
-            const ending = parseFloat(t.ending_balance ?? t.balance ?? 0);
-            const type   = t.type ?? t.transaction_type ?? '—';
-            const bold   = lsRowBold(type) ? 'font-weight:700;' : '';
-            const bg     = bold ? '#f9fafb' : '';
-
-            return `
-            <tr style="border-bottom:1px solid #e5e7eb; background:${bg}"
-                onmouseover="this.style.background='#f9fafb'"
-                onmouseout="this.style.background='${bg}'">
-                <td style="padding:13px 16px; font-size:13px; color:#374151; ${bold}">${i + 1}</td>
-                <td style="padding:13px 16px; font-size:13px; color:#374151; ${bold}">${t.date ?? '—'}</td>
-                <td style="padding:13px 16px; font-size:13px; color:#374151; ${bold}">${type}</td>
-                <td style="padding:13px 16px; font-size:13px; color:#374151; text-align:right; ${bold}">${lsFmt(amt)}</td>
-                <td style="padding:13px 16px; font-size:13px; color:#374151; text-align:right; ${bold}">${lsFmt(ending)}</td>
-            </tr>`;
-        }).join('');
-    })
-    .catch(err => {
-        console.error('Loan statement error:', err);
-        tbody.innerHTML = `<tr><td colspan="5" style="padding:60px;text-align:center;color:#ef4444;font-size:13px;">
-            Failed to load. Check console for details. (${err.message})</td></tr>`;
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function(ch) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
     });
-}
+  }
 
-/* ── Add Loan Modal ─────────────────────────────────────────── */
-function openAddLoanModal() {
-    const backdrop = document.getElementById('add-loan-modal-backdrop');
-    backdrop.style.display = 'flex';
-    document.getElementById('add-loan-form').reset();
-    document.querySelector('#add-loan-form [name="balance_as_of"]').value =
-        new Date().toISOString().split('T')[0];
-}
-function closeAddLoanModal() {
-    document.getElementById('add-loan-modal-backdrop').style.display = 'none';
-}
-document.getElementById('add-loan-modal-backdrop').addEventListener('click', function(e) {
-    if (e.target === this) closeAddLoanModal();
-});
+  function empty(message) {
+    rows = [];
+    document.getElementById('ls-body').innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:42px;font-size:14px;">' + escapeHtml(message) + '</td></tr>';
+    document.getElementById('ls-summary').classList.add('d-none');
+  }
 
-/* ── Save Loan Account ──────────────────────────────────────── */
-function saveLoanAccount(e) {
-    e.preventDefault();
-    const form     = document.getElementById('add-loan-form');
-    const saveBtn  = form.querySelector('button[type="submit"]');
-    const formData = new FormData(form);
+  function setSummary(data) {
+    summary = data || {};
+    document.getElementById('ls-opening').textContent = money(summary.opening_balance);
+    document.getElementById('ls-total-loan').textContent = money(summary.total_loan_amount);
+    document.getElementById('ls-total-payments').textContent = money(summary.total_payments_received);
+    document.getElementById('ls-total-interest').textContent = money(summary.total_interest_charged);
+    document.getElementById('ls-closing').textContent = money(summary.closing_balance);
+    document.getElementById('ls-summary').classList.remove('d-none');
+  }
 
-    saveBtn.disabled    = true;
-    saveBtn.textContent = 'Saving…';
+  function render(data) {
+    rows = data.transactions || [];
+    setSummary(data);
 
-    fetch('{{ route("loan-accounts.store") }}', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
-                         || '{{ csrf_token() }}',
-            'Accept': 'application/json',
-        },
-        body: formData,
+    if (!rows.length) {
+      document.getElementById('ls-body').innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:42px;font-size:14px;">No transactions found for the selected filters.</td></tr>';
+      return;
+    }
+
+    document.getElementById('ls-body').innerHTML = rows.map(function(row, index) {
+      return '<tr style="border-bottom:1px solid #f3f4f6;">'
+        + '<td style="padding:12px 16px;font-size:13px;color:#374151;border-right:1px solid #e5e7eb;">' + (index + 1) + '</td>'
+        + '<td style="padding:12px 16px;font-size:13px;color:#374151;border-right:1px solid #e5e7eb;">' + escapeHtml(row.date_display || dateText(row.date)) + '</td>'
+        + '<td style="padding:12px 16px;font-size:13px;color:#374151;border-right:1px solid #e5e7eb;">' + escapeHtml(row.type || '') + '</td>'
+        + '<td style="padding:12px 16px;font-size:13px;color:#374151;text-align:right;border-right:1px solid #e5e7eb;">' + money(row.amount) + '</td>'
+        + '<td style="padding:12px 16px;font-size:13px;color:#111827;text-align:right;font-weight:600;">' + money(row.ending_balance) + '</td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  function load() {
+    var select = document.getElementById('ls-account-select');
+    var accountId = select.value;
+    var dateEnabled = document.getElementById('ls-date-toggle').checked;
+
+    if (!accountId) {
+      empty('Select an account and click Apply');
+      return;
+    }
+
+    var params = new URLSearchParams({ account_id: accountId });
+    if (dateEnabled) {
+      var from = document.getElementById('ls-from').value;
+      var to = document.getElementById('ls-to').value;
+      if (from) params.append('from', from);
+      if (to) params.append('to', to);
+    }
+
+    appliedFilters = {
+      account: accountId,
+      accountName: select.options[select.selectedIndex] ? select.options[select.selectedIndex].text : '',
+      dateEnabled: dateEnabled,
+      from: dateEnabled ? document.getElementById('ls-from').value : '',
+      to: dateEnabled ? document.getElementById('ls-to').value : ''
+    };
+
+    document.getElementById('ls-loading').classList.remove('d-none');
+    document.getElementById('ls-table-wrap').classList.add('d-none');
+
+    fetch('{{ route('loan-accounts.json') }}?' + params.toString(), {
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
     })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success || data.id || data.loan_account) {
-            const acct = data.loan_account || data;
-            const sel  = document.getElementById('loan-acct-select');
-            const opt  = document.createElement('option');
-            opt.value       = acct.id;
-            opt.textContent = acct.account_name;
-            opt.selected    = true;
-            sel.appendChild(opt);
+      .then(function(response) {
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.json();
+      })
+      .then(render)
+      .catch(function(error) {
+        console.error(error);
+        empty('Failed to load loan statement. Please try again.');
+      })
+      .finally(function() {
+        document.getElementById('ls-loading').classList.add('d-none');
+        document.getElementById('ls-table-wrap').classList.remove('d-none');
+      });
+  }
 
-            closeAddLoanModal();
-            loadLoanStatement();
-            showLoanToast('Loan account added successfully!', 'success');
-        } else {
-            const errors = data.errors
-                ? Object.values(data.errors).flat().join('\n')
-                : (data.message || 'Failed to save. Please try again.');
-            alert(errors);
-        }
-    })
-    .catch(() => alert('Network error. Please try again.'))
-    .finally(() => {
-        saveBtn.disabled    = false;
-        saveBtn.textContent = 'SAVE';
+  function filterText() {
+    if (!appliedFilters.account) return '';
+    var period = appliedFilters.dateEnabled
+      ? ((appliedFilters.from ? dateText(appliedFilters.from) : 'Start') + ' to ' + (appliedFilters.to ? dateText(appliedFilters.to) : 'Today'))
+      : 'All dates';
+    return 'Account: ' + appliedFilters.accountName + ' | Period: ' + period;
+  }
+
+  function exportExcel() {
+    if (!rows.length) {
+      alert('No visible data to export.');
+      return;
+    }
+
+    var table = '<table><thead><tr><th>#</th><th>Date</th><th>Type</th><th>Amount</th><th>Ending Balance</th></tr></thead><tbody>';
+    rows.forEach(function(row, index) {
+      table += '<tr><td>' + (index + 1) + '</td><td>' + escapeHtml(row.date_display || dateText(row.date)) + '</td><td>' + escapeHtml(row.type || '') + '</td><td>' + money(row.amount) + '</td><td>' + money(row.ending_balance) + '</td></tr>';
     });
-}
+    table += '</tbody></table><br><table>'
+      + '<tr><td>Opening Balance</td><td>' + money(summary.opening_balance) + '</td></tr>'
+      + '<tr><td>Total Loan Amount</td><td>' + money(summary.total_loan_amount) + '</td></tr>'
+      + '<tr><td>Total Payments Received</td><td>' + money(summary.total_payments_received) + '</td></tr>'
+      + '<tr><td>Total Interest Charged</td><td>' + money(summary.total_interest_charged) + '</td></tr>'
+      + '<tr><td>Closing Balance</td><td>' + money(summary.closing_balance) + '</td></tr>'
+      + '</table>';
 
-/* ── Toast ──────────────────────────────────────────────────── */
-function showLoanToast(message, type) {
-    const colors = { success:'#16a34a', error:'#dc2626' };
-    const toast  = document.createElement('div');
-    toast.textContent = message;
-    toast.style.cssText = `
-        position:fixed; bottom:24px; right:24px; z-index:99999;
-        background:${colors[type] || '#374151'}; color:#fff;
-        padding:12px 20px; border-radius:6px; font-size:13px;
-        font-weight:600; box-shadow:0 4px 12px rgba(0,0,0,.2);
-        transition:opacity .3s;`;
-    document.body.appendChild(toast);
-    setTimeout(() => { toast.style.opacity='0'; setTimeout(()=>toast.remove(),300); }, 3000);
-}
+    var blob = new Blob(['<html><head><meta charset="UTF-8"></head><body><h3>Loan Statement Report</h3><p>' + escapeHtml(filterText()) + '</p>' + table + '</body></html>'], { type: 'application/vnd.ms-excel' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'loan-statement-report.xls';
+    document.body.appendChild(link);
+    link.click();
+    URL.revokeObjectURL(link.href);
+    link.remove();
+  }
 
-/* ── Export CSV ─────────────────────────────────────────────── */
-function exportLoanCSV() {
-    const table = document.getElementById('loan-stmt-table');
-    if (!table) return;
-    let csv = '#,Date,Type,Amount,Ending Balance\n';
-    table.querySelectorAll('tbody tr').forEach(tr => {
-        const cells = [...tr.querySelectorAll('td')];
-        if (cells.length >= 5)
-            csv += cells.map(td => '"' + td.innerText.trim().replace(/"/g,'""') + '"').join(',') + '\n';
-    });
-    csv += '\nLoan Account Summary\n';
-    csv += '"Opening Balance","' + document.getElementById('ls-opening').textContent + '"\n';
-    csv += '"Balance Due","'     + document.getElementById('ls-due').textContent     + '"\n';
-    csv += '"Principal Paid","'  + document.getElementById('ls-paid').textContent    + '"\n';
-    csv += '"Principal Due","'   + document.getElementById('ls-pdue').textContent    + '"\n';
+  function printReport() {
+    if (!rows.length) {
+      alert('No visible data to print.');
+      return;
+    }
 
-    const a = document.createElement('a');
-    a.href     = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-    a.download = 'loan_statement.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-}
+    var bodyRows = rows.map(function(row, index) {
+      return '<tr><td>' + (index + 1) + '</td><td>' + escapeHtml(row.date_display || dateText(row.date)) + '</td><td>' + escapeHtml(row.type || '') + '</td><td class="num">' + money(row.amount) + '</td><td class="num">' + money(row.ending_balance) + '</td></tr>';
+    }).join('');
 
-/* ── Print ──────────────────────────────────────────────────── */
-function printLoanStatement() {
-    const tableHTML = document.getElementById('loan-stmt-table')?.outerHTML || '';
-    const summaryHTML = `
-        <div style="margin-top:24px;">
-          <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">Loan Account Summary</h3>
-          <table style="border-collapse:collapse;min-width:360px;">
-            <tr style="border-top:1px solid #e5e7eb;">
-              <td style="padding:9px 14px;font-size:13px;">Opening Balance</td>
-              <td style="padding:9px 14px;font-size:13px;text-align:right;font-weight:700;">${document.getElementById('ls-opening').textContent}</td>
-            </tr>
-            <tr style="border-top:1px solid #e5e7eb;">
-              <td style="padding:9px 14px;font-size:13px;color:#dc2626;">Balance Due</td>
-              <td style="padding:9px 14px;font-size:13px;text-align:right;font-weight:700;color:#dc2626;">${document.getElementById('ls-due').textContent}</td>
-            </tr>
-            <tr style="border-top:1px solid #e5e7eb;">
-              <td style="padding:9px 14px;font-size:13px;color:#16a34a;">Total Principal Paid</td>
-              <td style="padding:9px 14px;font-size:13px;text-align:right;font-weight:700;color:#16a34a;">${document.getElementById('ls-paid').textContent}</td>
-            </tr>
-            <tr style="border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
-              <td style="padding:9px 14px;font-size:13px;">Total Principal Due</td>
-              <td style="padding:9px 14px;font-size:13px;text-align:right;font-weight:700;">${document.getElementById('ls-pdue').textContent}</td>
-            </tr>
-          </table>
-        </div>`;
+    var printHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Loan Statement Report</title>'
+      + '<style>body{font-family:Arial,sans-serif;color:#111827;padding:32px}h2{font-size:20px;margin:0 0 4px}p{font-size:12px;color:#6b7280;margin:0 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e5e7eb;padding:8px 10px;font-size:12px}th{background:#f3f4f6;color:#6b7280;text-align:left}.num{text-align:right}.summary{width:420px;margin-top:22px;margin-left:auto}.summary td:last-child{text-align:right;font-weight:700}@media print{@page{margin:14mm}body{padding:0}}</style>'
+      + '</head><body><h2>Loan Statement Report</h2><p>' + escapeHtml(filterText()) + '</p>'
+      + '<table><thead><tr><th>#</th><th>Date</th><th>Type</th><th class="num">Amount</th><th class="num">Ending Balance</th></tr></thead><tbody>' + bodyRows + '</tbody></table>'
+      + '<table class="summary"><tr><td>Opening Balance</td><td>' + money(summary.opening_balance) + '</td></tr><tr><td>Total Loan Amount</td><td>' + money(summary.total_loan_amount) + '</td></tr><tr><td>Total Payments Received</td><td>' + money(summary.total_payments_received) + '</td></tr><tr><td>Total Interest Charged</td><td>' + money(summary.total_interest_charged) + '</td></tr><tr><td>Closing Balance</td><td>' + money(summary.closing_balance) + '</td></tr></table>'
+      + '<script>window.onload=function(){window.print();}<\/script></body></html>';
 
-    const sel      = document.getElementById('loan-acct-select');
-    const acctName = sel.options[sel.selectedIndex]?.text || 'All Accounts';
-    const from     = document.getElementById('loan-from').value;
-    const to       = document.getElementById('loan-to').value;
+    var popup = window.open('', '_blank', 'width=960,height=720');
+    popup.document.write(printHtml);
+    popup.document.close();
+  }
 
-    const w = window.open('', '_blank');
-    w.document.write(`
-        <!DOCTYPE html><html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Loan Statement — ${acctName}</title>
-          <style>
-            body  { font-family:Arial,sans-serif; padding:32px; color:#1f2937; }
-            h2    { font-size:18px; font-weight:700; margin-bottom:4px; }
-            p     { font-size:12px; color:#6b7280; margin:0 0 20px; }
-            table { width:100%; border-collapse:collapse; font-size:13px; }
-            th    { padding:10px 14px; font-size:11px; font-weight:700; color:#6b7280;
-                    text-transform:uppercase; border-bottom:2px solid #e5e7eb; text-align:left; }
-            td    { padding:11px 14px; border-bottom:1px solid #f3f4f6; }
-            @media print { button { display:none !important; } }
-          </style>
-        </head>
-        <body>
-          <h2>Loan Statement — ${acctName}</h2>
-          <p>Period: ${from} to ${to}</p>
-          ${tableHTML}
-          ${summaryHTML}
-          <script>window.onload=function(){window.print();}<\/script>
-        </body></html>`);
-    w.document.close();
-}
-
-/* ── Auto-load ALL accounts on page ready ───────────────────── */
-document.addEventListener('DOMContentLoaded', function () {
-    loadLoanStatement(); // runs with no account selected = loads all
-});
+  document.getElementById('ls-date-toggle').addEventListener('change', function() {
+    document.getElementById('ls-date-range').classList.toggle('d-none', !this.checked);
+  });
+  document.getElementById('ls-apply-btn').addEventListener('click', load);
+  document.getElementById('ls-excel-btn').addEventListener('click', exportExcel);
+  document.getElementById('ls-print-btn').addEventListener('click', printReport);
+})();
 </script>

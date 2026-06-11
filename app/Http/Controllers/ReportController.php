@@ -2059,35 +2059,41 @@ class ReportController extends Controller
             return response()->json(['success' => true, 'rows' => [], 'total_amount' => 0]);
         }
 
+        $dateExpression = DB::raw('DATE(COALESCE(s.order_date, s.invoice_date, s.created_at))');
+
         $query = DB::table('sales as s')
             ->leftJoin('parties as p', 'p.id', '=', 's.party_id')
-            ->whereBetween('s.invoice_date', [$from, $to])
+            ->whereBetween($dateExpression, [$from, $to])
             ->where('s.type', 'sale_order')
             ->select(
                 's.id',
                 's.bill_number',
                 's.reference_bill_number',
-                's.invoice_date as date',
+                DB::raw('DATE(COALESCE(s.order_date, s.invoice_date, s.created_at)) as date'),
                 's.order_date',
                 's.due_date',
                 's.description',
-                'p.name as party_name',
+                DB::raw("COALESCE(p.name, s.party_name, 'Walk-in') as party_name"),
                 's.total_amount',
                 's.grand_total',
                 's.balance',
                 's.status',
                 DB::raw("COALESCE(s.payment_type, 'Cash') as payment_type")
             )
-            ->orderByDesc('s.invoice_date');
+            ->orderByDesc($dateExpression)
+            ->orderByDesc('s.id');
 
         if ($request->filled('party')) {
             $party = trim((string) $request->party);
             $query->where(function ($partyQuery) use ($party) {
                 $partyQuery->where('p.name', 'like', '%' . $party . '%')
+                    ->orWhere('s.party_name', 'like', '%' . $party . '%')
                     ->orWhere('s.party_id', $party);
             });
         }
-        if ($request->filled('status')) $query->where('s.status', $request->status);
+        if ($request->filled('status')) {
+            $query->where('s.status', $request->status);
+        }
 
         $rows = $query->get();
         $itemsBySale = collect();
@@ -2126,6 +2132,8 @@ class ReportController extends Controller
             'success'      => true,
             'rows'         => $rows->toArray(),
             'total_amount' => $this->fmt($rows->sum('grand_total')),
+            'total_orders' => $rows->count(),
+            'open_orders'  => $rows->filter(fn ($row) => in_array(strtolower((string) $row->status), ['pending', 'confirmed', 'open'], true))->count(),
             'period'       => ['from' => $from, 'to' => $to],
         ]);
     }
@@ -2141,29 +2149,49 @@ class ReportController extends Controller
             return response()->json(['success' => true, 'rows' => [], 'total_amount' => 0, 'total_qty' => 0]);
         }
 
+        $dateExpression = DB::raw('DATE(COALESCE(s.order_date, s.invoice_date, s.created_at))');
+
         $query = DB::table('sale_items as si')
             ->join('sales as s', 's.id', '=', 'si.sale_id')
             ->leftJoin('items as i', 'i.id', '=', 'si.item_id')
             ->leftJoin('parties as p', 'p.id', '=', 's.party_id')
-            ->whereBetween('s.invoice_date', [$from, $to])
+            ->whereBetween($dateExpression, [$from, $to])
             ->where('s.type', 'sale_order')
             ->select(
                 's.id as sale_id',
                 's.bill_number',
-                's.invoice_date as date',
-                'p.name as party_name',
-                'i.name as item_name',
+                DB::raw('DATE(COALESCE(s.order_date, s.invoice_date, s.created_at)) as date'),
+                DB::raw("COALESCE(p.name, s.party_name, 'Walk-in') as party_name"),
+                DB::raw("COALESCE(i.name, si.item_name, 'Item') as item_name"),
                 'si.quantity',
-                'si.price',
-                DB::raw('COALESCE(si.amount, si.quantity * si.price) as amount'),
+                'si.unit',
+                'si.unit_price',
+                DB::raw('COALESCE(si.amount, si.quantity * si.unit_price) as amount'),
                 's.status',
                 's.type'
             )
-            ->orderByDesc('s.invoice_date');
+            ->orderByDesc($dateExpression)
+            ->orderByDesc('s.id');
 
-        if ($request->filled('item'))   $query->where('si.item_id', $request->item);
-        if ($request->filled('party'))  $query->where('s.party_id', $request->party);
-        if ($request->filled('status')) $query->where('s.status', $request->status);
+        if ($request->filled('item')) {
+            $item = trim((string) $request->item);
+            $query->where(function ($itemQuery) use ($item) {
+                $itemQuery->where('i.name', 'like', '%' . $item . '%')
+                    ->orWhere('si.item_name', 'like', '%' . $item . '%')
+                    ->orWhere('si.item_id', $item);
+            });
+        }
+        if ($request->filled('party')) {
+            $party = trim((string) $request->party);
+            $query->where(function ($partyQuery) use ($party) {
+                $partyQuery->where('p.name', 'like', '%' . $party . '%')
+                    ->orWhere('s.party_name', 'like', '%' . $party . '%')
+                    ->orWhere('s.party_id', $party);
+            });
+        }
+        if ($request->filled('status')) {
+            $query->where('s.status', $request->status);
+        }
 
         $rows = $query->get();
 

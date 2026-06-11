@@ -390,6 +390,7 @@
     @include('dashboard.reports.tabs.tax-rate-report')
     @include('dashboard.reports.tabs.expense-report')
     @include('dashboard.reports.tabs.sale-order-report')
+    @include('dashboard.reports.tabs.sale-order-item-report')
     @include('dashboard.reports.tabs.loan-statement-report')
     </div>  {{-- ← THIS closes reportsContentArea --}}
 
