@@ -914,7 +914,7 @@ window.saveNavRename = async function() {
 
 
  const topbarHTML = `
-  <div id="topbar" class="bg-white border-bottom d-flex align-items-center mb-4" style="margin: -20px -24px 20px -24px; padding: 12px 24px; margin-top:5px; height: 65px;">
+  <div id="topbar" class="bg-white border-bottom d-flex align-items-center mb-4" style="margin: -20px -24px 20px -24px; padding: 12px 24px; margin-top:-65px; height: 65px;">
     <div class="topbar-inner w-100 d-flex align-items-center justify-content-between">
 
       <div class="topbar-search d-flex align-items-center" style="background: #f1f3f7; border-radius: 8px; padding: 5px 15px; width: 300px;">
@@ -1087,8 +1087,56 @@ window.saveNavRename = async function() {
   };
 
   // ── Inject into page ──
-  document.body.insertAdjacentHTML('afterbegin', sidebarHTML);
-  document.body.insertAdjacentHTML('afterbegin', navbarHTML);
+  const shellLayoutStyles = `
+    :root { --sidebar-width: ${sidebarDefaultWidth}px; }
+    body { margin: 0; padding: 0; background: #f5f7fb; }
+    body.has-vyapar-shell { overflow-x: hidden; }
+    body.has-vyapar-shell > .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: var(--sidebar-width);
+      z-index: 1040;
+      height: 100vh;
+    }
+    body.has-vyapar-shell > .top-navbar {
+      position: fixed;
+      top: 0;
+      left: var(--sidebar-width);
+      right: 0;
+      z-index: 1050;
+      width: auto;
+    }
+    body.has-vyapar-shell > .main-content,
+    body.has-vyapar-shell > main.main-content {
+      margin-left: var(--sidebar-width);
+      padding: 84px 24px 24px;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    body.has-vyapar-shell.sidebar-compact > .top-navbar {
+      left: ${sidebarMinWidth}px;
+    }
+    body.has-vyapar-shell.sidebar-compact > .main-content,
+    body.has-vyapar-shell.sidebar-compact > main.main-content {
+      margin-left: ${sidebarMinWidth}px;
+    }
+  `;
+  if (!document.getElementById('vyapar-shell-layout-styles')) {
+    const shellStyle = document.createElement('style');
+    shellStyle.id = 'vyapar-shell-layout-styles';
+    shellStyle.textContent = shellLayoutStyles;
+    document.head.appendChild(shellStyle);
+  }
+
+  if (!document.getElementById('sidebar') && !document.querySelector('.sidebar')) {
+    document.body.classList.add('has-vyapar-shell');
+    document.body.insertAdjacentHTML('afterbegin', sidebarHTML);
+    document.body.insertAdjacentHTML('afterbegin', navbarHTML);
+  } else {
+    document.body.classList.add('has-vyapar-shell');
+  }
   applySidebarWidth(readSidebarWidth(), false);
   initSidebarResize();
   initSidebarDropdowns();

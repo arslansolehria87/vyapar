@@ -4241,12 +4241,13 @@ textarea.meta-control,
 @section('modals')
 <!-- MODAL: ADD PARTY -->
 
+
   <div class="modal fade" id="addPartyModal" tabindex="-1" aria-labelledby="addPartyModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="addPartyModalLabel"><i class="fa-solid fa-user-plus me-2"></i>Add Party</h5>
-        <div class="d-flex align-items-center gap-2" style="margin-left:79%;">
+        <div class="d-flex align-items-center gap-2 ms-auto">
           <button class="btn btn-sm btn-outline-secondary" type="button" id="partyModalSettingsTrigger" title="Settings"><i class="fa-solid fa-gear"></i></button>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
@@ -4462,7 +4463,9 @@ textarea.meta-control,
     </div>
 </div>
 
-  </div>
+
+
+</div>
 
 <div class="modal fade" id="partyGroupModal" tabindex="-1">
   <div class="modal-dialog modal-sm modal-dialog-centered">
@@ -4481,6 +4484,7 @@ textarea.meta-control,
     </div>
   </div>
 </div>
+
 
 @php
     $salesModalUnits = [];

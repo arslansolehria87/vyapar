@@ -1,0 +1,1 @@
+{"version":2,"defects":{"Tests\\Feature\\ExpenseCreateControllerTest::test_store_expense_persists_items_and_attachments":7},"times":{"Tests\\Feature\\ExpenseCreateControllerTest::test_store_expense_persists_items_and_attachments":1.805}}

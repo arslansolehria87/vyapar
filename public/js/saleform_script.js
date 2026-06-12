@@ -698,7 +698,7 @@ function initializeForm(context) {
         const $section = $ctx.find('.transportation-details-live-section');
         if (!$section.length) return;
         const settings = saleFormSettings.transportation_details || {};
-        const fields = Array.isArray(settings.fields) ? settings.fields.filter(field => settings.enabled && field.enabled) : [];
+        const fields = Array.isArray(settings.fields) ? settings.fields.filter(field => field && field.enabled !== false) : [];
         if (!fields.length) {
             $section.addClass('d-none').empty();
             return;
@@ -4201,19 +4201,18 @@ shipping_address: document.getElementById('pscShipping')?.value || $ctx.find('.s
             return;
         }
         $pane.toggleClass('d-none');
-        $button.toggleClass('d-none');
         if (!$pane.hasClass('d-none')) {
             $pane.find('.description-input').focus();
         }
     });
 
     $ctx.off('click', '.add-image').on('click', '.add-image', function() {
-        const $container = $(this).closest('.invoice-container');
+        const $container = $(this).closest('.bottom-left, .invoice-container, body');
         $container.find('.image-input').trigger('click');
     });
 
     $ctx.off('click', '.add-document').on('click', '.add-document', function() {
-        const $container = $(this).closest('.invoice-container');
+        const $container = $(this).closest('.bottom-left, .invoice-container, body');
         $container.find('.document-input').trigger('click');
     });
 

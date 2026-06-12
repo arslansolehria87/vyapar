@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BankAccount;
 use App\Models\AppSetting;
 use App\Models\BankTransaction;
+use App\Models\Expense;
 use App\Models\PurchasePayment;
 use App\Models\SalePayment;
 use Illuminate\Http\Request;
@@ -81,6 +82,29 @@ class BankAccountController extends Controller
                     'created_at' => $payment->created_at,
                     'amount' => (float) ($payment->amount ?? 0),
                     'direction' => $payment->purchase?->type === 'purchase_return' ? 'in' : 'out',
+                ];
+            });
+
+        $expenseTransactions = Expense::with(['party', 'bankAccount'])
+            ->whereNotNull('bank_account_id')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($expense) {
+                return (object) [
+                    'bank_account_id' => $expense->bank_account_id,
+                    'source_id' => $expense->id,
+                    'source_type' => 'expense',
+                    'source_url' => route('expense.create', ['expense_id' => $expense->id]),
+                    'delete_url' => route('expense.destroy', $expense),
+                    'history_url' => route('expense.create', ['expense_id' => $expense->id]),
+                    'type_label' => 'Expense',
+                    'invoice_no' => $expense->expense_no ?? ('EXP-' . $expense->id),
+                    'party_name' => $expense->party?->name ?? $expense->party ?? '-',
+                    'bank_name' => $expense->bankAccount?->display_name ?? $expense->bankAccount?->bank_name ?? '-',
+                    'payment_type' => $expense->payment_type ?? '-',
+                    'created_at' => $expense->created_at,
+                    'amount' => (float) ($expense->total_amount ?? 0),
+                    'direction' => 'out',
                 ];
             });
 
@@ -166,6 +190,7 @@ class BankAccountController extends Controller
 
         $bankTransactions = $saleTransactions
             ->concat($purchaseTransactions)
+            ->concat($expenseTransactions)
             ->concat($transferTransactions)
             ->sortByDesc(fn ($transaction) => $transaction->created_at?->timestamp ?? 0)
             ->values();

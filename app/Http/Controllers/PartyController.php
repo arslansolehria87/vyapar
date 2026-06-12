@@ -74,6 +74,12 @@ class PartyController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
         $data['party_type'] = $this->normalizePartyType($data['party_type'] ?? []);
+        $data['opening_balance'] = (float) ($data['opening_balance'] ?? 0);
+        $data['custom_fields'] = collect($data['custom_fields'] ?? [])
+            ->filter(fn ($value) => filled($value))
+            ->values()
+            ->all();
+
         if (empty($data['credit_limit_enabled'])) {
             $data['credit_limit_amount'] = null;
         }
@@ -1157,18 +1163,21 @@ private function buildPartyStatementData(Party $party, ?string $from = null, ?st
                 'purchase',
                 'purchase_return',
                 'payment_in',
-                'payment_out',
             ], true);
         })
         ->map(function ($txn) {
         $effect = $txn->ledgerEffectValue();
         $rawType = strtolower((string) $txn->type);
+        $isExpensePayment = $rawType === 'payment_out'
+            && str_starts_with(strtolower(trim((string) ($txn->description ?? ''))), 'expense:');
         $isSaleAdjustmentTransfer = in_array($rawType, ['party to party[received]', 'party to party[paid]'], true)
             && str_starts_with((string) ($txn->transfer_group ?? ''), 'sale-ledger-');
 
         return [
             'id' => 'txn-' . $txn->id,
-            'type' => $isSaleAdjustmentTransfer ? '' : $this->formatLedgerTypeLabel((string) $txn->type),
+            'type' => $isSaleAdjustmentTransfer
+                ? ''
+                : ($isExpensePayment ? 'Expense' : $this->formatLedgerTypeLabel((string) $txn->type)),
             'raw_type' => (string) $txn->type,
             'source' => !empty($txn->transfer_group) ? 'transfer' : 'ledger',
             'number' => $txn->number ?: '-',
@@ -1292,12 +1301,15 @@ public function ledger(Party $party)
             $runningBalance += Transaction::normalizeLedgerAmount($debit);
             $runningBalance -= Transaction::normalizeLedgerAmount($credit);
             $runningBalance = Transaction::normalizeLedgerAmount($runningBalance);
+            $rawType = strtolower((string) $transaction->type);
+            $isExpensePayment = $rawType === 'payment_out'
+                && str_starts_with(strtolower(trim((string) ($transaction->description ?? ''))), 'expense:');
 
             return [
                 'id' => $transaction->id,
                 'number' => $transaction->number ?: '-',
                 'date' => optional($transaction->date)?->format('d-M-Y'),
-                'type' => $this->formatLedgerTypeLabel((string) $transaction->type),
+                'type' => $isExpensePayment ? 'Expense' : $this->formatLedgerTypeLabel((string) $transaction->type),
                 'description' => (string) ($transaction->description ?: ($transaction->counterParty?->name ? 'Counter Party: ' . $transaction->counterParty->name : '')),
                 'credit' => number_format($credit, 2),
                 'debit' => number_format($debit, 2),

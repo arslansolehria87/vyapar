@@ -1,721 +1,916 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
-  <meta name="csrf-token" content="{{ csrf_token() }}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vyapar - Payment Out</title>
-  <meta name="description" content="Track supplier payments and payment out transactions in Vyapar.">
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-  <link href="{{ asset('css/styles.css') }}" rel="stylesheet">
-  <style>
-  .custom-table thead th {
-    font-size: 13px; color: #6c757d; font-weight: 500;
-    border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 5;
-    background-color: #fafafa; white-space: nowrap; position: relative;
-  }
-  .custom-table tbody td {
-    font-size: 14px; padding: 14px 10px;
-    border-bottom: 1px solid #f1f1f1; white-space: nowrap;
-  }
-  .custom-table tbody tr:hover { background-color: #fafafa; }
-  .custom-table th, .custom-table td { border-right: 1px solid #f1f1f1; }
-  .custom-table th:last-child, .custom-table td:last-child { border-right: none; }
-  .table-wrapper {
-    overflow-x: auto; overflow-y: auto;
-    max-height: 68vh; border: 1px solid #eef2f7; border-radius: 12px;
-  }
-  @media (max-width: 991px) {
-    .table-wrapper { max-height: none; border-radius: 8px; }
-    .custom-table thead th { font-size: 11px; padding: 8px 6px; }
-    .custom-table tbody td { font-size: 12px; padding: 10px 6px; }
-  }
-  @media (max-width: 575px) {
-    .custom-table thead th { font-size: 10px; padding: 6px 4px; }
-    .custom-table tbody td { font-size: 11px; padding: 8px 4px; }
-  }
-</style>
-
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>Payment Out — Vyapar</title>
+  @php
+    $authUser = Auth::user();
+    $authUserRoles = $authUser?->roles()->pluck('name')->toArray() ?? [];
+    $authUserPermissions = $authUser?->getAllPermissions() ?? [];
+    $authUserPayload = $authUser ? [
+      'id' => $authUser->id,
+      'name' => $authUser->name,
+      'roles' => $authUserRoles,
+      'permissions' => $authUserPermissions,
+    ] : null;
+  @endphp
   <script>
-    const authUser = @json(Auth::user());
     window.App = window.App || {
-      isAuthenticated: @json(Auth::check()),
-      user: authUser ? {
-        id: authUser.id,
-        name: authUser.name,
-        roles: @json(Auth::user()?->roles()->pluck('name')->toArray() ?? []),
-        permissions: @json(Auth::user()?->getAllPermissions() ?? []),
-      } : { id: null, name: null, roles: [], permissions: [] },
-      logoutUrl: "{{ route('logout') }}",
-      csrfToken: "{{ csrf_token() }}",
+      isAuthenticated: {{ Auth::check() ? 'true' : 'false' }},
+      user: @json($authUserPayload),
+      csrfToken: '{{ csrf_token() }}',
+      logoutUrl: '{{ route('logout') }}'
     };
   </script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  <link href="{{ asset('css/payment.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/styles.css') }}" rel="stylesheet">
 
-  <style>
-    .filter-pill {
-      background-color: #e4f2ff;
-      border-radius: 999px;
-      display: flex;
-      align-items: center;
-      min-height: 38px;
-      padding: 0 10px;
-      gap: 10px;
-    }
-
-    .filter-pill select,
-    .filter-pill input {
-      border: none;
-      background: transparent;
-      outline: none;
-      font-size: 13px;
-    }
-
-    .payment-out-row td {
-      vertical-align: middle;
-    }
-
-    .summary-card {
-      width: 25rem;
-      min-height: 8rem;
-      background: #fcf8ff;
-      border: 1px solid #e5e7eb;
-      border-radius: 14px;
-      padding: 14px 16px;
-    }
-
-    .payment-out-empty {
-      padding: 36px 12px;
-      text-align: center;
-      color: #6b7280;
-    }
-
-    .table-clean > :not(caption) > * > * {
-      white-space: nowrap;
-    }
-  </style>
 </head>
-
 <body data-page="payment-out">
+
+  <!-- MAIN -->
   <main class="main-content" id="mainContent">
-    @if (session('success'))
-      <div class="alert alert-success mb-2">{{ session('success') }}</div>
-    @endif
 
-    @if ($errors->any())
-      <div class="alert alert-danger mb-2">{{ $errors->first() }}</div>
-    @endif
-
-    <div class="d-flex justify-content-between align-items-center bg-light mb-2 p-4">
-      <div class="dropdown">
-        <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-          <span class="h4 mb-0">Payment Out</span>
-        </button>
-        <ul class="dropdown-menu">
-          <li><a class="dropdown-item" href="{{ route('sale.index') }}">Sale Invoice</a></li>
-          <li><a class="dropdown-item" href="{{ route('sale.estimate') }}">Estimate / Quotation</a></li>
-          <li><a class="dropdown-item" href="{{ route('sale-return') }}">Sale Return / Cr. Note</a></li>
-          <li><a class="dropdown-item" href="{{ route('payment-in') }}">Payment In</a></li>
-          <li><a class="dropdown-item" href="{{ route('payment-out') }}">Payment Out</a></li>
-          <li><a class="dropdown-item" href="{{ route('purchase-expenses') }}">Purchase Bill</a></li>
-          <li><a class="dropdown-item" href="{{ route('purchase-return') }}">Purchase Return / Dr. Note</a></li>
-          <li><a class="dropdown-item" href="{{ route('expense') }}">Expenses</a></li>
-        </ul>
+    <div class="page-header">
+      <div class="page-title-wrap" id="titleWrap">
+        <span class="page-title">Payment Out</span>
+        <i class="fa-solid fa-chevron-down page-title-chevron"></i>
+        <div class="title-dropdown" id="titleDropdown">
+          <a href="#">Sale Invoice</a>
+          <a href="#">Estimate / Quotation</a>
+          <a href="#">Sale Return / Cr. Note</a>
+          <a href="#">Payment In</a>
+          <a href="#" class="active">Payment Out</a>
+          <a href="#">Purchase Bill</a>
+          <a href="#">Purchase Return / Dr. Note</a>
+          <a href="#">Expenses</a>
+        </div>
       </div>
-
-      <button type="button" class="btn rounded-pill" style="background-color:#D4112E;" data-bs-toggle="modal" data-bs-target="#addPaymentOutModal">
-        <span class="text-light">+ Add Payment-out</span>
-      </button>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="btn-add" onclick="openModal()"><i class="fa-solid fa-plus"></i> Add Payment-out</button>
+        <button class="btn-icon" title="Settings"><i class="fa-solid fa-gear"></i></button>
+      </div>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center bg-light mb-2 px-3 py-2 rounded">
-      <div class="d-flex align-items-center gap-2 flex-wrap">
-        <span class="small fw-semibold">Filter By:</span>
-
+    <div class="filter-bar">
+      <div class="filter-left">
+        <span class="filter-label">Filter By:</span>
         <div class="filter-pill">
-          <select id="paymentOutPeriodFilter">
+          <select id="periodFilter" onchange="applyFilters()">
             <option value="all">All Time</option>
             <option value="today">Today</option>
-            <option value="this_month" selected>This Month</option>
+            <option value="this_month">This Month</option>
             <option value="last_month">Last Month</option>
             <option value="this_year">This Year</option>
           </select>
-          <span id="paymentOutDateRangeLabel" class="small text-secondary"></span>
+          <div class="pill-divider"></div>
+          <span class="date-range-text" id="dateRangeLabel">All dates</span>
         </div>
-
         <div class="filter-pill">
-          <i class="fa-solid fa-building text-secondary"></i>
-          <select id="paymentOutFirmFilter">
-            <option value="">All Parties</option>
-            @foreach($paymentOuts->map(fn ($payment) => $payment->purchase?->party?->name ?: $payment->purchase?->party_name)->filter()->unique()->values() as $partyName)
-              <option value="{{ $partyName }}">{{ $partyName }}</option>
-            @endforeach
+          <i class="fa-solid fa-building pill-icon"></i>
+          <select id="firmFilter" onchange="applyFilters()">
+            <option value="">All Firms</option>
+            <option value="dodh patya">Dodh Patya</option>
+            <option value="hasnain">Hasnain</option>
+            <option value="hello">Hello</option>
+            <option value="maleeq">Maleeq</option>
+            <option value="party 1">Party 1</option>
           </select>
         </div>
       </div>
-
-      <div class="d-flex align-items-center gap-2">
-        <input type="text" id="paymentOutSearchInput" class="form-control rounded-pill" placeholder="Search payment out..." style="width: 260px;">
-      </div>
     </div>
 
-    <div class="bg-light mb-2 px-4 py-3 rounded">
+    <div class="summary-section">
       <div class="summary-card">
-        <div class="d-flex justify-content-between align-items-start">
+        <div class="summary-top">
           <div>
-            <p class="text-secondary m-0">Total Amount</p>
-            <p class="h4 mb-0" id="paymentOutTotalAmount">Rs {{ number_format($paymentOuts->sum('amount'), 2) }}</p>
+            <div class="summary-label">Total Amount</div>
+            <div class="summary-value" id="totalAmount">Rs 0.00</div>
           </div>
-          <div class="text-end">
-            <div class="rounded-pill px-3 py-1 text-primary bg-primary-subtle small fw-semibold">
-              <span id="paymentOutTotalCount">{{ $paymentOuts->count() }}</span> Entries
-            </div>
-            <span class="d-block mt-2 text-secondary" style="font-size: 10px;">visible payment-out transactions</span>
+          <div>
+            <div class="summary-badge">100% <i class="fa-solid fa-arrow-up-right"></i></div>
+            <div class="summary-vs">vs last month</div>
           </div>
         </div>
-
-        <div class="mt-3 d-flex gap-4 flex-wrap">
-          <p class="mb-0 text-secondary">Paid Out:
-            <span class="fw-bold text-dark" id="paymentOutPaidAmount">Rs {{ number_format($paymentOuts->sum('amount'), 2) }}</span>
-          </p>
-          <p class="mb-0 text-secondary">Linked Bills:
-            <span class="fw-bold text-dark" id="paymentOutLinkedBills">{{ $paymentOuts->filter(fn ($payment) => $payment->purchase)->count() }}</span>
-          </p>
+        <div class="summary-bottom">
+          <div class="summary-stat">Paid: <span id="paidAmount">Rs 0.00</span></div>
+          <div class="summary-stat">Linked Bills: <span id="linkedBills">0</span></div>
         </div>
       </div>
     </div>
 
-    <div class="card shadow-sm border-0">
-      <div class="card-body">
-        <div class="row g-2 mb-3">
-          <p class="fw-bold mb-0">Transactions</p>
+    <div class="transactions-card">
+      <div class="transactions-header">
+        <div class="transactions-title">Transactions</div>
+        <div class="transactions-tools">
+          <div class="search-wrap" id="tableSearchWrap" hidden>
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="tableSearchInput" placeholder="Search..." aria-label="Search table">
+          </div>
+          <button class="tool-btn" id="searchToggleBtn" type="button" title="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
+          <button class="tool-btn" title="Export to Excel"><i class="fa-solid fa-file-excel" style="color:#217346;"></i></button>
+          <button class="tool-btn" title="Print"><i class="fa-solid fa-print"></i></button>
         </div>
-
-        <div class="table-wrapper">
-  <table class="table align-middle custom-table mb-0">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Reference No.</th>
-                <th>Party Name</th>
-                <th>Amount</th>
-                <th>Bank</th>
-                <th>Payment Type</th>
-                <th class="text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              @forelse($paymentOuts as $paymentOut)
-                @php
-                  $purchase = $paymentOut->purchase;
-                  $partyName = $purchase?->party?->name ?: ($purchase?->party_name ?: '-');
-                  $dateValue = optional($purchase?->bill_date)->format('Y-m-d')
-                      ?: optional($paymentOut->created_at)->format('Y-m-d')
-                      ?: now()->format('Y-m-d');
-                  $bankName = $paymentOut->bankAccount?->display_name
-                      ?? $paymentOut->bankAccount?->bank_name
-                      ?? strtoupper((string) $paymentOut->payment_type);
-                  $linkedTransaction = $paymentOut->receipt_no ? ($transactionMap[$paymentOut->receipt_no] ?? null) : null;
-                  $historyPayload = [
-                    'entry_no' => $linkedTransaction?->id ?? $paymentOut->id,
-                    'payment_id' => $paymentOut->id,
-                    'purchase_id' => $purchase?->id,
-                    'bill_number' => $purchase?->bill_number ?? '-',
-                    'party_name' => $partyName,
-                    'amount' => (float) ($paymentOut->amount ?? 0),
-                    'reference' => $paymentOut->reference ?? '-',
-                    'receipt' => $paymentOut->receipt_no ?? '-',
-                    'payment_type' => ucfirst((string) ($paymentOut->payment_type ?? '-')),
-                    'bank_name' => $bankName ?: '-',
-                    'created_at' => optional($paymentOut->created_at)->format('Y-m-d H:i:s') ?? '-',
-                    'updated_at' => optional($paymentOut->updated_at)->format('Y-m-d H:i:s') ?? '-',
-                    'user_name' => auth()->user()->name ?? 'System User',
-                    'action' => 'Payment Out Recorded',
-                    'description' => 'Supplier payment linked with purchase bill ' . ($purchase?->bill_number ?? '-'),
-                  ];
-                @endphp
-                <tr class="payment-out-row"
-                    data-date="{{ $dateValue }}"
-                    data-party="{{ strtolower($partyName) }}"
-                    data-search="{{ strtolower(trim(($paymentOut->reference ?? '') . ' ' . $partyName . ' ' . $bankName . ' ' . ($purchase?->bill_number ?? ''))) }}"
-                    data-amount="{{ (float) ($paymentOut->amount ?? 0) }}">
-                  <td>{{ \Carbon\Carbon::parse($dateValue)->format('d/m/Y') }}</td>
-                  <td><span class="badge bg-light text-dark">{{ $paymentOut->reference ?: '-' }}</span></td>
-                  <td><strong>{{ $partyName }}</strong></td>
-                  <td><span class="text-danger fw-bold">Rs {{ number_format((float) $paymentOut->amount, 2) }}</span></td>
-                  <td><small>{{ $bankName ?: '-' }}</small></td>
-                  <td><span class="badge bg-warning text-dark">{{ ucfirst($paymentOut->payment_type ?: 'Bank') }}</span></td>
-                  <td class="text-center">
-                    <div class="dropdown">
-                      <button class="btn btn-sm btn-light px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="More Actions">
-                        <i class="fa-solid fa-ellipsis-vertical"></i>
-                      </button>
-                      <ul class="dropdown-menu dropdown-menu-end">
-                        @if($purchase)
-                          <li><a class="dropdown-item" href="{{ route('purchase-bills.preview', $purchase) }}" target="_blank"><i class="fa-solid fa-eye me-2"></i>Open</a></li>
-                          <li><a class="dropdown-item" href="{{ route('purchase-bills.edit', $purchase) }}"><i class="fa-solid fa-pen-to-square me-2"></i>Edit</a></li>
-                          <li><a class="dropdown-item" href="{{ route('purchase-bills.pdf', $purchase) }}" target="_blank"><i class="fa-solid fa-file-pdf me-2"></i>Open PDF</a></li>
-                          <li><a class="dropdown-item" href="{{ route('purchase-bills.print', $purchase) }}" target="_blank"><i class="fa-solid fa-print me-2"></i>Print</a></li>
-                          <li><hr class="dropdown-divider"></li>
-                        @endif
-                        <li>
-                          <a class="dropdown-item" href="#" onclick='viewPaymentOutHistory(@json($historyPayload)); return false;'>
-                            <i class="fa-solid fa-history me-2"></i>View History
-                          </a>
-                        </li>
-                      </ul>
-                    </div>
-                  </td>
-                </tr>
-              @empty
-                <tr>
-                  <td colspan="7" class="payment-out-empty">
-                    <i class="fa-solid fa-inbox fa-2x mb-3 d-block opacity-50"></i>
-                    <strong>No payment out records yet.</strong> Add supplier payments from purchase bill workflow.
-                  </td>
-                </tr>
-              @endforelse
-            </tbody>
-          </table>
-        </div>
+      </div>
+      <div class="table-wrapper">
+        <table class="custom-table" id="mainTable">
+          <colgroup>
+            <col id="col-date"    style="width:120px">
+            <col id="col-ref"     style="width:90px">
+            <col id="col-party"   style="width:160px">
+            <col id="col-total"   style="width:130px">
+            <col id="col-paid"    style="width:130px">
+            <col id="col-type"    style="width:120px">
+            <col id="col-status"  style="width:100px">
+            <col id="col-actions" style="width:110px">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>
+                <div class="col-header">Date <button class="col-filter-btn" data-col="date" onclick="toggleColFilter(this,'date',event)"><i class="fa-solid fa-filter"></i></button></div>
+                <div class="resizer" data-col="col-date"></div>
+              </th>
+              <th>
+                <div class="col-header">Ref. No. <button class="col-filter-btn" data-col="refNo" onclick="toggleColFilter(this,'refNo',event)"><i class="fa-solid fa-filter"></i></button></div>
+                <div class="resizer" data-col="col-ref"></div>
+              </th>
+              <th>
+                <div class="col-header">Party Name <button class="col-filter-btn" data-col="party" onclick="toggleColFilter(this,'party',event)"><i class="fa-solid fa-filter"></i></button></div>
+                <div class="resizer" data-col="col-party"></div>
+              </th>
+              <th>
+                <div class="col-header">Total Amount <button class="col-filter-btn" data-col="amount" onclick="toggleColFilter(this,'amount',event)"><i class="fa-solid fa-filter"></i></button></div>
+                <div class="resizer" data-col="col-total"></div>
+              </th>
+              <th>
+                <div class="col-header">Paid <button class="col-filter-btn" data-col="paid" onclick="toggleColFilter(this,'paid',event)"><i class="fa-solid fa-filter"></i></button></div>
+                <div class="resizer" data-col="col-paid"></div>
+              </th>
+              <th>
+                <div class="col-header">Payment Type <button class="col-filter-btn" data-col="payType" onclick="toggleColFilter(this,'payType',event)"><i class="fa-solid fa-filter"></i></button></div>
+                <div class="resizer" data-col="col-type"></div>
+              </th>
+              <th>
+                <div class="col-header">Status <button class="col-filter-btn" data-col="status" onclick="toggleColFilter(this,'status',event)"><i class="fa-solid fa-filter"></i></button></div>
+                <div class="resizer" data-col="col-status"></div>
+              </th>
+              <th style="text-align:center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+          </tbody>
+        </table>
       </div>
     </div>
   </main>
 
-  <div class="modal fade" id="addPaymentOutModal" tabindex="-1" aria-labelledby="addPaymentOutModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-      <div class="modal-content">
-        <div class="modal-header d-flex justify-content-between align-items-center">
-          <h5 class="modal-title" id="addPaymentOutModalLabel">Payment-out</h5>
-          <div class="d-flex gap-2">
-            <button type="button" class="btn btn-light" data-bs-dismiss="modal">
-              <i class="fa-solid fa-xmark"></i>
-            </button>
-          </div>
+  <!-- ── COLUMN FILTER POPUP (one shared, repositioned on open) ── -->
+  <div class="col-filter-popup" id="colFilterPopup">
+    <input type="text" id="colFilterInput" placeholder="Filter…" oninput="liveColFilter()">
+    <div class="col-filter-popup-footer">
+      <button class="col-filter-clear-btn" onclick="clearColFilter()">Clear</button>
+      <button class="col-filter-apply-btn" onclick="applyColFilter()">Apply</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       PAYMENT-OUT MODAL
+  ═══════════════════════════════════════ -->
+  <div class="modal-overlay" id="addModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">Payment-Out</span>
+        <div class="modal-header-actions">
+          <button class="modal-header-btn" title="Calculator"><i class="fa-solid fa-calculator"></i></button>
+          <button class="modal-header-btn" title="Settings"><i class="fa-solid fa-gear"></i></button>
+          <button class="modal-header-btn" onclick="closeModal()" title="Close"><i class="fa-solid fa-xmark"></i></button>
         </div>
+      </div>
 
-        <form method="POST" action="{{ route('payment-out.store') }}" id="paymentOutForm">
-          @csrf
-          <div class="modal-body">
-            <div class="row">
-              <div class="col-lg-7">
-                <div class="mb-3">
-                  <label class="form-label">Select Party</label>
-                  <select class="form-select" id="paymentOutPartyFilter">
-                    <option value="">All Parties</option>
-                    @foreach($parties as $party)
-                      <option value="{{ $party->id }}">{{ $party->name }}</option>
-                    @endforeach
-                  </select>
+      <div class="modal-body">
+        <div class="modal-columns">
+
+          <!-- LEFT -->
+          <div class="modal-col-left">
+
+            <div class="po-field-wrap" id="partyFieldWrap">
+              <span class="po-field-label-static">Party <span class="po-required">*</span></span>
+              <div style="position:relative; width: 200px;">
+                <div id="partyDisplayBox" onclick="togglePartyDropdown()">
+                  <span id="partyDisplayText" style="color:#bbb;font-size:13.5px;"></span>
                 </div>
-
-                <div style="padding:22px; border:1px solid #ced4da; box-shadow:0 2px 6px rgba(0,0,0,0.12);">
-                  <div class="row align-items-end g-3 mb-3">
-                    <div class="col-md-4">
-                      <label class="form-label">Payment Type</label>
-                      <select class="form-select" name="payment_type" id="paymentOutPaymentType">
-                        <option value="cash">Cash</option>
-                        <option value="bank" selected>Bank</option>
-                      </select>
-                    </div>
-
-                    <div class="col-md-4">
-                      <label class="form-label">Bank</label>
-                      <select class="form-select" name="bank_account_id" id="paymentOutBankSelect">
-                        <option value="">-- Select Bank --</option>
-                        @foreach($bankAccounts as $bank)
-                          @php
-                            $accountNumber = preg_replace('/\s+/', '', (string) ($bank->account_number ?? ''));
-                            $bankLabel = trim($bank->display_name . ($accountNumber !== '' ? ' - ' . $accountNumber : ''));
-                          @endphp
-                          <option value="{{ $bank->id }}">{{ $bankLabel }}</option>
-                        @endforeach
-                      </select>
-                    </div>
-
-                    <div class="col-md-4">
-                      <label class="form-label">Amount</label>
-                      <input type="number" step="0.01" min="0.01" class="form-control" name="amount" id="paymentOutAmount" placeholder="Enter amount" required>
-                    </div>
+                <i class="fa-solid fa-chevron-down po-chevron" id="partyChevron"></i>
+                <div class="party-dropdown-list" id="partyDropdownList">
+                  <div class="party-add-btn" onclick="addNewParty()">
+                    <i class="fa-solid fa-circle-plus"></i> Add Party
                   </div>
-
-                  <div class="row g-3">
-                    <div class="col-md-6">
-                      <label class="form-label">Receipt No</label>
-                      <input type="text" class="form-control" name="receipt_no" id="paymentOutReceiptNo" value="{{ old('receipt_no', $nextEntryNo ?? 1) }}" placeholder="Receipt No">
-                    </div>
-                    <div class="col-md-6">
-                      <label class="form-label">Reference No</label>
-                      <input type="text" class="form-control" name="reference" id="paymentOutReference" placeholder="Reference No">
-                    </div>
-                    <div class="col-md-6">
-                      <label class="form-label">Date</label>
-                      <input type="date" class="form-control" name="payment_date" value="{{ now()->format('Y-m-d') }}">
-                    </div>
+                  <div class="party-list-header">
+                    <span></span><span>Party Balance</span>
                   </div>
-                </div>
-
-                <div class="mt-4">
-                  <h6 class="fw-semibold mb-2">Link Purchase Bill</h6>
-                  <div class="table-responsive border rounded" style="max-height: 300px; overflow:auto;">
-                    <table class="table table-sm align-middle mb-0">
-                      <thead class="table-light">
-                        <tr>
-                          <th style="width: 8%;">Select</th>
-                          <th>Date</th>
-                          <th>Bill No.</th>
-                          <th>Party</th>
-                          <th class="text-end">Grand Total</th>
-                          <th class="text-end">Balance</th>
-                        </tr>
-                      </thead>
-                      <tbody id="paymentOutPurchaseRows">
-                        @forelse($pendingPurchases as $purchase)
-                          @php
-                            $purchasePartyName = $purchase->party?->name ?: ($purchase->party_name ?: '-');
-                          @endphp
-                          <tr class="payment-out-purchase-row"
-                              data-party-id="{{ $purchase->party_id }}"
-                              data-balance="{{ (float) ($purchase->balance ?? 0) }}"
-                              data-bill="{{ $purchase->bill_number ?? '-' }}"
-                              data-party-name="{{ $purchasePartyName }}">
-                            <td>
-                              <input class="form-check-input payment-out-purchase-check" type="radio" name="purchase_id" value="{{ $purchase->id }}" required>
-                            </td>
-                            <td>{{ optional($purchase->bill_date)->format('d/m/Y') ?? '-' }}</td>
-                            <td>{{ $purchase->bill_number ?? '-' }}</td>
-                            <td>{{ $purchasePartyName }}</td>
-                            <td class="text-end">{{ number_format((float) ($purchase->grand_total ?? 0), 2) }}</td>
-                            <td class="text-end text-danger fw-semibold">{{ number_format((float) ($purchase->balance ?? 0), 2) }}</td>
-                          </tr>
-                        @empty
-                          <tr>
-                            <td colspan="6" class="text-center text-muted py-4">No pending purchase bills found.</td>
-                          </tr>
-                        @endforelse
-                      </tbody>
-                    </table>
-                  </div>
+                  <div id="partyListItems"></div>
                 </div>
               </div>
+            </div>
 
-              <div class="col-lg-5">
-                <div class="border rounded-3 p-3 h-100 bg-light">
-                  <h6 class="fw-semibold mb-3">Payment Summary</h6>
-                  <div class="mb-3">
-                    <label class="form-label text-secondary">Selected Bill</label>
-                    <input type="text" class="form-control" id="paymentOutSelectedBill" value="No bill selected" readonly>
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-label text-secondary">Selected Party</label>
-                    <input type="text" class="form-control" id="paymentOutSelectedParty" value="No party selected" readonly>
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-label text-secondary">Balance Due</label>
-                    <input type="text" class="form-control" id="paymentOutSelectedBalance" value="Rs 0.00" readonly>
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-label text-secondary">Payment Note</label>
-                    <textarea class="form-control" rows="4" readonly>Payment-out purchase bill ke against save hogi, same Payment In modal flow ki tarah.</textarea>
-                  </div>
-                </div>
+            <div class="party-balance-line" id="partyBalanceLine">
+              BAL: <span id="partyBalanceVal">0</span>
+            </div>
+
+            <div id="simplePaymentRow" class="simple-payment-row">
+              <div class="simple-pay-type-wrap">
+                <label class="simple-pay-label">Payment Type</label>
+                <select class="po-select-sm" id="simplePayType">
+                  <option value="Cash">Cash</option>
+                  <option value="Bank">Bank</option>
+                  <option value="Cheque">Cheque</option>
+                  <option value="UPI">UPI</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="addPayTypeLinkWrap" style="margin-bottom:12px;">
+              <button class="add-payment-type-btn" onclick="activatePaymentBox()">
+                <i class="fa-solid fa-plus" style="font-size:10px;"></i>
+                Add Payment type
+              </button>
+            </div>
+
+            <div class="payment-section-box" id="paymentSection" style="display:none;">
+              <div id="paymentRows"></div>
+              <input type="text" class="po-ref-input" id="refNoInput" placeholder="Reference No.">
+              <div class="payment-section-footer">
+                <button class="add-payment-type-btn" onclick="addPaymentRow()">
+                  <i class="fa-solid fa-plus" style="font-size:10px;"></i>
+                  Add Payment type
+                </button>
+                <span class="total-payment-line" id="totalPaymentLine">Total payment: 0</span>
+              </div>
+            </div>
+
+            <button class="po-desc-btn" onclick="toggleDescription()">
+              <i class="fa-solid fa-file-lines"></i> ADD DESCRIPTION
+            </button>
+            <textarea id="descriptionArea" rows="3" placeholder="Add description..."
+              style="display:none;width:100%;border:1px solid #d1d5db;border-radius:6px;padding:8px;font-size:13px;outline:none;resize:vertical;margin-bottom:10px;"></textarea>
+
+            <button class="po-camera-btn" title="Add photo">
+              <i class="fa-solid fa-camera"></i>
+            </button>
+
+          </div><!-- /left -->
+
+          <!-- RIGHT -->
+          <div class="modal-col-right">
+            <div class="po-right-row">
+              <span class="po-right-label">Receipt No</span>
+              <input type="text" class="po-right-input" id="modalReceiptNo" value="1">
+            </div>
+            <div class="po-right-row">
+              <span class="po-right-label">Date</span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <input type="date" class="po-right-input" id="modalDate" style="width:130px;">
+              </div>
+            </div>
+            <div class="po-paid-section">
+              <div class="po-paid-row">
+                <span class="po-paid-label">Paid</span>
+                <div class="po-paid-box" id="paidDisplay">0</div>
               </div>
             </div>
           </div>
 
-          <div class="modal-footer d-flex justify-content-between align-items-center">
-            <div class="text-muted small">Select a pending purchase bill, then save payment-out.</div>
-            <div class="d-flex gap-2">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-              <button type="submit" class="btn text-white" style="background-color:#D4112E;">Save Payment-out</button>
-            </div>
-          </div>
-        </form>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="link-payment-btn" id="linkPaymentBtn" style="display:none;">
+          LINK PAYMENT <span class="lp-question">?</span>
+        </button>
+        <div style="flex:1;"></div>
+        <div class="modal-footer-right">
+          <button class="btn-share">Share <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i></button>
+          <button class="btn-save" onclick="savePaymentOut()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY MODAL -->
+  <div class="modal-overlay" id="historyModal">
+    <div class="history-modal-box">
+      <div class="modal-header">
+        <span class="modal-title"><i class="fa-solid fa-clock-rotate-left" style="margin-right:8px;"></i>Payment Out History</span>
+        <button class="modal-header-btn" onclick="closeHistoryModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" id="historyModalBody"></div>
+      <div class="modal-footer" style="justify-content:flex-end;">
+        <button class="btn btn-secondary" onclick="closeHistoryModal()"><i class="fa-solid fa-xmark" style="margin-right:6px;"></i>Close</button>
       </div>
     </div>
   </div>
 
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="{{ asset('js/components.js') }}?v={{ filemtime(public_path('js/components.js')) }}"></script>
+  <script src="{{ asset('js/components.js') }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
 
+
   <script>
-    function viewPaymentOutHistory(entry) {
-      $('#paymentOutHistoryModal').remove();
+    /* ═════════════════════
+       DATA
+    ═════════════════════ */
+    const PARTIES = [
+      { id:1, name:'dodh patya', phone:'465436436', balance:2310, dir:'green' },
+      { id:2, name:'hasnain',    phone:'45645645',  balance:1500, dir:'green' },
+      { id:3, name:'hello',      phone:'453435534', balance:4500, dir:'red'   },
+      { id:4, name:'maleeq',     phone:'034878687', balance:1500, dir:'green' },
+      { id:5, name:'Party 1',    phone:'034967063', balance:4600, dir:'green' },
+    ];
 
-      const amount = entry.amount ? `Rs ${parseFloat(entry.amount).toFixed(2)}` : '-';
-      const paymentType = entry.payment_type || '-';
-      const reference = entry.reference || '-';
-      const receipt = entry.receipt || '-';
-      const bankName = entry.bank_name || '-';
-      const timestamp = entry.created_at || entry.updated_at || '-';
+    let payments = [];
+    let nextId = 1;
+    let nextReceiptNo = 1;
+    let editingId = null;
+    let paymentBoxActive = false;
+    let tableSearchQuery = '';
 
-      const historyHtml = `
-        <div class="modal fade" id="paymentOutHistoryModal" tabindex="-1">
-          <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title">
-                  <i class="fa-solid fa-history me-2"></i>Payment Out History (1 Record)
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-              </div>
-              <div class="modal-body">
-                <div class="alert alert-info mb-3">
-                  <h6 class="mb-2"><strong>Payment Details Summary:</strong></h6>
-                  <div class="row">
-                    <div class="col-md-6">
-                      <small><strong>Entry No:</strong> ${entry.entry_no || '-'}</small><br>
-                      <small><strong>Receipt No:</strong> ${receipt}</small><br>
-                      <small><strong>Reference No:</strong> ${reference}</small><br>
-                      <small><strong>Amount:</strong> <span class="text-danger fw-bold">${amount}</span></small>
-                    </div>
-                    <div class="col-md-6">
-                      <small><strong>Payment Type:</strong> <span class="badge bg-warning text-dark">${paymentType}</span></small><br>
-                      <small><strong>Party:</strong> ${entry.party_name || '-'}</small><br>
-                      <small><strong>Bank:</strong> ${bankName}</small>
-                    </div>
+    /* ═════════════════════
+       COLUMN FILTERS STATE
+    ═════════════════════ */
+    // Stores active filter per column key
+    const colFilters = {};
+    // Tracks which column the popup is currently open for
+    let activeColKey = null;
+    let activeColBtn = null;
+
+    /* ── Col filter popup ─────────────────────────────────── */
+    function toggleColFilter(btn, colKey, e) {
+      e.stopPropagation();
+      const popup = document.getElementById('colFilterPopup');
+
+      // If clicking the same open one — close it
+      if (activeColKey === colKey && popup.classList.contains('open')) {
+        closeColFilter();
+        return;
+      }
+
+      // Position popup below the button
+      const rect = btn.getBoundingClientRect();
+      popup.style.top  = (rect.bottom + 6) + 'px';
+      popup.style.left = rect.left + 'px';
+
+      // Populate with current filter value
+      const input = document.getElementById('colFilterInput');
+      input.placeholder = 'Filter ' + colKey.replace(/([A-Z])/g,' $1').replace(/^./,s=>s.toUpperCase()) + '…';
+      input.value = colFilters[colKey] || '';
+
+      activeColKey = colKey;
+      activeColBtn = btn;
+
+      popup.classList.add('open');
+      input.focus();
+
+      // Mark button as active
+      document.querySelectorAll('.col-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function closeColFilter() {
+      document.getElementById('colFilterPopup').classList.remove('open');
+      if (activeColBtn) activeColBtn.classList.remove('active');
+      // Keep active class if a filter is set for that column
+      if (activeColKey && colFilters[activeColKey]) {
+        if (activeColBtn) activeColBtn.classList.add('active');
+      }
+      activeColKey = null;
+      activeColBtn = null;
+    }
+
+    function liveColFilter() {
+      // Optional: live filtering as user types
+      // Uncomment next line to enable live filtering
+      // applyFilters();
+    }
+
+    function applyColFilter() {
+      const val = document.getElementById('colFilterInput').value.trim();
+      if (activeColKey) {
+        if (val) colFilters[activeColKey] = val.toLowerCase();
+        else delete colFilters[activeColKey];
+      }
+      applyFilters();
+      // Keep button highlighted if filter active
+      if (activeColBtn) {
+        if (val) activeColBtn.classList.add('active');
+        else activeColBtn.classList.remove('active');
+      }
+      closeColFilter();
+    }
+
+    function clearColFilter() {
+      document.getElementById('colFilterInput').value = '';
+      if (activeColKey) delete colFilters[activeColKey];
+      if (activeColBtn) activeColBtn.classList.remove('active');
+      applyFilters();
+      closeColFilter();
+    }
+
+    // Close popup when clicking outside
+    document.addEventListener('click', function(e) {
+      const popup = document.getElementById('colFilterPopup');
+      if (popup.classList.contains('open') && !e.target.closest('#colFilterPopup') && !e.target.closest('.col-filter-btn')) {
+        closeColFilter();
+      }
+    });
+
+    // Apply col filter on Enter key
+    document.getElementById('colFilterInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') applyColFilter();
+      if (e.key === 'Escape') closeColFilter();
+    });
+
+    /* ═════════════════════
+       TABLE
+    ═════════════════════ */
+    function renderTable(rows) {
+      const tbody = document.getElementById('tableBody');
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:48px;color:#9ca3af;font-size:13.5px;">No records found.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map(p => {
+        const dateStr = new Date(p.date + 'T00:00:00').toLocaleDateString('en-GB');
+        const sc = p.status === 'Unused' ? 'badge-status-unused' : 'badge-status-used';
+        return `
+          <tr data-id="${p.id}">
+            <td>${dateStr}</td>
+            <td><span class="badge-ref">${p.receiptNo}</span></td>
+            <td><span class="party-name">${p.party}</span></td>
+            <td><span class="amount-danger">Rs ${parseFloat(p.amount).toFixed(2)}</span></td>
+            <td><span class="amount-danger">Rs ${parseFloat(p.amount).toFixed(2)}</span></td>
+            <td><span class="badge-payment">${p.payType}</span></td>
+            <td><span class="${sc}">${p.status}</span></td>
+            <td>
+              <div class="row-actions">
+                <i class="fa-solid fa-print row-action-icon" title="Print"></i>
+                <i class="fa-solid fa-share-nodes row-action-icon" title="Share"></i>
+                <div class="dropdown">
+                  <button class="dropdown-toggle-btn" onclick="toggleDropdown(this,event)">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                  </button>
+                  <div class="row-dropdown-menu">
+                    <a href="#" onclick="editPayment(${p.id});closeAllDropdowns();return false;"><i class="fa-solid fa-eye menu-icon"></i> View/Edit</a>
+                    <a href="#"><i class="fa-solid fa-file-pdf menu-icon"></i> Open PDF</a>
+                    <a href="#"><i class="fa-solid fa-print menu-icon"></i> Print</a>
+                    <hr>
+                    <a href="#" onclick="deletePayment(${p.id});return false;"><i class="fa-solid fa-trash menu-icon"></i> Delete</a>
+                    <a href="#" onclick="duplicatePayment(${p.id});return false;"><i class="fa-solid fa-copy menu-icon"></i> Duplicate</a>
+                    <a href="#" onclick="openHistoryModal(${p.id});closeAllDropdowns();return false;"><i class="fa-solid fa-clock-rotate-left menu-icon"></i> View History</a>
                   </div>
                 </div>
+              </div>
+            </td>
+          </tr>`;
+      }).join('');
+    }
 
-                <div class="table-responsive">
-                  <table class="table table-hover table-sm align-middle">
-                    <thead class="table-light">
-                      <tr>
-                        <th style="width:10%;">Entry No</th>
-                        <th style="width:12%;">Date & Time</th>
-                        <th style="width:18%;">Action</th>
-                        <th style="width:12%;">Amount</th>
-                        <th style="width:14%;">Reference</th>
-                        <th style="width:14%;">Receipt</th>
-                        <th style="width:10%;">Type</th>
-                        <th style="width:10%;">User</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td><span class="badge bg-dark-subtle text-dark border">${entry.entry_no || '-'}</span></td>
-                        <td><small class="text-muted">${timestamp}</small></td>
-                        <td>
-                          <strong>${entry.action || 'Payment Out Recorded'}</strong>
-                          ${entry.description ? `<br><small class="text-muted">${entry.description}</small>` : ''}
-                        </td>
-                        <td><span class="text-danger fw-bold">${amount}</span></td>
-                        <td><span class="badge bg-light text-dark">${reference}</span></td>
-                        <td><span class="badge bg-light text-dark">${receipt}</span></td>
-                        <td><span class="badge bg-warning text-dark text-uppercase" style="font-size:0.7rem;">${paymentType.substring(0, 3)}</span></td>
-                        <td><small><i class="fa-solid fa-user me-1 text-secondary"></i>${entry.user_name || 'System'}</small></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                  <i class="fa-solid fa-xmark me-1"></i>Close
-                </button>
-              </div>
-            </div>
+    /* ═════════════════════
+       FILTERS
+    ═════════════════════ */
+    function todayDate() { return new Date(); }
+    function dateFromStr(s) { return s ? new Date(s + 'T00:00:00') : null; }
+    function formatDate(d) { return d ? d.toLocaleDateString('en-GB') : ''; }
+    function getRange(period) {
+      const t = todayDate();
+      if (period === 'today') { const d = new Date(t.getFullYear(),t.getMonth(),t.getDate()); return {from:d,to:d}; }
+      if (period === 'this_month') return {from:new Date(t.getFullYear(),t.getMonth(),1),to:new Date(t.getFullYear(),t.getMonth()+1,0)};
+      if (period === 'last_month') return {from:new Date(t.getFullYear(),t.getMonth()-1,1),to:new Date(t.getFullYear(),t.getMonth(),0)};
+      if (period === 'this_year')  return {from:new Date(t.getFullYear(),0,1),to:new Date(t.getFullYear(),11,31)};
+      return {from:null,to:null};
+    }
+
+    function applyFilters() {
+      const period = document.getElementById('periodFilter').value;
+      const firm   = (document.getElementById('firmFilter').value||'').toLowerCase().trim();
+      const search = tableSearchQuery.trim().toLowerCase();
+      const range  = getRange(period);
+
+      const filtered = payments.filter(p => {
+        // Period filter
+        let mp = true;
+        if (period !== 'all' && range.from && range.to) {
+          const d = dateFromStr(p.date);
+          mp = d && d >= range.from && d <= range.to;
+        }
+
+        // Firm filter
+        const mf = !firm || p.party.toLowerCase() === firm;
+
+        // Column filters
+        let mc = true;
+        for (const [key, val] of Object.entries(colFilters)) {
+          let fieldVal = '';
+          if (key === 'date') {
+            fieldVal = new Date(p.date + 'T00:00:00').toLocaleDateString('en-GB').toLowerCase();
+          } else if (key === 'refNo') {
+            fieldVal = String(p.receiptNo).toLowerCase();
+          } else if (key === 'party') {
+            fieldVal = p.party.toLowerCase();
+          } else if (key === 'amount' || key === 'paid') {
+            fieldVal = parseFloat(p.amount).toFixed(2);
+          } else if (key === 'payType') {
+            fieldVal = p.payType.toLowerCase();
+          } else if (key === 'status') {
+            fieldVal = p.status.toLowerCase();
+          }
+          if (!fieldVal.includes(val)) { mc = false; break; }
+        }
+
+        const searchTarget = [
+          new Date(p.date + 'T00:00:00').toLocaleDateString('en-GB'),
+          p.receiptNo,
+          p.party,
+          p.amount,
+          p.payType,
+          p.status
+        ].join(' ').toLowerCase();
+        const ms = !search || searchTarget.includes(search);
+
+        return mp && mf && mc && ms;
+      });
+
+      renderTable(filtered);
+      const total = filtered.reduce((s,p)=>s+parseFloat(p.amount),0);
+      document.getElementById('totalAmount').textContent = 'Rs '+total.toFixed(2);
+      document.getElementById('paidAmount').textContent  = 'Rs '+total.toFixed(2);
+      document.getElementById('linkedBills').textContent = filtered.length;
+      const label = document.getElementById('dateRangeLabel');
+      label.textContent = (range.from && range.to) ? formatDate(range.from)+' To '+formatDate(range.to) : 'All dates';
+    }
+
+    /* ═════════════════════
+       TITLE DROPDOWN
+    ═════════════════════ */
+    document.getElementById('titleWrap').addEventListener('click', function(e) {
+      e.stopPropagation();
+      document.getElementById('titleDropdown').classList.toggle('open');
+    });
+    document.addEventListener('click', () => document.getElementById('titleDropdown').classList.remove('open'));
+
+    const tableSearchWrap = document.getElementById('tableSearchWrap');
+    const tableSearchInput = document.getElementById('tableSearchInput');
+    document.getElementById('searchToggleBtn').addEventListener('click', () => {
+      const opening = tableSearchWrap.hidden;
+      tableSearchWrap.hidden = !opening;
+      if (opening) {
+        tableSearchInput.focus();
+      } else if (!tableSearchInput.value.trim()) {
+        tableSearchQuery = '';
+        applyFilters();
+      }
+    });
+    tableSearchInput.addEventListener('input', () => {
+      tableSearchQuery = tableSearchInput.value;
+      applyFilters();
+    });
+    tableSearchInput.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        tableSearchInput.value = '';
+        tableSearchQuery = '';
+        tableSearchWrap.hidden = true;
+        applyFilters();
+      }
+    });
+
+    /* ═════════════════════
+       ROW DROPDOWN — opens UPWARD
+    ═════════════════════ */
+    function toggleDropdown(btn, e) {
+      e.stopPropagation();
+      const menu = btn.nextElementSibling;
+      const isOpen = menu.classList.contains('open');
+      closeAllDropdowns();
+      if (!isOpen) {
+        // Temporarily show to measure height
+        menu.style.visibility = 'hidden';
+        menu.style.display = 'block';
+        const menuH = menu.offsetHeight;
+        menu.style.display = '';
+        menu.style.visibility = '';
+
+        const rect = btn.getBoundingClientRect();
+        // Position above the button
+        menu.style.bottom = 'auto';
+        menu.style.top    = (rect.top - menuH - 4) + 'px';
+        menu.style.right  = (window.innerWidth - rect.right) + 'px';
+        menu.style.left   = 'auto';
+
+        menu.classList.add('open');
+        const row = btn.closest('tr');
+        if (row) row.classList.add('row-active');
+      }
+    }
+
+    function closeAllDropdowns() {
+      document.querySelectorAll('.row-dropdown-menu.open').forEach(m => {
+        m.classList.remove('open');
+        const row = m.closest('tr');
+        if (row) row.classList.remove('row-active');
+      });
+    }
+
+    document.addEventListener('click', e => { if (!e.target.closest('.dropdown')) closeAllDropdowns(); });
+
+    /* ═════════════════════
+       PARTY DROPDOWN
+    ═════════════════════ */
+    let selectedPartyId = null;
+
+    function buildPartyList() {
+      document.getElementById('partyListItems').innerHTML = PARTIES.map(p => `
+        <div class="party-item" onclick="selectParty(${p.id})">
+          <div class="party-item-info">
+            <div class="party-item-name">${p.name}</div>
+            <div class="party-item-phone">${p.phone}</div>
+          </div>
+          <span class="party-balance-badge ${p.dir}">
+            ${p.balance} <i class="fa-solid fa-${p.dir==='green'?'arrow-up':'arrow-down'}" style="font-size:9px;"></i>
+          </span>
+        </div>`).join('');
+    }
+
+    function togglePartyDropdown() {
+      document.getElementById('partyDropdownList').classList.toggle('open');
+    }
+
+    function selectParty(id) {
+      const party = PARTIES.find(p => p.id === id);
+      if (!party) return;
+      selectedPartyId = id;
+      const txt = document.getElementById('partyDisplayText');
+      txt.textContent = party.name;
+      txt.style.color = '#374151';
+      document.getElementById('partyDropdownList').classList.remove('open');
+      const bl = document.getElementById('partyBalanceLine');
+      bl.style.display = 'block';
+      document.getElementById('partyBalanceVal').textContent = party.balance;
+      document.getElementById('linkPaymentBtn').style.display = 'flex';
+    }
+
+    function addNewParty() {
+      alert('Add New Party — connect to your backend.');
+      document.getElementById('partyDropdownList').classList.remove('open');
+    }
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('#partyFieldWrap') && !e.target.closest('#partyDisplayBox'))
+        document.getElementById('partyDropdownList').classList.remove('open');
+    });
+
+    /* ═════════════════════
+       PAYMENT BOX LOGIC
+    ═════════════════════ */
+    let paymentRowCount = 0;
+
+    function activatePaymentBox() {
+      const initialType = document.getElementById('simplePayType').value;
+      document.getElementById('simplePaymentRow').style.display = 'none';
+      document.getElementById('addPayTypeLinkWrap').style.display = 'none';
+      const section = document.getElementById('paymentSection');
+      section.style.display = 'block';
+      paymentBoxActive = true;
+      addPaymentRow(initialType, '', true);
+      addPaymentRow('', '', false);
+    }
+
+    function addPaymentRow(type='', amount='', isFirst=false) {
+      paymentRowCount++;
+      const id = paymentRowCount;
+      const div = document.createElement('div');
+      div.className = 'payment-row';
+      div.id = 'payRow_' + id;
+
+      const typeOptions = [
+        { value:'Cash',   label:'Cash'   },
+        { value:'Bank',   label:'Bank'   },
+        { value:'Cheque', label:'Cheque' },
+        { value:'UPI',    label:'UPI'    },
+      ];
+
+      const hasType = type !== '';
+      const placeholder = hasType ? '' : '<option value="" disabled selected>Select Type</option>';
+      const opts = typeOptions.map(o =>
+        `<option value="${o.value}"${type===o.value?' selected':''}>${o.label}</option>`
+      ).join('');
+
+      div.innerHTML = `
+        <div class="po-pay-type-col">
+          <label class="po-row-label">Payment Type</label>
+          <select class="po-select-sm" id="payType_${id}" onchange="updateTotal()">
+            ${placeholder}${opts}
+          </select>
+        </div>
+        <div class="po-amount-col">
+          <label class="po-row-label">Amount</label>
+          <input type="number" class="po-amount-input${isFirst?' active-input':''}" id="payAmount_${id}"
+            placeholder="Amount" value="${amount}" min="0" oninput="updateTotal()">
+        </div>
+        <button class="po-delete-btn" onclick="removePaymentRow(${id})" style="${isFirst?'visibility:hidden;':''}">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>`;
+
+      document.getElementById('paymentRows').appendChild(div);
+      updateTotal();
+      if (isFirst) setTimeout(() => document.getElementById('payAmount_' + id)?.focus(), 50);
+    }
+
+    function removePaymentRow(id) {
+      const row = document.getElementById('payRow_' + id);
+      if (row) { row.remove(); updateTotal(); }
+    }
+
+    function updateTotal() {
+      let total = 0;
+      document.querySelectorAll('[id^="payAmount_"]').forEach(inp => { total += parseFloat(inp.value)||0; });
+      document.getElementById('totalPaymentLine').textContent = 'Total payment: ' + total.toFixed(0);
+      document.getElementById('paidDisplay').textContent = total.toFixed(0);
+    }
+
+    function toggleDescription() {
+      const a = document.getElementById('descriptionArea');
+      a.style.display = a.style.display === 'none' ? 'block' : 'none';
+    }
+
+    /* ═════════════════════
+       MODAL OPEN / CLOSE
+    ═════════════════════ */
+    function openModal(editData=null) {
+      editingId = editData ? editData.id : null;
+      resetModal();
+      if (editData) {
+        const party = PARTIES.find(p => p.name === editData.party);
+        if (party) selectParty(party.id);
+        activatePaymentBox();
+        const amt = document.querySelector('[id^="payAmount_"]');
+        if (amt) amt.value = editData.amount;
+        const sel = document.querySelector('[id^="payType_"]');
+        if (sel) sel.value = editData.payType;
+        const rows = document.querySelectorAll('[id^="payRow_"]');
+        if (rows.length > 1) rows[rows.length-1].remove();
+        document.getElementById('refNoInput').value     = editData.refNo || '';
+        document.getElementById('modalReceiptNo').value = editData.receiptNo;
+        document.getElementById('modalDate').value      = editData.date;
+        updateTotal();
+      }
+      document.getElementById('addModal').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('addModal').classList.remove('open');
+      editingId = null;
+    }
+
+    document.getElementById('addModal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    function resetModal() {
+      selectedPartyId = null;
+      paymentBoxActive = false;
+      paymentRowCount = 0;
+
+      const txt = document.getElementById('partyDisplayText');
+      txt.textContent = '';
+      txt.style.color = '#bbb';
+      document.getElementById('partyBalanceLine').style.display = 'none';
+      document.getElementById('partyDropdownList').classList.remove('open');
+      document.getElementById('linkPaymentBtn').style.display = 'none';
+
+      document.getElementById('simplePaymentRow').style.display = 'flex';
+      document.getElementById('addPayTypeLinkWrap').style.display = 'block';
+      document.getElementById('simplePayType').value = 'Cash';
+
+      document.getElementById('paymentSection').style.display = 'none';
+      document.getElementById('paymentRows').innerHTML = '';
+      document.getElementById('refNoInput').value = '';
+      document.getElementById('totalPaymentLine').textContent = 'Total payment: 0';
+      document.getElementById('paidDisplay').textContent = '0';
+
+      document.getElementById('descriptionArea').style.display = 'none';
+      document.getElementById('descriptionArea').value = '';
+
+      const d = new Date();
+      document.getElementById('modalDate').value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      document.getElementById('modalReceiptNo').value = nextReceiptNo;
+    }
+
+    /* ═════════════════════
+       SAVE
+    ═════════════════════ */
+    function savePaymentOut() {
+      if (!selectedPartyId) { alert('Please select a party.'); return; }
+
+      let total = 0;
+      let payType = 'Cash';
+
+      if (paymentBoxActive) {
+        document.querySelectorAll('[id^="payAmount_"]').forEach(inp => { total += parseFloat(inp.value)||0; });
+        const firstSel = document.querySelector('[id^="payType_"]');
+        if (firstSel) payType = firstSel.value || 'Cash';
+        if (total <= 0) { alert('Please enter a valid amount.'); return; }
+      } else {
+        alert('Please enter an amount by clicking "Add Payment type".');
+        return;
+      }
+
+      const party     = PARTIES.find(p => p.id === selectedPartyId);
+      const date      = document.getElementById('modalDate').value;
+      const refNo     = document.getElementById('refNoInput').value;
+      const receiptNo = document.getElementById('modalReceiptNo').value;
+
+      if (editingId !== null) {
+        const idx = payments.findIndex(p => p.id === editingId);
+        if (idx !== -1) payments[idx] = {...payments[idx], party:party.name, amount:total, payType, date, refNo, receiptNo};
+      } else {
+        payments.push({id:nextId++, party:party.name, amount:total, payType, date, refNo, receiptNo, status:'Unused'});
+        nextReceiptNo++;
+      }
+      applyFilters();
+      closeModal();
+    }
+
+    /* ═════════════════════
+       EDIT / DELETE / DUP
+    ═════════════════════ */
+    function editPayment(id)      { const p = payments.find(x=>x.id===id); if (p) openModal(p); }
+    function deletePayment(id)    { if (!confirm('Delete this payment?')) return; payments = payments.filter(p=>p.id!==id); applyFilters(); }
+    function duplicatePayment(id) { const p = payments.find(x=>x.id===id); if (!p) return; payments.push({...p,id:nextId++,receiptNo:nextReceiptNo++}); applyFilters(); }
+
+    /* ═════════════════════
+       HISTORY MODAL
+    ═════════════════════ */
+    function openHistoryModal(id) {
+      const p = payments.find(x=>x.id===id);
+      if (!p) return;
+      const dateStr = new Date(p.date+'T00:00:00').toLocaleDateString('en-GB');
+      document.getElementById('historyModalBody').innerHTML = `
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:16px;margin-bottom:20px;">
+          <p style="font-weight:700;margin-bottom:10px;">Payment Details Summary:</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-size:13px;">
+            <div><strong>Receipt No:</strong> ${p.receiptNo}</div>
+            <div><strong>Payment Type:</strong> <span class="badge-payment">${p.payType}</span></div>
+            <div><strong>Amount:</strong> <span class="amount-danger">Rs ${parseFloat(p.amount).toFixed(2)}</span></div>
+            <div><strong>Party:</strong> ${p.party}</div>
+            <div><strong>Status:</strong> ${p.status}</div>
           </div>
         </div>
-      `;
-
-      $('body').append(historyHtml);
-      const modal = new bootstrap.Modal(document.getElementById('paymentOutHistoryModal'));
-      modal.show();
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:9px 12px;font-weight:500;color:#6c757d;border-bottom:1px solid #e5e7eb;">Date</th>
+            <th style="padding:9px 12px;font-weight:500;color:#6c757d;border-bottom:1px solid #e5e7eb;">Action</th>
+            <th style="padding:9px 12px;font-weight:500;color:#6c757d;border-bottom:1px solid #e5e7eb;">Amount</th>
+            <th style="padding:9px 12px;font-weight:500;color:#6c757d;border-bottom:1px solid #e5e7eb;">Type</th>
+            <th style="padding:9px 12px;font-weight:500;color:#6c757d;border-bottom:1px solid #e5e7eb;">User</th>
+          </tr></thead>
+          <tbody><tr>
+            <td style="padding:10px 12px;border-bottom:1px solid #f1f1f1;color:#6b7280;">${dateStr}</td>
+            <td style="padding:10px 12px;border-bottom:1px solid #f1f1f1;"><strong>Payment Out Recorded</strong><br><small style="color:#9ca3af;">Supplier payment for ${p.party}</small></td>
+            <td style="padding:10px 12px;border-bottom:1px solid #f1f1f1;color:#D4112E;font-weight:700;">Rs ${parseFloat(p.amount).toFixed(2)}</td>
+            <td style="padding:10px 12px;border-bottom:1px solid #f1f1f1;"><span class="badge-payment">${p.payType}</span></td>
+            <td style="padding:10px 12px;border-bottom:1px solid #f1f1f1;"><i class="fa-solid fa-user" style="color:#9ca3af;margin-right:4px;"></i>Admin</td>
+          </tr></tbody>
+        </table>`;
+      document.getElementById('historyModal').classList.add('open');
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
-      const rows = Array.from(document.querySelectorAll('.payment-out-row'));
-      const searchInput = document.getElementById('paymentOutSearchInput');
-      const periodFilter = document.getElementById('paymentOutPeriodFilter');
-      const firmFilter = document.getElementById('paymentOutFirmFilter');
-      const totalAmountEl = document.getElementById('paymentOutTotalAmount');
-      const totalCountEl = document.getElementById('paymentOutTotalCount');
-      const paidAmountEl = document.getElementById('paymentOutPaidAmount');
-      const linkedBillsEl = document.getElementById('paymentOutLinkedBills');
-      const dateRangeLabel = document.getElementById('paymentOutDateRangeLabel');
-      const modalPartyFilter = document.getElementById('paymentOutPartyFilter');
-      const modalAmountInput = document.getElementById('paymentOutAmount');
-      const selectedBillInput = document.getElementById('paymentOutSelectedBill');
-      const selectedPartyInput = document.getElementById('paymentOutSelectedParty');
-      const selectedBalanceInput = document.getElementById('paymentOutSelectedBalance');
-      const purchaseOptionRows = Array.from(document.querySelectorAll('.payment-out-purchase-row'));
-      const purchaseChecks = Array.from(document.querySelectorAll('.payment-out-purchase-check'));
+    function closeHistoryModal() { document.getElementById('historyModal').classList.remove('open'); }
+    document.getElementById('historyModal').addEventListener('click', function(e) { if (e.target===this) closeHistoryModal(); });
 
-      function getDateRange(period) {
-        const today = new Date();
-        let from = null;
-        let to = null;
-
-        if (period === 'today') {
-          from = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-          to = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        } else if (period === 'this_month') {
-          from = new Date(today.getFullYear(), today.getMonth(), 1);
-          to = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        } else if (period === 'last_month') {
-          from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-          to = new Date(today.getFullYear(), today.getMonth(), 0);
-        } else if (period === 'this_year') {
-          from = new Date(today.getFullYear(), 0, 1);
-          to = new Date(today.getFullYear(), 11, 31);
-        }
-
-        return { from, to };
-      }
-
-      function formatDate(date) {
-        return date ? date.toLocaleDateString('en-GB') : '';
-      }
-
-      function updateDateLabel(period) {
-        const range = getDateRange(period);
-        if (!range.from || !range.to) {
-          dateRangeLabel.textContent = 'All dates';
-          return;
-        }
-        dateRangeLabel.textContent = `${formatDate(range.from)} To ${formatDate(range.to)}`;
-      }
-
-      function rowMatchesPeriod(row, period) {
-        if (period === 'all') {
-          return true;
-        }
-
-        const value = row.getAttribute('data-date');
-        if (!value) {
-          return false;
-        }
-
-        const rowDate = new Date(value + 'T00:00:00');
-        const range = getDateRange(period);
-        if (!range.from || !range.to) {
-          return true;
-        }
-
-        return rowDate >= range.from && rowDate <= range.to;
-      }
-
-      function applyFilters() {
-        const term = (searchInput?.value || '').toLowerCase().trim();
-        const period = periodFilter?.value || 'all';
-        const firm = (firmFilter?.value || '').toLowerCase().trim();
-
-        let total = 0;
-        let count = 0;
-        let linked = 0;
-
-        rows.forEach((row) => {
-          const matchesSearch = !term || (row.getAttribute('data-search') || '').includes(term);
-          const matchesFirm = !firm || (row.getAttribute('data-party') || '') === firm;
-          const matchesPeriod = rowMatchesPeriod(row, period);
-          const visible = matchesSearch && matchesFirm && matchesPeriod;
-
-          row.style.display = visible ? '' : 'none';
-
-          if (visible) {
-            total += parseFloat(row.getAttribute('data-amount') || '0');
-            count += 1;
-            linked += 1;
-          }
-        });
-
-        totalAmountEl.textContent = `Rs ${total.toFixed(2)}`;
-        paidAmountEl.textContent = `Rs ${total.toFixed(2)}`;
-        totalCountEl.textContent = count;
-        linkedBillsEl.textContent = linked;
-        updateDateLabel(period);
-      }
-
-      function updateSelectedPurchaseSummary() {
-        const selected = document.querySelector('.payment-out-purchase-check:checked');
-        if (!selected) {
-          selectedBillInput.value = 'No bill selected';
-          selectedPartyInput.value = 'No party selected';
-          selectedBalanceInput.value = 'Rs 0.00';
-          return;
-        }
-
-        const row = selected.closest('.payment-out-purchase-row');
-        const balance = parseFloat(row?.getAttribute('data-balance') || '0');
-        selectedBillInput.value = row?.getAttribute('data-bill') || '-';
-        selectedPartyInput.value = row?.getAttribute('data-party-name') || '-';
-        selectedBalanceInput.value = `Rs ${balance.toFixed(2)}`;
-
-        if (!modalAmountInput.value || parseFloat(modalAmountInput.value || '0') > balance) {
-          modalAmountInput.value = balance > 0 ? balance.toFixed(2) : '';
-        }
-      }
-
-      function filterPendingPurchasesByParty() {
-        const partyId = modalPartyFilter?.value || '';
-
-        purchaseOptionRows.forEach((row) => {
-          const match = !partyId || row.getAttribute('data-party-id') === partyId;
-          row.style.display = match ? '' : 'none';
-
-          const radio = row.querySelector('.payment-out-purchase-check');
-          if (!match && radio?.checked) {
-            radio.checked = false;
-          }
-        });
-
-        updateSelectedPurchaseSummary();
-      }
-
-      searchInput?.addEventListener('input', applyFilters);
-      periodFilter?.addEventListener('change', applyFilters);
-      firmFilter?.addEventListener('change', applyFilters);
-      modalPartyFilter?.addEventListener('change', filterPendingPurchasesByParty);
-      purchaseChecks.forEach((radio) => {
-        radio.addEventListener('change', updateSelectedPurchaseSummary);
+    /* ═════════════════════
+       COLUMN RESIZING
+    ═════════════════════ */
+    document.querySelectorAll('.resizer').forEach(resizer => {
+      let startX, startW, col;
+      resizer.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        col = document.getElementById(this.dataset.col);
+        startX = e.clientX; startW = col.offsetWidth;
+        resizer.classList.add('active');
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
       });
-
-      updateDateLabel(periodFilter?.value || 'this_month');
-      applyFilters();
-      updateSelectedPurchaseSummary();
+      function onMove(e) { col.style.width = Math.max(60, startW+(e.clientX-startX))+'px'; }
+      function onUp()    { resizer.classList.remove('active'); document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); }
     });
+
+    /* ═════════════════════
+       INIT
+    ═════════════════════ */
+    document.addEventListener('DOMContentLoaded', () => { buildPartyList(); applyFilters(); });
   </script>
-  <script>
-  (function () {
-    var isResizing = false, startX = 0, startW = 0, thEl = null;
-    function init() {
-      document.querySelectorAll('.custom-table thead th').forEach(function (th) {
-        if (th.querySelector('.col-rh')) return;
-        th.style.position = 'relative';
-        var h = document.createElement('div');
-        h.className = 'col-rh';
-        h.style.cssText = 'position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;z-index:10;';
-        th.appendChild(h);
-      });
-    }
-    document.addEventListener('mousedown', function (e) {
-      if (!e.target.classList.contains('col-rh')) return;
-      e.preventDefault();
-      thEl = e.target.closest('th'); isResizing = true;
-      startX = e.clientX; startW = thEl.getBoundingClientRect().width;
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    });
-    document.addEventListener('mousemove', function (e) {
-      if (!isResizing || !thEl) return;
-      var w = Math.max(60, startW + (e.clientX - startX));
-      thEl.style.minWidth = w + 'px'; thEl.style.width = w + 'px';
-    });
-    document.addEventListener('mouseup', function () {
-      if (!isResizing) return;
-      isResizing = false; thEl = null;
-      document.body.style.cursor = ''; document.body.style.userSelect = '';
-    });
-    document.addEventListener('DOMContentLoaded', init);
-  })();
-</script>
 </body>
-
 </html>
-

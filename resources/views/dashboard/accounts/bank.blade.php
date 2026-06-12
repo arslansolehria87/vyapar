@@ -1794,7 +1794,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
                 <td>{{ $transaction->party_name ?? '-' }}</td>
                 <td>{{ $transaction->bank_name ?? '-' }}</td>
                 <td>{{ $transaction->payment_type ?? '-' }}</td>
-                <td>{{ optional($transaction->created_at)->format('d/m/Y h:i A') }}</td>
+                <td>{{ optional($transaction->created_at)->format('d/m/Y') }}</td>
                 <td class="{{ $amountClass }}">₹ {{ number_format($transaction->amount, 2) }}</td>
                 <td class="action-cell">
                   <div class="action-dropdown">
