@@ -109,7 +109,7 @@
         .purchase-doc-label {
             text-align: right;
             color: #8b93a7;
-            font-size: 17px;
+            font-size: 13px;
             font-weight: 500;
         }
 
@@ -119,7 +119,7 @@
             padding: 8px 0 6px;
             background: transparent;
             color: #1f2937;
-            font-size: 16px;
+            font-size: 13px;
             font-weight: 500;
             outline: none;
         }
