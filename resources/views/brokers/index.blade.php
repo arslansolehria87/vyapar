@@ -274,7 +274,7 @@
       </div>
 
       <div class="modal-body">
-        <form id="addBrokerForm">
+        <form id="addBrokerForm" action="{{ route('brokers.store') }}" method="POST">
           @csrf
           <input type="hidden" id="brokerId" name="broker_id" value="">
           <input type="hidden" id="brokerFormMethod" name="_method" value="POST">
@@ -612,6 +612,7 @@
     const resetFormForCreate = () => {
       brokerModalMode = 'create';
       brokerForm.action = "{{ route('brokers.store') }}";
+      brokerForm.method = 'POST';
       brokerFormMethod.value = 'POST';
       brokerModalLabel.textContent = 'Add Broker';
       brokerForm.reset();
@@ -632,6 +633,7 @@
 
       const modal = bootstrap.Modal.getOrCreateInstance(brokerModal);
       brokerModalMode = 'edit';
+      brokerForm.method = 'POST';
       brokerFormMethod.value = 'PUT';
       brokerModalLabel.textContent = 'Edit Broker';
 
@@ -676,37 +678,43 @@
     });
 
     async function submitBrokerForm(saveNew = false, isUpdate = false) {
+      if (!brokerForm.reportValidity()) {
+        return;
+      }
+
       const formData = new FormData(brokerForm);
-      const method = brokerFormMethod.value;
-      const url = brokerForm.action;
+      const method = (brokerFormMethod.value || 'POST').toUpperCase();
+      const url = brokerForm.action || "{{ route('brokers.store') }}";
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+      formData.set('_method', method === 'PUT' ? 'PUT' : 'POST');
 
       try {
         const response = await fetch(url, {
-          method: method === 'PUT' ? 'POST' : 'POST',
+          method: 'POST',
           headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'X-CSRF-TOKEN': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
             'Accept': 'application/json',
           },
-          body: formData
+          body: formData,
         });
 
-        if (response.ok) {
-          await response.json().catch(() => ({}));
+        const contentType = response.headers.get('content-type') || '';
+        const data = contentType.includes('application/json') ? await response.json().catch(() => null) : null;
 
-          // Refresh broker list
-          location.reload();
+        if (response.ok) {
+          showSuccessToast(isUpdate ? 'Broker updated successfully' : 'Broker added successfully');
 
           if (!saveNew) {
             const modal = bootstrap.Modal.getInstance(brokerModal);
-            modal.hide();
-          } else {
-            resetFormForCreate();
+            modal?.hide();
           }
 
-          // Show success toast
-          showSuccessToast(isUpdate ? 'Broker updated successfully' : 'Broker added successfully');
+          window.location.reload();
         } else {
-          showErrorToast('Failed to save broker');
+          const message = data?.message || (data?.errors ? 'Please review the form values and try again.' : 'Failed to save broker');
+          showErrorToast(message);
         }
       } catch (error) {
         console.error('Error:', error);

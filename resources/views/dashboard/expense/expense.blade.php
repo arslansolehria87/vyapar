@@ -3615,7 +3615,8 @@ function saveAddBank() {
     const selectedTax = getExpenseTaxRateById(state.summaryTaxRateId || '');
     const taxRateValue = parseFloat(selectedTax?.rate || 0) || 0;
     const taxAmount = parseFloat(state.summaryTaxAmount || 0) || 0;
-    const shouldShow = taxEnabled || discountPercent > 0 || discountAmount > 0 || taxRateValue > 0 || taxAmount > 0;
+    const forceVisible = section.dataset.forceVisible === '1';
+    const shouldShow = forceVisible || taxEnabled || discountPercent > 0 || discountAmount > 0 || taxRateValue > 0 || taxAmount > 0;
     section.style.display = shouldShow ? 'block' : 'none';
     if (!shouldShow) {
       section.innerHTML = '';

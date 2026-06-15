@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Party;
+use App\Models\BankAccount;
+use App\Models\Broker;
+use App\Models\Item;
 use App\Models\Sale;
 
 class Transaction extends Model
@@ -15,6 +18,8 @@ class Transaction extends Model
         'party_id',
         'counter_party_id',
         'type',
+        'bank_account_id',
+        'payment_type',
         'number',
         'transfer_group',
         'date',
@@ -28,6 +33,7 @@ class Transaction extends Model
         'status',
         'description',
         'broker_id',
+        'item_id',
         'broker_amount',
         'labour',
         'bardana',
@@ -64,6 +70,21 @@ class Transaction extends Model
     public function counterParty()
     {
         return $this->belongsTo(Party::class, 'counter_party_id');
+    }
+
+    public function broker()
+    {
+        return $this->belongsTo(Broker::class);
+    }
+
+    public function item()
+    {
+        return $this->belongsTo(Item::class);
+    }
+
+    public function bankAccount()
+    {
+        return $this->belongsTo(BankAccount::class);
     }
 
     public function items()

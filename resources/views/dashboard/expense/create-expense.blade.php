@@ -159,7 +159,7 @@
       </div>
     </div>
 
-    <div id="expenseDiscountTaxSection" class="expense-section-card" style="display:none; margin-top:14px;">
+    <div id="expenseDiscountTaxSection" class="expense-section-card expense-discount-tax-block" data-force-visible="1" style="display:block; margin-top:14px;">
       <div class="expense-discount-row" style="display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:wrap; width:100%;">
         <span class="expense-row-label" style="min-width:78px; text-align:right; font-size:14px; color:#666; margin-right:6px;">Discount</span>
         <div class="floating-input-wrapper expense-floating-wrapper expense-compact-wrapper expense-inline-input" style="width:108px; max-width:108px;">

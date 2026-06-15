@@ -329,6 +329,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
 
 
     Route::get('/payment-out', [PurchaseExpenseController::class, 'paymentOut'])->name('payment-out');
+    Route::get('/payment-out/linkable-purchases/{party}', [PurchaseExpenseController::class, 'linkablePurchases'])->name('payment-out.linkable-purchases');
     Route::post('/payment-out', [PurchaseExpenseController::class, 'storePaymentOut'])->name('payment-out.store');
     Route::get('purchase-return', [PurchaseReturnController::class, 'index'])->name('purchase-return');
     Route::get('purchase-return/create', [PurchaseReturnController::class, 'create'])->name('purchase-return.create');
