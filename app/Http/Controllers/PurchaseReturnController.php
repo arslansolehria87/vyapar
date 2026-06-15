@@ -8,6 +8,7 @@ use App\Models\Item;
 use App\Models\Party;
 use App\Models\Purchase;
 use App\Support\TransactionNumberPrefix;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -125,10 +126,17 @@ class PurchaseReturnController extends Controller
         abort_unless($purchase->type === 'purchase_return', 404);
         $purchase->load(['items', 'payments.bankAccount', 'party']);
 
-        return view('dashboard.purchases.purchase-return.purchase-return-preview', [
+        $fileName = 'purchase-return-' . ($purchase->bill_number ?: $purchase->id) . '.pdf';
+        $pdf = Pdf::loadView('dashboard.purchases.purchase-return.purchase-return-preview', [
             'purchase' => $purchase,
             'pdfMode' => true,
-        ]);
+        ])->setPaper('a4', 'portrait');
+
+        if (request()->boolean('download')) {
+            return $pdf->download($fileName);
+        }
+
+        return $pdf->stream($fileName);
     }
 
     private function renderPurchaseReturnForm(?Purchase $purchaseReturn = null, ?Purchase $duplicatePurchaseReturn = null)

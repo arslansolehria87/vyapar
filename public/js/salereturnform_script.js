@@ -9,7 +9,7 @@ function initializeForm(context) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     const itemOptionsHtml = (window.items || []).map(item => {
-        const plainLabel = item.name || ""; const richLabel = `${plainLabel} | Sale: ${item.sale_price ?? item.price ?? 0} | Stock: ${item.opening_qty ?? 0} | Location: ${item.location ?? ""}`; return `<option value="${item.id}" data-price="${item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}" data-category="${item.category_name || item.category?.name || item.category || item.category_id || ''}" data-item-code="${item.item_code || ''}" data-description="${item.description || item.item_description || ''}" data-discount="${item.discount ?? 0}">${richLabel}</option>`;
+        const plainLabel = item.name || ""; const richLabel = `${plainLabel} | Sale: ${item.sale_price ?? item.price ?? 0} | Stock: ${item.opening_qty ?? 0} | Location: ${item.location ?? ""}`; return `<option value="${item.id}" data-price="${item.price ?? ""}" data-purchase-price="${item.purchase_price ?? item.price ?? ""}" data-sale-price="${item.sale_price ?? ""}" data-stock="${item.opening_qty ?? ""}" data-location="${item.location ?? ""}" data-label="${plainLabel}" data-rich-label="${richLabel}" data-unit="${item.unit || ''}" data-category="${item.category_name || item.category?.name || item.category || item.category_id || ''}" data-item-code="${item.item_code || ''}" data-description="${item.description || item.item_description || ''}" data-discount="${item.discount ?? 0}">${richLabel}</option>`;
     }).join('');
 
     const today = new Date();
@@ -142,8 +142,16 @@ function initializeForm(context) {
     bindDateMirror('.order-date', '.order-date-text');
     bindDateMirror('.due-date', '.due-date-text');
 
+    applyItemSettingsToColumnChecks();
+    applyColumnVisibility();
+    renderItemSettingsColumns();
+    renderTransactionSettings();
+
     if (window.editSaleReturnData) {
         populateFormFromSaleReturn(window.editSaleReturnData);
+        applyColumnVisibility();
+        renderItemSettingsColumns();
+        renderTransactionSettings();
     }
 
     function setupAdjustmentControls() {
@@ -181,6 +189,109 @@ function initializeForm(context) {
         $ctx.find('.item-rows tr').each(function(index) {
             $(this).find('.row-index-text').text(index + 1);
         });
+    }
+
+    function boolSetting(value) {
+        return value === true || value === 1 || value === '1' || value === 'true' || value === 'on';
+    }
+
+    function applyItemSettingsToColumnChecks() {
+        const itemSettings = window.itemFormSettings || window.itemSettings || {};
+        const transactionSettings = window.saleFormSettings || {};
+        const tableSettings = transactionSettings.items_table || {};
+
+        const categoryEnabled = boolSetting(itemSettings.item_category_enabled);
+        const descriptionEnabled = boolSetting(itemSettings.description_enabled);
+        const discountEnabled = boolSetting(itemSettings.item_wise_discount_enabled);
+        const itemCodeEnabled = boolSetting(itemSettings.item_code_enabled)
+            || boolSetting(itemSettings.barcode_scan_enabled)
+            || boolSetting(itemSettings.direct_barcode_scan_enabled);
+
+        $ctx.find('.check-category').prop('checked', categoryEnabled);
+        $ctx.find('.check-item-code').prop('checked', itemCodeEnabled);
+        $ctx.find('.check-description').prop('checked', descriptionEnabled);
+        $ctx.find('.check-discount').prop('checked', discountEnabled);
+
+        if (window.transactionSettings) {
+            window.transactionSettings.countEnabled = boolSetting(window.transactionSettings.countEnabled)
+                || boolSetting(itemSettings.count_enabled)
+                || boolSetting(tableSettings.count_enabled);
+            window.transactionSettings.countLabel = itemSettings.count_label || tableSettings.count_label || window.transactionSettings.countLabel || 'Count';
+        }
+    }
+
+    function applyColumnVisibility() {
+        const isCatVisible = $ctx.find('.check-category').is(':checked');
+        const isCodeVisible = $ctx.find('.check-item-code').is(':checked');
+        const isDescVisible = $ctx.find('.check-description').is(':checked');
+        const isDiscVisible = $ctx.find('.check-discount').is(':checked');
+
+        $ctx.find('.col-category').toggleClass('d-none', !isCatVisible);
+        $ctx.find('.col-item-code').toggleClass('d-none', !isCodeVisible);
+        $ctx.find('.col-description').toggleClass('d-none', !isDescVisible);
+        $ctx.find('.col-discount').toggleClass('d-none', !isDiscVisible);
+    }
+
+    function renderItemSettingsColumns() {
+        const settings = window.itemFormSettings || window.itemSettings || {};
+        const tableSettings = window.saleFormSettings?.items_table || {};
+        const showFreeQty = boolSetting(settings.free_item_qty_enabled) || boolSetting(tableSettings.free_item_qty_enabled);
+        const mappings = [
+            { selector: '.col-barcode-scan', enabled: boolSetting(settings.barcode_scan_enabled) || boolSetting(settings.direct_barcode_scan_enabled), label: 'Scan' },
+            { selector: '.col-serial-no', enabled: boolSetting(settings.serial_tracking?.enabled), label: settings.serial_tracking?.label || 'Serial No.' },
+            { selector: '.col-count', enabled: boolSetting(settings.count_enabled) || boolSetting(tableSettings.count_enabled), label: settings.count_label || tableSettings.count_label || 'Count' },
+            { selector: '.col-batch-no', enabled: boolSetting(settings.batch_tracking?.batch_no?.enabled), label: settings.batch_tracking?.batch_no?.label || 'Batch No.' },
+            { selector: '.col-model-no', enabled: boolSetting(settings.batch_tracking?.model_no?.enabled), label: settings.batch_tracking?.model_no?.label || 'Model No.' },
+            { selector: '.col-exp-date', enabled: boolSetting(settings.batch_tracking?.exp_date?.enabled), label: settings.batch_tracking?.exp_date?.label || 'Exp. Date' },
+            { selector: '.col-mfg-date', enabled: boolSetting(settings.batch_tracking?.mfg_date?.enabled), label: settings.batch_tracking?.mfg_date?.label || 'Mfg. Date' },
+            { selector: '.col-mrp', enabled: boolSetting(settings.mrp?.enabled), label: settings.mrp?.label || 'MRP' },
+            { selector: '.col-size', enabled: boolSetting(settings.batch_tracking?.size?.enabled), label: settings.batch_tracking?.size?.label || 'Size' },
+            { selector: '.col-free-qty', enabled: showFreeQty, label: 'Free Qty' },
+            { selector: '.col-item-tax', enabled: boolSetting(settings.item_wise_tax_enabled), label: 'Tax' }
+        ];
+
+        mappings.forEach(function (mapping) {
+            const $cells = $ctx.find(mapping.selector);
+            $cells.toggleClass('d-none', !mapping.enabled);
+            $cells.filter('th').text(String(mapping.label).toUpperCase());
+            $cells.find('input').attr('placeholder', mapping.label);
+        });
+
+        (settings.custom_fields || []).slice(0, 6).forEach(function (field, index) {
+            const $cells = $ctx.find(`.col-custom-field-${index + 1}`);
+            const enabled = boolSetting(field?.enabled);
+            const label = String(field?.label || `Custom Field ${index + 1}`);
+            $cells.toggleClass('d-none', !enabled);
+            $cells.filter('th').text(label.toUpperCase());
+            $cells.find('input').attr('placeholder', label);
+        });
+
+        $ctx.find('.custom-size-th, .custom-size-td').toggleClass('d-none', settings.items_unit_enabled === false);
+
+        const quantityDecimals = Math.max(0, Math.min(4, parseInt(settings.quantity_decimals ?? 2, 10) || 0));
+        $ctx.find('.item-qty').attr('step', quantityDecimals ? `0.${'0'.repeat(Math.max(0, quantityDecimals - 1))}1` : '1');
+    }
+
+    function renderTransactionSettings() {
+        const totals = window.saleFormSettings?.transaction_totals || {};
+        const discountEnabled = totals.discount_enabled !== false;
+        const taxEnabled = totals.tax_enabled !== false;
+        const roundEnabled = totals.round_total_enabled !== false;
+
+        $ctx.find('.transaction-discount-row').toggleClass('d-none', !discountEnabled);
+        $ctx.find('.transaction-tax-row').toggleClass('d-none', !taxEnabled);
+        $ctx.find('.transaction-round-off-row').toggleClass('d-none', !roundEnabled);
+
+        if (!discountEnabled) {
+            $ctx.find('.discount-pct, .discount-rs').val('');
+        }
+        if (!taxEnabled) {
+            $ctx.find('.tax-select').val('0');
+        }
+        if (!roundEnabled) {
+            $ctx.find('.round-off-check').prop('checked', false);
+            $ctx.find('.round-off-val').val('0');
+        }
     }
 
     function populateFormFromSaleReturn(saleReturn) {
@@ -278,13 +389,39 @@ function initializeForm(context) {
         $paidInput.val(parseFloat((docType === 'purchase_return' ? saleReturn.paid_amount : saleReturn.received_amount) || 0).toFixed(2));
         $ctx.find('.description-input').val(saleReturn.description || '');
 
-        calculateTotals();
+            calculateTotals();
     }
 
     function addRow() {
         const rowCount = $ctx.find('.item-rows tr').length + 1;
         const optionsHtml = itemOptionsHtml;
-        const unitOptionsHtml = `<option value="">Select Unit</option><option value="PCS">PCS (Pieces)</option><option value="BOX">BOX</option><option value="PACK">PACK</option><option value="SET">SET</option><option value="KG">KG (Kilogram)</option><option value="G">Gram</option><option value="M">Meter</option><option value="FT">Feet</option><option value="L">Liter</option><option value="ML">Milliliter</option><option value="__add_unit__">+ Add Unit</option>`;
+        const isCatVisible = $ctx.find('.check-category').is(':checked');
+        const isCodeVisible = $ctx.find('.check-item-code').is(':checked');
+        const isDescVisible = $ctx.find('.check-description').is(':checked');
+        const isDiscVisible = $ctx.find('.check-discount').is(':checked');
+        const escapeHtml = value => String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+        const pickerRowsHtml = (window.items || []).map(item => {
+            const itemName = escapeHtml(item.name || '');
+            const itemCode = item.item_code ? ` <small>(${escapeHtml(item.item_code)})</small>` : '';
+            const purchasePrice = Number.parseFloat(item.purchase_price ?? 0) || 0;
+            const salePrice = Number.parseFloat(item.sale_price ?? item.price ?? 0) || 0;
+            const stock = Number.parseFloat(item.opening_qty ?? 0) || 0;
+            const stockClass = stock < 0 ? ' neg' : '';
+
+            return `
+                <div class="item-picker-row item-picker-option" data-id="${item.id}" data-type="product">
+                    <div class="item-picker-name">${itemName}${itemCode}</div>
+                    <div>${purchasePrice.toFixed(2)}</div>
+                    <div>${salePrice.toFixed(2)}</div>
+                    <div class="item-picker-stock${stockClass}">${stock}</div>
+                </div>
+            `;
+        }).join('');
 
         const newRow = `
             <tr class="item-row">
@@ -292,19 +429,23 @@ function initializeForm(context) {
                     <span class="row-index-text">${rowCount}</span>
                     <div class="delete-row-icon"><i class="fa-solid fa-trash-can"></i></div>
                 </td>
+                <td class="col-barcode-scan d-none">
+                    <button type="button" class="btn btn-sm btn-outline-primary open-scan-serial-modal" title="Scan code/serial"><i class="fa-solid fa-qrcode"></i></button>
+                </td>
                 <td class="col-item-name">
                     <div class="item-picker">
-                        <input type="text" class="item-picker-input" placeholder="Search Item" style="position: relative; z-index: 10;">
+                        <input type="text" class="item-picker-input" placeholder="Search Item">
                         <div class="item-picker-panel">
                             <div class="item-picker-add" style="display: flex; align-items: center; gap: 8px; padding: 12px 18px; color: #2563eb; font-weight: 600; cursor: pointer; border-bottom: 1px solid #e1e8ed;"><i class="fa-regular fa-square-plus"></i> Add Item</div>
-                            <div class="item-picker-head" style="display: grid; grid-template-columns: minmax(0, 2fr) 100px 110px 80px 80px; gap: 12px; padding: 10px 18px; font-size: 12px; font-weight: 700; color: #97a3b6; text-transform: uppercase; background: #f8fbff; border-bottom: 1px solid #e1e8ed;">
+                            <div class="item-picker-head" style="display: grid; grid-template-columns: minmax(0, 2fr) 100px 110px 80px; gap: 12px; padding: 10px 18px; font-size: 12px; font-weight: 700; color: #97a3b6; text-transform: uppercase; background: #f8fbff; border-bottom: 1px solid #e1e8ed;">
                                 <span>Item</span>
-                                <span>Sale Price</span>
                                 <span>Purchase Price</span>
+                                <span>Sale Price</span>
                                 <span>Stock</span>
-                                <span>Weight</span>
                             </div>
-                            <div class="item-picker-list" style="max-height: 280px; overflow-y: auto;"></div>
+                            <div class="item-picker-list" style="max-height: 280px; overflow-y: auto;">
+                                ${pickerRowsHtml || '<div class="item-picker-empty">No items found</div>'}
+                            </div>
                         </div>
                         <select class="form-select item-name d-none">
                             <option value="" selected disabled>Select Item</option>
@@ -313,7 +454,9 @@ function initializeForm(context) {
                     </div>
                 </td>
                 <td class="col-serial-no d-none"><input type="text" class="item-serial-input" placeholder="Serial No."></td>
-                <td class="col-description d-none"><input type="text" class="item-desc" placeholder="Description" readonly></td>
+                <td class="col-category ${isCatVisible ? '' : 'd-none'}"><input type="text" class="item-category" placeholder="Category"></td>
+                <td class="col-item-code ${isCodeVisible ? '' : 'd-none'}"><input type="text" class="item-code" placeholder="Item Code"></td>
+                <td class="col-description ${isDescVisible ? '' : 'd-none'}"><input type="text" class="item-desc" placeholder="Description"></td>
                 <td class="col-count d-none"><input type="number" class="item-count-input" value="0" min="0" step="1"></td>
                 <td class="col-batch-no d-none"><input type="text" class="item-batch-no-input" placeholder="Batch No."></td>
                 <td class="col-model-no d-none"><input type="text" class="item-model-no-input" placeholder="Model No."></td>
@@ -321,23 +464,15 @@ function initializeForm(context) {
                 <td class="col-mfg-date d-none"><input type="date" class="item-mfg-date-input"></td>
                 <td class="col-mrp d-none"><input type="number" class="item-mrp-input" value="0" min="0" step="0.01"></td>
                 <td class="col-size d-none"><input type="text" class="item-size-input" placeholder="Size"></td>
-                <td class="col-tafseel"><input type="text" class="item-tafseel" placeholder="Detail"></td>
-                <td class="col-tadaat"><input type="number" class="item-qty tadaat-input" value="1"></td>
+                <td class="col-discount ${isDiscVisible ? '' : 'd-none'}"><input type="number" class="item-discount" value="0"></td>
+                <td class="col-item-tax d-none"><input type="number" class="item-tax-amount" value="0" min="0" step="0.01"></td>
+                <td><input type="number" class="item-qty" value="1"></td>
                 <td class="col-free-qty d-none"><input type="number" class="item-free-qty" value="0" min="0" step="1"></td>
-                <td class="col-gross-w"><input type="number" class="gross-w-input" value="0" min="0" step="0.01"></td>
-                <td class="col-net-w"><input type="number" class="net-w-input" value="0" min="0" step="0.01"></td>
                 <td class="custom-size-td">
-                    <div class="item-unit-wrapper d-flex align-items-center gap-1">
-                        <select class="item-unit">${unitOptionsHtml}</select>
-                        <button type="button" class="btn btn-sm btn-outline-primary open-add-unit-from-selector" title="Add Unit"><i class="fa-solid fa-plus"></i></button>
-                    </div>
+                    <select class="item-unit"><option value="">Select Unit</option><option value="PCS">PCS (Pieces)</option><option value="BOX">BOX</option><option value="PACK">PACK</option><option value="SET">SET</option><option value="KG">KG (Kilogram)</option><option value="G">Gram</option><option value="M">Meter</option><option value="FT">Feet</option><option value="L">Liter</option><option value="ML">Milliliter</option></select>
                 </td>
-                <td class="col-rate"><input type="number" class="item-rate" value="0" min="0" step="0.01"></td>
-                <td class="col-amount"><input type="number" class="item-amount" value="0" min="0" step="0.01" readonly></td>
-                <td class="col-category d-none"><select class="item-category"><option value="">Select Category</option></select></td>
-                <td class="col-item-code d-none"><input type="text" class="item-code" placeholder="Item Code" readonly></td>
-                <td class="col-discount d-none"><div class="item-discount-fields"><input type="number" class="item-discount-pct" value="" min="0" step="0.01" placeholder="%"><input type="number" class="item-discount" value="0" min="0" step="0.01" placeholder="Amount"></div></td>
-                <td class="col-item-tax d-none"><div class="item-tax-fields"><input type="number" class="item-tax-pct" value="" min="0" step="0.01" placeholder="%"><input type="number" class="item-tax-amount" value="0" min="0" step="0.01" placeholder="Amount"></div></td>
+                <td><input type="number" class="item-price" value="0"></td>
+                <td class="col-amount"><input type="text" class="item-amount" value="0" readonly></td>
                 <td class="custom-item-field col-custom-field-1 d-none"><input type="text" class="item-custom-field-input item-custom-field-1-input" placeholder="Custom Field 1"></td>
                 <td class="custom-item-field col-custom-field-2 d-none"><input type="text" class="item-custom-field-input item-custom-field-2-input" placeholder="Custom Field 2"></td>
                 <td class="custom-item-field col-custom-field-3 d-none"><input type="text" class="item-custom-field-input item-custom-field-3-input" placeholder="Custom Field 3"></td>
@@ -424,15 +559,16 @@ function initializeForm(context) {
         $ctx.find('.item-row').each(function() {
             const $row = $(this);
             const qty = parseFloat($row.find('.item-qty').val()) || 0;
-            const rate = parseFloat($row.find('.item-rate').val()) || 0;
+            const rate = parseFloat($row.find('.item-rate').val()) || parseFloat($row.find('.item-price').val()) || 0;
             const netW = parseFloat($row.find('.net-w-input').val()) || 0;
             const discount = parseFloat($row.find('.item-discount').val()) || 0;
             const baseQty = netW > 0 ? netW : qty;
             const amount = Math.max((baseQty * rate) - discount, 0);
 
+            $row.find('.item-amount').val(amount.toFixed(2));
+
             totalQty += qty;
             totalBaseAmount += amount;
-            $row.find('.item-amount').val(amount.toFixed(2));
         });
 
         $ctx.find('.total-qty').text(totalQty);
@@ -698,8 +834,26 @@ function initializeForm(context) {
         $ctx.find('.party-option').closest('li').removeClass('d-none');
     });
 
+    $ctx.find('.table-settings-btn').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $ctx.find('.settings-box').fadeToggle(150);
+    });
+
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest($ctx.find('.table-settings-btn')).length && !$(e.target).closest($ctx.find('.settings-box')).length) {
+            $ctx.find('.settings-box').fadeOut(150);
+        }
+    });
+
+    $ctx.on('change', '.check-category, .check-item-code, .check-description, .check-discount', function() {
+        applyColumnVisibility();
+    });
+
     $ctx.find('.add-row-btn').on('click', function() {
         addRow();
+        applyColumnVisibility();
+        renderItemSettingsColumns();
     });
 
     $ctx.on('click', '.delete-row-icon', function() {
@@ -761,7 +915,7 @@ function initializeForm(context) {
     $ctx.on('change', '.item-name', function() {
         const $row = $(this).closest('tr');
         const $selected = $(this).find('option:selected');
-        const price = parseFloat($selected.data('price')) || parseFloat($selected.data('sale-price')) || 0;
+        const price = parseFloat($selected.data('purchase-price')) || parseFloat($selected.data('price')) || 0;
         const unit = $selected.data('unit') || '';
         const category = $selected.data('category') || '';
         const itemCode = $selected.data('item-code') || '';
@@ -772,27 +926,43 @@ function initializeForm(context) {
         $row.find('.gross-w-input').val('0');
         $row.find('.net-w-input').val('0');
         $row.find('.item-rate').val(price.toFixed(2));
+        $row.find('.item-price').val(price.toFixed(2));
         $row.find('.item-category').val(category);
         $row.find('.item-code').val(itemCode);
         $row.find('.item-desc').val(description);
         $row.find('.item-tafseel').val('');
+
+        let discountVal = 0;
         if (discount !== undefined && discount !== null && discount !== '') {
             const currentDiscount = parseFloat($row.find('.item-discount').val() || 0) || 0;
             if (currentDiscount === 0) {
-                $row.find('.item-discount').val(discount);
+                discountVal = parseFloat(discount) || 0;
+                $row.find('.item-discount').val(discountVal);
+            } else {
+                discountVal = currentDiscount;
             }
         }
+
         if (unit) {
             ensureUnitOption($row.find('.item-unit'), unit);
+            setTimeout(function() {
+                $row.find('.item-unit').val(unit);
+            }, 10);
         }
 
-        $row.find('.item-qty').trigger('change');
+        // Auto-calculate amount: (quantity × price) - discount
+        const qty = 1;
+        const amount = Math.max((qty * price) - discountVal, 0);
+        $row.find('.item-amount').val(amount.toFixed(2));
+
+        // Update totals
+        calculateTotals();
     });
 
-    $ctx.on('keyup change', '.item-qty, .gross-w-input, .net-w-input, .item-rate, .item-discount', function() {
+    $ctx.on('keyup change', '.item-qty, .gross-w-input, .net-w-input, .item-rate, .item-price, .item-discount', function() {
         const $row = $(this).closest('tr');
         const qty = parseFloat($row.find('.item-qty').val()) || 0;
-        const rate = parseFloat($row.find('.item-rate').val()) || 0;
+        const rate = parseFloat($row.find('.item-rate').val()) || parseFloat($row.find('.item-price').val()) || 0;
         const netW = parseFloat($row.find('.net-w-input').val()) || 0;
         const discount = parseFloat($row.find('.item-discount').val()) || 0;
         const baseQty = netW > 0 ? netW : qty;
@@ -831,6 +1001,40 @@ function initializeForm(context) {
     $ctx.on('click', '.remove-payment-entry', function() {
         $(this).closest('.payment-entry').remove();
         updatePaymentSummary();
+    });
+
+    let activeScanSerialRow = null;
+
+    $ctx.on('click', '.open-scan-serial-modal', function(e) {
+        e.preventDefault();
+        activeScanSerialRow = $(this).closest('tr');
+        const currentValue = activeScanSerialRow.find('.item-serial-input').val()
+            || activeScanSerialRow.find('.item-code').val()
+            || '';
+
+        $('#scanSerialInput').val(currentValue);
+        $('.scan-serial-count').text(`${String(currentValue).trim() ? 1 : 0} Entered`);
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('scanSerialModal')).show();
+        setTimeout(() => $('#scanSerialInput').trigger('focus').select(), 200);
+    });
+
+    $(document).on('input.purchaseReturnScanner', '#scanSerialInput', function() {
+        $('.scan-serial-count').text(`${String($(this).val() || '').trim() ? 1 : 0} Entered`);
+    });
+
+    $(document).on('click.purchaseReturnScanner', '#confirmScanSerialBtn, #saveScanSerialBtn', function() {
+        if (!activeScanSerialRow) return;
+
+        const value = String($('#scanSerialInput').val() || '').trim();
+        if (activeScanSerialRow.find('.item-serial-input').length) {
+            activeScanSerialRow.find('.item-serial-input').val(value).trigger('change');
+        } else {
+            activeScanSerialRow.find('.item-code').val(value).trigger('change');
+        }
+
+        if (this.id === 'saveScanSerialBtn') {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('scanSerialModal')).hide();
+        }
     });
 
     $ctx.on('keyup change', '.discount-pct, .discount-rs, .tax-select, .round-off-check', function() {

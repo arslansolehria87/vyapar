@@ -56,6 +56,29 @@
     .status-pill.unpaid { background: #fff4e8; color: #f97316; }
     .icon-action, .action-menu-btn { border: 0; background: transparent; color: #64748b; padding: 0.2rem 0.35rem; font-size: 1.1rem; }
     .action-menu-btn::after { display: none; }
+    .purchase-return-table tbody td.action-cell,
+    .purchase-return-table tbody td.action-menu-cell {
+      overflow: visible !important;
+      position: relative;
+    }
+    .purchase-return-table .dropdown-menu {
+      min-width: 188px;
+      padding: 0.45rem 0;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.16);
+      z-index: 1090;
+    }
+    .purchase-return-table .dropdown-item {
+      padding: 0.6rem 1rem;
+      font-size: 14px;
+      color: #1f2937;
+      text-decoration: none;
+    }
+    .purchase-return-table .dropdown-item:hover {
+      background: #e0f2fe;
+      color: #0f172a;
+    }
   </style>
 
   <script>
@@ -94,7 +117,7 @@
         </div>
 
        <div class="table-wrapper">
-  <table class="table align-middle custom-table mb-0">
+  <table class="table align-middle custom-table purchase-return-table mb-0">
             <thead>
               <tr>
                 <th>DATE</th>
@@ -126,23 +149,23 @@
                   <td class="text-end">Rs {{ number_format($purchaseReturn->grand_total ?? 0, 2) }}</td>
                   <td class="text-end">Rs {{ number_format($purchaseReturn->paid_amount ?? 0, 2) }}</td>
                   <td class="text-end">Rs {{ number_format($purchaseReturn->grand_total ?? 0, 2) }}</td>
-                  <td>
-                    <a href="{{ route('purchase-return.print', $purchaseReturn->id) }}" target="_blank" class="icon-action" title="Print"><i class="fa-solid fa-print"></i></a>
-                    <a href="{{ route('purchase-return.preview', $purchaseReturn->id) }}" target="_blank" class="icon-action" title="Preview"><i class="fa-solid fa-share-nodes"></i></a>
+                  <td class="action-cell">
+                    <a href="#" onclick="openPurchaseReturnPrint('{{ route('purchase-return.print', $purchaseReturn->id) }}'); return false;" class="icon-action" title="Print"><i class="fa-solid fa-print"></i></a>
+                    <a href="#" onclick="openPurchaseReturnPreview('{{ route('purchase-return.preview', $purchaseReturn->id) }}'); return false;" class="icon-action" title="Preview"><i class="fa-solid fa-share-nodes"></i></a>
                   </td>
-                  <td class="text-center">
+                  <td class="text-center action-menu-cell">
                     <div class="dropdown">
-                      <button class="btn btn-sm action-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                      <button class="btn btn-sm action-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
                         <i class="fas fa-ellipsis-v"></i>
                       </button>
                       <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                        <li><a class="dropdown-item" href="{{ route('purchase-return.edit', $purchaseReturn->id) }}"><i class="fas fa-edit me-2"></i>View/Edit</a></li>
-                        <li><a class="dropdown-item" href="{{ route('purchase-return.pdf', $purchaseReturn->id) }}" target="_blank"><i class="fas fa-file-pdf me-2"></i>Open PDF</a></li>
-                        <li><a class="dropdown-item" href="{{ route('purchase-return.preview', $purchaseReturn->id) }}" target="_blank"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
-                        <li><a class="dropdown-item" href="{{ route('purchase-return.print', $purchaseReturn->id) }}" target="_blank"><i class="fas fa-print me-2"></i>Print</a></li>
-                        <li><a class="dropdown-item" href="{{ route('purchase-return.duplicate', $purchaseReturn->id) }}"><i class="fas fa-copy me-2"></i>Duplicate</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="return transactionPasscodeNavigate('{{ route('purchase-return.edit', $purchaseReturn->id) }}');"><i class="fas fa-edit me-2"></i>View/Edit</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPdf('{{ route('purchase-return.pdf', $purchaseReturn->id) }}'); return false;"><i class="fas fa-file-pdf me-2"></i>Open PDF</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPreview('{{ route('purchase-return.preview', $purchaseReturn->id) }}'); return false;"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPrint('{{ route('purchase-return.print', $purchaseReturn->id) }}'); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="duplicatePurchaseReturn('{{ route('purchase-return.duplicate', $purchaseReturn->id) }}'); return false;"><i class="fas fa-copy me-2"></i>Duplicate</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="#" onclick="deletePurchaseReturn('{{ route('purchase-return.destroy', $purchaseReturn->id) }}'); return false;"><i class="fas fa-trash me-2"></i>Delete</a></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="return transactionPasscodeExecute('deletePurchaseReturn','{{ route('purchase-return.destroy', $purchaseReturn->id) }}');"><i class="fas fa-trash me-2"></i>Delete</a></li>
                       </ul>
                     </div>
                   </td>
@@ -159,11 +182,28 @@
     </div>
   </main>
 
+  @include('dashboard.partials.transaction-passcode-guard')
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="{{ asset('js/components.js') }}?v={{ filemtime(public_path('js/components.js')) }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
   <script>
+    function openPurchaseReturnPdf(url) {
+      window.open(url, '_blank');
+    }
+
+    function openPurchaseReturnPreview(url) {
+      window.open(url, '_blank');
+    }
+
+    function openPurchaseReturnPrint(url) {
+      window.open(url, '_blank');
+    }
+
+    function duplicatePurchaseReturn(url) {
+      window.open(url, '_blank');
+    }
+
     function deletePurchaseReturn(url) {
       if (!confirm('Are you sure you want to delete this debit note?')) {
         return;
@@ -223,4 +263,3 @@
 </body>
 
 </html>
-
