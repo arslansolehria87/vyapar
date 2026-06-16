@@ -998,18 +998,16 @@
 
     function openLinkPaymentModal() {
       const partyId = selectedPartyId;
-      if (!partyId) {
-        alert('Pehle party select karein.');
-        return;
-      }
-
       updatePaymentSummary();
       document.getElementById('linkPaymentPartyName').textContent = selectedEntityName || document.getElementById('partyDisplayText').textContent || '-';
       document.getElementById('linkPaymentReceivedInput').value = getPaymentOutPaidAmount().toFixed(2);
       document.getElementById('linkPaymentSearch').value = '';
       document.getElementById('linkPaymentTypeFilter').value = 'all';
-
-      loadLinkablePurchases(partyId, {});
+      if (partyId) {
+        loadLinkablePurchases(partyId, {});
+      } else {
+        resetLinkPaymentState();
+      }
       getLinkPaymentModalInstance()?.show();
     }
 
@@ -2244,6 +2242,8 @@
       document.getElementById('descriptionArea').value = '';
       document.getElementById('paymentOutImageInput').value = '';
       document.getElementById('paymentOutImagePreview').innerHTML = '';
+      document.getElementById('linkedRowsJson').value = '[]';
+      resetLinkPaymentState();
 
       const d = new Date();
       document.getElementById('modalDate').value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -2269,7 +2269,7 @@
       const discount = parseFloat(document.getElementById('paymentDiscountInput')?.value || 0) || 0;
       const total = Math.max(paid - discount, 0);
 
-      const linkedRows = (appliedLinkPaymentRows.length ? appliedLinkPaymentRows : linkPaymentRows)
+      const linkedRows = linkPaymentRows
         .filter(row => (parseFloat(row.selected_amount || 0) || 0) > 0)
         .map(row => ({
           purchase_id: row.purchase_id || null,
@@ -2339,6 +2339,8 @@
           return;
         }
         applyFilters();
+        document.getElementById('linkedRowsJson').value = '[]';
+        resetLinkPaymentState();
         closeModal();
       })
       .catch(err => {
@@ -2428,11 +2430,17 @@
       });
       document.getElementById('linkPaymentAutoBtn')?.addEventListener('click', autoAllocateLinkPayments);
       document.getElementById('linkPaymentResetBtn')?.addEventListener('click', () => {
-        persistAppliedLinkRows();
         linkPaymentRows = linkPaymentRows.map(row => ({ ...row, selected_amount: 0 }));
         renderLinkPaymentRows();
+        persistAppliedLinkRows();
       });
       document.getElementById('linkPaymentDoneBtn')?.addEventListener('click', () => {
+        const received = getPaymentOutPaidAmount();
+        const linked = calculateLinkedTotal();
+        if (linked - received > 0.001) {
+          alert('Linked amount paid amount se zyada nahi ho sakta.');
+          return;
+        }
         persistAppliedLinkRows();
         closeLinkPaymentModal();
       });

@@ -103,16 +103,6 @@
               <input type="text" id="expenseDueDateDisplay" class="input-control underline-input expense-due-date" placeholder="dd/mm/yyyy" readonly>
             </div>
           </div>
-          <div class="expense-header-mini-fields-grid expense-status-group">
-            <div class="input-group date-wrapper expense-header-mini-field" style="margin:0;">
-              <span>Status</span>
-              <select id="expenseStatusSelect" class="input-control underline-input expense-status-select">
-                <option value="unpaid">Unpaid</option>
-                <option value="partial">Partial</option>
-                <option value="paid">Paid</option>
-              </select>
-            </div>
-          </div>
         </div>
         <div class="form-exp-no-row">
           <span class="form-exp-no-label">Expense No</span>
@@ -159,9 +149,9 @@
       </div>
     </div>
 
-    <div id="expenseDiscountTaxSection" class="expense-section-card expense-discount-tax-block" data-force-visible="1" style="display:block; margin-top:14px;">
-      <div class="expense-discount-row" style="display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:wrap; width:100%;">
-        <span class="expense-row-label" style="min-width:78px; text-align:right; font-size:14px; color:#666; margin-right:6px;">Discount</span>
+    <div id="expenseDiscountTaxSection" class="expense-section-card expense-discount-tax-block" data-force-visible="0" style="display:none; grid-column:3 / 4; grid-row:5; justify-self:end; align-self:start; margin:0 0 0 auto; max-width:360px; width:100%;">
+      <div class="expense-discount-row" style="display:flex !important; align-items:center; justify-content:flex-start !important; gap:12px; flex-wrap:wrap; width:100%;">
+        <span class="expense-row-label" style="font-size:14px; color:#666; flex-shrink:0; margin:0;">Discount</span>
         <div class="floating-input-wrapper expense-floating-wrapper expense-compact-wrapper expense-inline-input" style="width:108px; max-width:108px;">
           <input type="number" id="expenseDiscountPercentInput" class="meta-control" min="0" step="0.01" placeholder=" " oninput="updateExpenseDiscountFromPercent(this.value)">
           <label>(%)</label>
@@ -172,8 +162,8 @@
           <label>(Rs)</label>
         </div>
       </div>
-      <div class="expense-tax-row" style="display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:wrap; width:100%; margin-top:10px;">
-        <span class="expense-row-label" style="min-width:78px; text-align:right; font-size:14px; color:#666; margin-right:6px;">Tax</span>
+      <div class="expense-tax-row" style="display:flex !important; align-items:center; justify-content:flex-start !important; gap:12px; flex-wrap:wrap; width:100%; margin-top:10px;">
+        <span class="expense-row-label" style="font-size:14px; color:#666; flex-shrink:0; margin:0;">Tax</span>
         <div class="floating-input-wrapper expense-floating-wrapper expense-compact-wrapper expense-inline-input expense-tax-select" style="width:148px; max-width:148px;">
           <select id="expenseSummaryTaxRateSelect" class="meta-control" onchange="updateExpenseSummaryTaxFromRate(this.value)">
             <option value="">NONE</option>
@@ -206,6 +196,8 @@
         </div>
       </div>
     </div>
+
+    <input type="hidden" id="expenseLinkedRowsJson" value="[]">
 
     <div class="form-extra-btns expense-notes-panel" style="display:block;">
       <div class="meta-right-stack expense-meta-right-stack d-flex gap-3">
@@ -255,8 +247,9 @@
     </div>
   </div>
 
-  <div class="form-footer">
-    <div class="share-btn-group">
+  <div class="form-footer" style="display:flex; align-items:center; justify-content:flex-start; gap:10px; width:100%;">
+    <button type="button" class="btn-share-main" id="expenseLinkPaymentBtn" onclick="openExpenseLinkPaymentModal()" style="margin-right:10px; display:inline-flex;">Link Payment</button>
+    <div class="share-btn-group" style="margin-left:auto;">
       <button class="btn-share-main" onclick="toggleShareDropdown()">Share</button>
       <button class="btn-share-caret" onclick="toggleShareDropdown()"><i class="bi bi-chevron-down"></i></button>
     </div>
@@ -265,6 +258,76 @@
       <div class="share-dd-item"><i class="bi bi-share"></i> Share</div>
       <div class="share-dd-item"><i class="bi bi-printer"></i> Print</div>
       <div class="share-dd-item"><i class="bi bi-plus-square"></i> Save &amp; New</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade link-payment-modal" id="expenseLinkPaymentModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content border-0" style="border-radius:16px; overflow:hidden; box-shadow:0 24px 60px rgba(15,23,42,.22);">
+      <div class="modal-header" style="padding:14px 18px;">
+        <h5 class="modal-title" id="expenseLinkPaymentModalLabel">Link Payment to Txns</h5>
+        <button type="button" class="btn-close" aria-label="Close" onclick="closeExpenseLinkPaymentModal()"></button>
+      </div>
+      <div class="modal-body" style="padding:18px;">
+        <div style="display:flex;justify-content:space-between;gap:20px;align-items:flex-start;padding-bottom:14px;border-bottom:1px solid #e5e7eb;margin-bottom:14px;flex-wrap:wrap;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 28px;align-items:end;min-width:min(100%,520px);">
+            <div>
+              <span style="font-size:12px;color:#0ea5e9;font-weight:700;display:block;margin-bottom:5px;">Party</span>
+              <div style="font-size:16px;font-weight:700;color:#111827;" id="expenseLinkPaymentPartyName">-</div>
+            </div>
+            <div>
+              <span style="font-size:12px;color:#0ea5e9;font-weight:700;display:block;margin-bottom:5px;">Paid Amount</span>
+              <div class="input-group">
+                <input type="number" class="form-control" id="expenseLinkPaymentReceivedInput" min="0" step="0.01" oninput="refreshExpenseLinkPaymentSummary()">
+                <span class="input-group-text"><i class="fa-solid fa-pen"></i></span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-left:auto;flex-wrap:wrap;">
+            <button type="button" class="btn btn-info text-white" id="expenseLinkPaymentAutoBtn">AUTO LINK</button>
+            <button type="button" class="btn btn-light" id="expenseLinkPaymentResetBtn" title="Reset">
+              <i class="fa-solid fa-rotate-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+          <select class="form-select" id="expenseLinkPaymentTypeFilter" style="max-width:280px;">
+            <option value="all">All transactions</option>
+          </select>
+          <input type="text" class="form-control" id="expenseLinkPaymentSearch" placeholder="Search transaction" style="max-width:290px;">
+        </div>
+
+        <div style="max-height:430px;overflow:auto;border:1px solid #e5e7eb;border-radius:12px;">
+          <table class="table mb-0 link-payment-grid" style="width:100%;">
+            <thead>
+              <tr>
+                <th style="width:54px;"></th>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Ref/Inv No.</th>
+                <th class="text-end">Total</th>
+                <th class="text-end">Balance</th>
+                <th style="width:180px;">Linked Amount</th>
+              </tr>
+            </thead>
+            <tbody id="expenseLinkPaymentRows">
+              <tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:22px;">Select a party to load transactions.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between" style="border-top:1px solid #e5e7eb;padding:14px 18px 16px;">
+        <div class="fw-semibold">
+          Unused Amount :
+          <span id="expenseLinkPaymentUnusedAmount" style="font-weight:700;color:#111827;">0</span>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-secondary" onclick="closeExpenseLinkPaymentModal()">Cancel</button>
+          <button type="button" class="btn btn-primary" id="expenseLinkPaymentDoneBtn">Done</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>

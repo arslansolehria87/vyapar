@@ -20,6 +20,7 @@ use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PaymentInController;
+use App\Http\Controllers\PaymentLinkController;
 use App\Http\Controllers\PerfomaController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\ExpenseCreateController;
@@ -330,6 +331,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
 
     Route::get('/payment-out', [PurchaseExpenseController::class, 'paymentOut'])->name('payment-out');
     Route::get('/payment-out/linkable-purchases/{party}', [PurchaseExpenseController::class, 'linkablePurchases'])->name('payment-out.linkable-purchases');
+    Route::get('/expense/linkable-transactions/{party}', [PaymentLinkController::class, 'expenseLinkData'])->name('expense.linkable-transactions');
     Route::post('/payment-out', [PurchaseExpenseController::class, 'storePaymentOut'])->name('payment-out.store');
     Route::get('purchase-return', [PurchaseReturnController::class, 'index'])->name('purchase-return');
     Route::get('purchase-return/create', [PurchaseReturnController::class, 'create'])->name('purchase-return.create');

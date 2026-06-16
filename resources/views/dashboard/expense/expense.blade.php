@@ -256,6 +256,8 @@ function saveAddBank() {
       expense:         "{{ route('expense') }}",
       expenseCreate:   "{{ route('expense.create') }}",
       expenseDestroy:  "{{ url('dashboard/expense') }}",
+      paymentLinkData: "{{ url('dashboard/expense/linkable-transactions') }}",
+      paymentLinkSave: "{{ url('dashboard/payments/link-save') }}",
     };
     window.expenseBootstrap = {!! json_encode([
       'parties' => $parties ?? [],
@@ -1259,7 +1261,7 @@ function saveAddBank() {
     }
     #expenseFormPage #expenseDiscountTaxSection .expense-field-grid {
       grid-template-columns: 1fr !important;
-      justify-content: end !important;
+      justify-content: start !important;
       gap: 10px !important;
     }
     #expenseFormPage #expenseDiscountTaxSection .expense-field-grid .expense-compact-wrapper {
@@ -1272,7 +1274,7 @@ function saveAddBank() {
     #expenseFormPage #expenseAdditionalChargesSection .expense-discount-tax-block .expense-tax-row {
       display: flex !important;
       align-items: center !important;
-      justify-content: flex-end !important;
+      justify-content: flex-start !important;
       gap: 8px !important;
       width: 100% !important;
       flex-wrap: wrap !important;
@@ -1280,7 +1282,7 @@ function saveAddBank() {
     #expenseFormPage #expenseDiscountTaxSection .expense-row-label,
     #expenseFormPage #expenseAdditionalChargesSection .expense-discount-tax-block .expense-row-label {
       min-width: 78px !important;
-      text-align: right !important;
+      text-align: left !important;
       font-size: 14px !important;
       color: #666 !important;
       margin-right: 6px !important;
@@ -1312,6 +1314,19 @@ function saveAddBank() {
       margin-bottom: 16px !important;
       padding-bottom: 14px !important;
       border-bottom: 1px solid #e5e7eb !important;
+    }
+    #expenseFormPage #expenseDiscountTaxSection {
+      margin-left: 0 !important;
+      margin-right: auto !important;
+      width: min(100%, 360px) !important;
+      max-width: 360px !important;
+      grid-column: 3 !important;
+      grid-row: 5 !important;
+      justify-self: end !important;
+      align-self: start !important;
+    }
+    #expenseFormPage #expenseDiscountTaxSection .expense-section-card {
+      width: 100% !important;
     }
     #expenseFormPage #expenseTransportationSection .expense-field-grid {
       grid-template-columns: repeat(2, minmax(0, 220px)) !important;
@@ -1384,6 +1399,7 @@ function saveAddBank() {
     }
     #expenseFormPage .form-footer {
       padding: 10px 22px !important;
+      justify-content: flex-start !important;
     }
     #expenseFormPage .btn-save {
       min-width: 96px !important;
@@ -1396,6 +1412,7 @@ function saveAddBank() {
     }
     #expenseFormPage .share-btn-group {
       align-items: center !important;
+      margin-left: auto !important;
     }
     #expenseFormPage .link-payment-btn {
       height: 40px !important;
@@ -2666,6 +2683,7 @@ function saveAddBank() {
   let rowKey          = 0;
   let tabCounter      = 0;
   let paymentRows     = [];
+  let expenseLinkPaymentRows = [];
   let expenseAttachmentFiles = { images: [], documents: [] };
   let pendingConfirmCb = null;
   let calViewDate = new Date();
@@ -2698,10 +2716,12 @@ function saveAddBank() {
       date     : new Date(),
       items    : [],
       payments : [{ type: 'Cheque', ref: '' }],
+      linkedRows: [],
       description: '',
       attachments: { images: [], documents: [] },
       additionalCharges: {},
       transportationDetails: {},
+      linkedRows: [],
       roundOff : false,
       editingExpenseId : null,
       editingCatIdx    : null,
@@ -2769,6 +2789,7 @@ function saveAddBank() {
     }];
     state.additionalCharges = entry.additionalCharges || {};
     state.transportationDetails = entry.transportationDetails || {};
+    state.linkedRows = Array.isArray(entry.linkedRows) ? entry.linkedRows : [];
     state.editingExpenseId = entry.id || null;
     state.editingCatIdx = catIdx;
     tabStates[activeTabN] = state;
@@ -2818,6 +2839,45 @@ function saveAddBank() {
     if (paid >= total) return 'paid';
     if (paid > 0) return 'partial';
     return 'unpaid';
+  }
+
+  function getExpenseCurrentPaidAmount() {
+    return paymentRows.reduce((sum, row) => sum + (parseFloat(row.amount) || 0), 0);
+  }
+
+  function getExpenseLinkedRowsFromState() {
+    try {
+      const raw = document.getElementById('expenseLinkedRowsJson')?.value || '[]';
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function setExpenseLinkedRows(rows) {
+    const safeRows = Array.isArray(rows) ? rows : [];
+    expenseLinkPaymentRows = safeRows.map(row => ({ ...row }));
+    const hidden = document.getElementById('expenseLinkedRowsJson');
+    if (hidden) {
+      hidden.value = JSON.stringify(
+        safeRows
+          .map((row) => ({
+            transaction_id: row.transaction_id || row.purchase_id || row.sale_id || row.id,
+            purchase_id: row.purchase_id || row.sale_id || row.id,
+            sale_id: row.sale_id || row.purchase_id || row.id,
+            linked_amount: parseFloat(row.linked_amount || row.amount || 0) || 0,
+          }))
+          .filter((row) => (row.transaction_id || row.purchase_id) && row.linked_amount > 0)
+      );
+    }
+    updateExpenseLinkPaymentButtonVisibility();
+  }
+
+  function updateExpenseLinkPaymentButtonVisibility() {
+    const btn = document.getElementById('expenseLinkPaymentBtn');
+    if (!btn) return;
+    btn.style.display = 'inline-flex';
   }
 
   function formatExpenseDisplayDate(value) {
@@ -3168,6 +3228,7 @@ function saveAddBank() {
     if (searchEl) searchEl.value = party.name || '';
     if (balanceEl) balanceEl.textContent = party.balance ? `Balance: Rs ${formatExpenseMoney(party.balance)}` : '';
     closeExpensePartyDropdown();
+    updateExpenseLinkPaymentButtonVisibility();
   }
 
   function clearExpenseParty() {
@@ -3178,6 +3239,7 @@ function saveAddBank() {
     if (searchEl) searchEl.value = '';
     if (balanceEl) balanceEl.textContent = '';
     closeExpensePartyDropdown();
+    updateExpenseLinkPaymentButtonVisibility();
   }
 
   function openExpensePartyCreate() {
@@ -3610,13 +3672,7 @@ function saveAddBank() {
     }
     const taxEnabled = isExpenseTaxOn();
     const state = currentExpenseState();
-    const discountPercent = parseFloat(state.discountPercent || 0) || 0;
-    const discountAmount = parseFloat(state.discountAmount || 0) || 0;
-    const selectedTax = getExpenseTaxRateById(state.summaryTaxRateId || '');
-    const taxRateValue = parseFloat(selectedTax?.rate || 0) || 0;
-    const taxAmount = parseFloat(state.summaryTaxAmount || 0) || 0;
-    const forceVisible = section.dataset.forceVisible === '1';
-    const shouldShow = forceVisible || taxEnabled || discountPercent > 0 || discountAmount > 0 || taxRateValue > 0 || taxAmount > 0;
+    const shouldShow = taxEnabled;
     section.style.display = shouldShow ? 'block' : 'none';
     if (!shouldShow) {
       section.innerHTML = '';
@@ -3684,6 +3740,7 @@ function saveAddBank() {
     state.summaryTaxAmount = state.summaryTaxAmount || 0;
     state.additionalCharges = state.additionalCharges || {};
     state.transportationDetails = state.transportationDetails || {};
+    state.linkedRows = state.linkedRows || [];
     return state;
   }
 
@@ -3758,6 +3815,7 @@ function saveAddBank() {
     renderExpenseAdditionalCharges();
     renderExpenseTransportationSection();
     updateExpenseDueDateDisplay();
+    updateExpenseLinkPaymentButtonVisibility();
   }
 
   function tryCloseEntireForm() {
@@ -3824,6 +3882,25 @@ function saveAddBank() {
   }
 
   document.getElementById('emptyAddBtn').addEventListener('click', openExpenseForm);
+  document.getElementById('expenseLinkPaymentAutoBtn')?.addEventListener('click', autoAllocateExpenseLinkPayments);
+  document.getElementById('expenseLinkPaymentResetBtn')?.addEventListener('click', () => {
+    expenseLinkPaymentRows = expenseLinkPaymentRows.map((row) => ({ ...row, selected_amount: 0 }));
+    renderExpenseLinkPaymentRows();
+  });
+  document.getElementById('expenseLinkPaymentTypeFilter')?.addEventListener('change', renderExpenseLinkPaymentRows);
+  document.getElementById('expenseLinkPaymentSearch')?.addEventListener('input', renderExpenseLinkPaymentRows);
+  document.getElementById('expenseLinkPaymentDoneBtn')?.addEventListener('click', () => {
+    const cleaned = expenseLinkPaymentRows
+      .map((row) => ({
+        transaction_id: row.transaction_id || row.purchase_id || row.sale_id || row.id,
+        purchase_id: row.purchase_id || row.sale_id || row.id,
+        sale_id: row.sale_id || row.purchase_id || row.id,
+        linked_amount: parseFloat(row.selected_amount || 0) || 0,
+      }))
+      .filter((row) => (row.transaction_id || row.purchase_id) && row.linked_amount > 0);
+    setExpenseLinkedRows(cleaned);
+    closeExpenseLinkPaymentModal();
+  });
 
   // ═══════════════════════════════════════════════════════
   //  LIST TABS
@@ -4281,8 +4358,6 @@ function saveAddBank() {
     }
     const dueDateDisplay = document.getElementById('expenseDueDateDisplay');
     if (dueDateDisplay) dueDateDisplay.value = entry.dueDate ? formatExpenseDateDisplay(entry.dueDate) : '';
-    const statusSelect = document.getElementById('expenseStatusSelect');
-    if (statusSelect) statusSelect.value = getExpenseDerivedStatus(entry.amount, entry.paidAmount);
     updateExpenseDueDateDisplay();
 
     if (entry.date) {
@@ -4320,6 +4395,7 @@ function saveAddBank() {
     const descEl = document.getElementById('expenseDescriptionInput');
     if (descEl) descEl.value = entry.description || '';
     setExpenseDescriptionVisible(!!entry.description);
+    setExpenseLinkedRows([]);
 
     document.getElementById('formItemsBody').innerHTML = '';
     rowKey = 0;
@@ -4425,6 +4501,175 @@ function saveAddBank() {
       <button onclick="addPaymentRow()" style="background:none;border:none;color:#2563eb;font-size:13px;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px;">+ Add Payment type</button>
       <span style="font-size:13px;font-weight:600;color:#555;" id="payTotalText">Total payment: ${total}/${grandTotal}</span>`;
     card.appendChild(footer);
+  }
+
+  function getExpenseLinkPaymentModalInstance() {
+    const el = document.getElementById('expenseLinkPaymentModal');
+    if (!el || !window.bootstrap?.Modal) return null;
+    return window.bootstrap.Modal.getOrCreateInstance(el);
+  }
+
+  function getExpenseLinkReceivedAmount() {
+    return parseFloat(document.getElementById('expenseLinkPaymentReceivedInput')?.value || 0) || 0;
+  }
+
+  function getExpenseLinkAllocatedAmount() {
+    return expenseLinkPaymentRows.reduce((sum, row) => sum + (parseFloat(row.selected_amount || 0) || 0), 0);
+  }
+
+  function refreshExpenseLinkPaymentSummary() {
+    const unusedEl = document.getElementById('expenseLinkPaymentUnusedAmount');
+    if (!unusedEl) return;
+    const unused = getExpenseLinkReceivedAmount() - getExpenseLinkAllocatedAmount();
+    unusedEl.textContent = Math.abs(unused).toFixed(2);
+    unusedEl.classList.toggle('text-danger', unused < 0);
+  }
+
+  function syncExpenseLinkSelectedAmount(rowId, amount) {
+    const row = expenseLinkPaymentRows.find((item) => String(item.transaction_id || item.purchase_id || item.sale_id || item.id) === String(rowId));
+    if (!row) return;
+    const maxAmount = parseFloat(row.balance || 0) || 0;
+    const current = Math.max(0, Math.min(parseFloat(amount) || 0, maxAmount));
+    row.selected_amount = Number(current.toFixed(2));
+    renderExpenseLinkPaymentRows();
+  }
+
+  function renderExpenseLinkPaymentRows() {
+    const tbody = document.getElementById('expenseLinkPaymentRows');
+    if (!tbody) return;
+    const search = (document.getElementById('expenseLinkPaymentSearch')?.value || '').trim().toLowerCase();
+    const typeFilter = (document.getElementById('expenseLinkPaymentTypeFilter')?.value || 'all').toLowerCase();
+    const rows = expenseLinkPaymentRows.filter((row) => {
+      const type = String(row.type || 'purchase bill').toLowerCase();
+      const text = [
+        row.invoice_no,
+        row.date,
+        row.balance,
+        row.grand_total,
+      ].join(' ').toLowerCase();
+      const matchesSearch = !search || text.includes(search);
+      const matchesType = typeFilter === 'all' || type.includes(typeFilter);
+      return matchesSearch && matchesType;
+    });
+
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:22px;">No transactions to show.</td></tr>`;
+      refreshExpenseLinkPaymentSummary();
+      return;
+    }
+
+    tbody.innerHTML = rows.map((row) => {
+      const rowId = row.purchase_id || row.sale_id || row.id;
+      const transactionId = row.transaction_id || row.purchase_id || row.sale_id || row.id;
+      const linked = parseFloat(row.selected_amount || 0) || 0;
+      return `
+        <tr>
+          <td style="padding:10px 12px;">
+            <input type="checkbox" class="expense-link-row-check" data-row-id="${escHtml(transactionId)}" ${linked > 0 ? 'checked' : ''}>
+          </td>
+          <td style="padding:10px 12px;">${escHtml(formatDisplayDate(row.date || ''))}</td>
+          <td style="padding:10px 12px;">${escHtml(row.type || 'Purchase Bill')}</td>
+          <td style="padding:10px 12px;">${escHtml(row.invoice_no || '')}</td>
+          <td style="padding:10px 12px;text-align:right;">Rs ${parseFloat(row.grand_total || 0).toFixed(2)}</td>
+          <td style="padding:10px 12px;text-align:right;">Rs ${parseFloat(row.balance || 0).toFixed(2)}</td>
+          <td style="padding:10px 12px;">
+            <input type="number" class="form-control expense-link-amount" data-row-id="${escHtml(transactionId)}" min="0" step="0.01" value="${linked ? linked.toFixed(2) : ''}" placeholder="0">
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    tbody.querySelectorAll('.expense-link-row-check').forEach((chk) => {
+      chk.addEventListener('change', function() {
+        const rowId = this.dataset.rowId;
+        const row = expenseLinkPaymentRows.find((item) => String(item.transaction_id || item.purchase_id || item.sale_id || item.id) === String(rowId));
+        if (!row) return;
+        row.selected_amount = this.checked ? Math.min(getExpenseLinkReceivedAmount(), parseFloat(row.balance || 0) || 0) : 0;
+        renderExpenseLinkPaymentRows();
+      });
+    });
+
+    tbody.querySelectorAll('.expense-link-amount').forEach((input) => {
+      input.addEventListener('input', function() {
+        syncExpenseLinkSelectedAmount(this.dataset.rowId, this.value);
+      });
+    });
+
+    refreshExpenseLinkPaymentSummary();
+  }
+
+  function loadExpenseLinkableRows(partyId) {
+    const tbody = document.getElementById('expenseLinkPaymentRows');
+    if (!tbody) return Promise.resolve();
+    if (!partyId) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:22px;">Select a party to load transactions.</td></tr>`;
+      expenseLinkPaymentRows = [];
+      refreshExpenseLinkPaymentSummary();
+      return Promise.resolve();
+    }
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:22px;">Loading...</td></tr>`;
+    return fetch(`${window.expenseRoutes.paymentLinkData}/${encodeURIComponent(partyId)}`, {
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+      }
+    }).then(async (response) => {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Transactions load nahi ho sakin.');
+      }
+      return data;
+    }).then((data) => {
+      expenseLinkPaymentRows = (data.rows || []).map((row) => {
+        const rowId = row.transaction_id || row.purchase_id || row.sale_id || row.id;
+        const existing = expenseLinkPaymentRows.find((item) => String(item.transaction_id || item.purchase_id || item.sale_id || item.id) === String(rowId));
+        return {
+          ...row,
+          transaction_id: row.transaction_id || row.purchase_id || row.sale_id || row.id,
+          selected_amount: existing ? existing.selected_amount : 0,
+        };
+      });
+      const typeFilter = document.getElementById('expenseLinkPaymentTypeFilter');
+      if (typeFilter) {
+        const types = [...new Set(expenseLinkPaymentRows.map(row => String(row.type || 'Purchase Bill').trim()).filter(Boolean))].sort();
+        typeFilter.innerHTML = `<option value="all">All transactions</option>` + types.map(type => `<option value="${escHtml(type)}">${escHtml(type)}</option>`).join('');
+      }
+      renderExpenseLinkPaymentRows();
+    }).catch((err) => {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#dc2626;padding:22px;">${escHtml(err?.message || 'Transactions load nahi ho sakin.')}</td></tr>`;
+      expenseLinkPaymentRows = [];
+      refreshExpenseLinkPaymentSummary();
+    });
+  }
+
+  function openExpenseLinkPaymentModal() {
+    const partyId = document.getElementById('expensePartyId')?.value || '';
+    const partyName = document.getElementById('expensePartySearch')?.value || '';
+    const modalEl = document.getElementById('expenseLinkPaymentModal');
+    document.getElementById('expenseLinkPaymentPartyName').textContent = partyName || '-';
+    document.getElementById('expenseLinkPaymentReceivedInput').value = getExpenseCurrentPaidAmount().toFixed(2);
+    document.getElementById('expenseLinkPaymentSearch').value = '';
+    document.getElementById('expenseLinkPaymentTypeFilter').value = 'all';
+    loadExpenseLinkableRows(partyId);
+    getExpenseLinkPaymentModalInstance()?.show();
+  }
+
+  function closeExpenseLinkPaymentModal() {
+    getExpenseLinkPaymentModalInstance()?.hide();
+  }
+
+  function autoAllocateExpenseLinkPayments() {
+    let remaining = getExpenseLinkReceivedAmount();
+    expenseLinkPaymentRows = expenseLinkPaymentRows.map((row) => {
+      const available = parseFloat(row.balance || 0) || 0;
+      const allocate = Math.max(0, Math.min(remaining, available));
+      remaining -= allocate;
+      return {
+        ...row,
+        selected_amount: Number(allocate.toFixed(2)),
+      };
+    });
+    renderExpenseLinkPaymentRows();
   }
   // ═══════════════════════════════════════════════════════
   //  PRINT VIEW (full-screen, like Image 4)
@@ -5037,8 +5282,6 @@ function saveAddBank() {
     if (dealDaysCustom) dealDaysCustom.classList.add('d-none');
     const resetDueDateDisplay = document.getElementById('expenseDueDateDisplay');
     if (resetDueDateDisplay) resetDueDateDisplay.value = '';
-    const resetStatusSelect = document.getElementById('expenseStatusSelect');
-    if (resetStatusSelect) resetStatusSelect.value = 'unpaid';
     const resetDiscountPercent = document.getElementById('expenseDiscountPercentInput');
     if (resetDiscountPercent) resetDiscountPercent.value = '';
     const resetDiscountAmount = document.getElementById('expenseDiscountAmountInput');
@@ -5051,6 +5294,7 @@ function saveAddBank() {
     setExpenseDescriptionVisible(false);
     document.getElementById('expenseTaxSwitch').checked = false;
     clearExpenseParty();
+    setExpenseLinkedRows([]);
     rowKey = 0;
     document.getElementById('formItemsBody').innerHTML = '';
     addItemRow(); appendStaticRow(); calcTotals();
@@ -5062,6 +5306,7 @@ function saveAddBank() {
     updateExpenseDueDateDisplay();
     applyExpenseFeatureVisibility();
     renderExpensePartyOptions('');
+    updateExpenseLinkPaymentButtonVisibility();
   }
 
   function saveTabState() {
@@ -5076,7 +5321,10 @@ function saveAddBank() {
     s.dealDays = getExpenseDealDaysValue();
     s.dueDate = document.getElementById('expenseDueDateDisplay')?.value || '';
     s.paymentTermsName = document.getElementById('expensePaymentTermsDisplay')?.value || '';
-    s.status = document.getElementById('expenseStatusSelect')?.value || 'unpaid';
+    s.status = getExpenseDerivedStatus(
+      parseFloat(document.getElementById('formTotalBox')?.textContent || 0) || 0,
+      getExpenseCurrentPaidAmount()
+    );
     s.taxEnabled = !!document.getElementById('expenseTaxSwitch')?.checked;
     s.discountPercent = parseFloat(document.getElementById('expenseDiscountPercentInput')?.value || 0) || 0;
     s.discountAmount = parseFloat(document.getElementById('expenseDiscountAmountInput')?.value || 0) || 0;
@@ -5117,6 +5365,7 @@ function saveAddBank() {
     document.querySelectorAll('[data-transport-field]').forEach(input => {
       s.transportationDetails[input.dataset.transportField] = input.value || '';
     });
+    s.linkedRows = getExpenseLinkedRowsFromState();
     tabStates[activeTabN] = s;
   }
 
@@ -5137,12 +5386,10 @@ function saveAddBank() {
     const dealDaysCustom = document.getElementById('expenseDealDaysCustom');
     const dueDateEl = document.getElementById('expenseDueDateDisplay');
     const paymentTermsEl = document.getElementById('expensePaymentTermsDisplay');
-    const statusEl = document.getElementById('expenseStatusSelect');
     if (poNoEl) poNoEl.value = s.poNo || '';
     if (poDateEl) poDateEl.value = s.poDate || '';
     if (timeEl) timeEl.value = s.transactionTime || '';
     if (paymentTermsEl) paymentTermsEl.value = s.paymentTermsName || getExpenseTransactionSettings()?.payment_terms?.name || 'Net 15';
-    if (statusEl) statusEl.value = s.status || 'unpaid';
     const discountPercentEl = document.getElementById('expenseDiscountPercentInput');
     const discountAmountEl = document.getElementById('expenseDiscountAmountInput');
     const summaryTaxRateEl = document.getElementById('expenseSummaryTaxRateSelect');
@@ -5189,6 +5436,7 @@ function saveAddBank() {
     const descEl = document.getElementById('expenseDescriptionInput');
     if (descEl) descEl.value = s.description || '';
     setExpenseDescriptionVisible(!!s.description);
+    setExpenseLinkedRows(s.linkedRows || []);
     rowKey = 0;
     document.getElementById('formItemsBody').innerHTML = '';
     if (s.items && s.items.length > 0) {
@@ -5220,6 +5468,7 @@ function saveAddBank() {
     window._editingCatIdx    = s.editingCatIdx    || null;
     applyExpenseFeatureVisibility();
     calcTotals();
+    updateExpenseLinkPaymentButtonVisibility();
   }
 
   // ─── FORM TABS ───
@@ -5435,8 +5684,6 @@ function saveAddBank() {
       const payTotal = paymentRows.reduce((s,r) => s + (parseFloat(r.amount)||0), 0);
       ptEl.textContent = 'Total payment: ' + payTotal + '/' + netTotal;
     }
-    const statusSelect = document.getElementById('expenseStatusSelect');
-    if (statusSelect) statusSelect.value = getExpenseDerivedStatus(netTotal, paymentRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0));
   }
   function saveNewItem() {
     const name  = document.getElementById('newItemName').value.trim();
@@ -5623,6 +5870,7 @@ function saveAddBank() {
       amount: parseFloat(row.amount) || 0,
       ref: row.ref || '',
     }))));
+    formData.append('linked_rows', document.getElementById('expenseLinkedRowsJson')?.value || '[]');
     expenseAttachmentFiles.images.forEach(file => formData.append('images[]', file));
     expenseAttachmentFiles.documents.forEach(file => formData.append('documents[]', file));
 
@@ -5770,8 +6018,6 @@ function saveAddBank() {
     if (poDateEl) poDateEl.value = entry.poDate || '';
     if (timeEl) timeEl.value = entry.transactionTime || '';
     if (paymentTermsEl) paymentTermsEl.value = entry.paymentTermsName || getExpenseTransactionSettings()?.payment_terms?.name || 'Net 15';
-    const statusSelect = document.getElementById('expenseStatusSelect');
-    if (statusSelect) statusSelect.value = getExpenseDerivedStatus(entry.amount, entry.paidAmount);
     if (dealDaysSelect) {
       const dealDaysValue = entry.dealDays !== undefined && entry.dealDays !== null ? String(entry.dealDays) : '';
       const presetValues = ['0', '5', '10', '15', '30', '45'];
@@ -5822,6 +6068,7 @@ function saveAddBank() {
     }
     appendStaticRow();
     loadExpenseEntryIntoState(entry, catIdx);
+    setExpenseLinkedRows(tabStates[activeTabN]?.linkedRows || []);
     paymentRows = tabStates[activeTabN]?.payments
       ? tabStates[activeTabN].payments.map(p => ({ type: p.type || '', amount: p.amount || '', ref: p.ref || '' }))
       : [{
@@ -5832,6 +6079,7 @@ function saveAddBank() {
     renderPaymentCard();
     applyExpenseFeatureVisibility();
     calcTotals();
+    updateExpenseLinkPaymentButtonVisibility();
   }
 
   // ─── NUMBER TO WORDS ───

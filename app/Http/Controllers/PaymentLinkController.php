@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Carbon;
+use App\Models\Party;
 
 class PaymentLinkController extends Controller
 {
@@ -13,40 +14,120 @@ class PaymentLinkController extends Controller
     public function linkData(Request $request)
     {
         $request->validate([
-            'party_id' => 'required|integer',
+            'party_id' => 'nullable|integer',
             'type' => 'required|string', // 'in' or 'out'
         ]);
 
-        $partyId = (int) $request->input('party_id');
+        $partyId = (int) $request->input('party_id', 0);
         $type = $request->input('type');
         $search = $request->input('search');
 
         if ($type === 'in') {
-            // unpaid sales invoices
             $query = DB::table('sales')
-                ->select('id as sale_id', 'invoice_no', 'date', 'grand_total', 'received_amount', 'balance', 'status')
-                ->where('party_id', $partyId)
-                ->where('balance', '>', 0)
-                ->where('status', '!=', 'cancelled');
+                ->leftJoin('parties', 'sales.party_id', '=', 'parties.id')
+                ->select(
+                    'sales.id as sale_id',
+                    'sales.invoice_no',
+                    'sales.date',
+                    'sales.grand_total',
+                    'sales.received_amount',
+                    'sales.balance',
+                    'sales.status',
+                    'parties.name as party_name'
+                )
+                ->where('sales.balance', '>', 0)
+                ->where('sales.status', '!=', 'cancelled');
+
+            if ($partyId > 0) {
+                $query->where('sales.party_id', $partyId);
+            }
         } else {
-            // unpaid purchase bills
             $query = DB::table('purchases')
-                ->select('id as sale_id', 'bill_no as invoice_no', 'date', 'grand_total', 'received_amount', 'balance', 'status')
-                ->where('party_id', $partyId)
-                ->where('balance', '>', 0)
-                ->where('status', '!=', 'cancelled');
+                ->leftJoin('parties', 'purchases.party_id', '=', 'parties.id')
+                ->select(
+                    'purchases.id as sale_id',
+                    'purchases.bill_no as invoice_no',
+                    'purchases.date',
+                    'purchases.grand_total',
+                    'purchases.received_amount',
+                    'purchases.balance',
+                    'purchases.status',
+                    'parties.name as party_name'
+                )
+                ->where('purchases.balance', '>', 0)
+                ->where('purchases.status', '!=', 'cancelled');
+
+            if ($partyId > 0) {
+                $query->where('purchases.party_id', $partyId);
+            }
         }
 
         if (!empty($search)) {
             $query->where(function ($q) use ($search) {
                 $q->where('invoice_no', 'like', "%" . $search . "%")
-                  ->orWhere('bill_no', 'like', "%" . $search . "%");
+                  ->orWhere('parties.name', 'like', "%" . $search . "%");
             });
         }
 
         $rows = $query->orderBy('date', 'asc')->get();
 
         return response()->json(['rows' => $rows]);
+    }
+
+    public function expenseLinkData(Request $request, Party $party)
+    {
+        $search = trim((string) $request->input('search', ''));
+
+        $query = DB::table('transactions')
+            ->leftJoin('parties', 'transactions.party_id', '=', 'parties.id')
+            ->select(
+                'transactions.id as transaction_id',
+                'transactions.number as invoice_no',
+                'transactions.date',
+                'transactions.type',
+                'transactions.total',
+                'transactions.paid_amount',
+                'transactions.balance',
+                'transactions.status',
+                'transactions.payment_type',
+                'parties.name as party_name'
+            )
+            ->where('transactions.party_id', $party->id)
+            ->where('transactions.balance', '>', 0)
+            ->where('transactions.status', '!=', 'cancelled');
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('transactions.number', 'like', '%' . $search . '%')
+                  ->orWhere('parties.name', 'like', '%' . $search . '%')
+                  ->orWhere('transactions.type', 'like', '%' . $search . '%');
+            });
+        }
+
+        $rows = $query->orderBy('transactions.date', 'asc')
+            ->orderBy('transactions.id', 'asc')
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'transaction_id' => $row->transaction_id,
+                    'date' => $row->date ? Carbon::parse($row->date)->format('d/m/Y') : '-',
+                    'type' => ucfirst(str_replace('_', ' ', (string) ($row->type ?: 'Transaction'))),
+                    'ref_no' => $row->invoice_no ?: ('T-' . $row->transaction_id),
+                    'total' => round((float) ($row->total ?? 0), 2),
+                    'balance' => round((float) ($row->balance ?? 0), 2),
+                    'linked_amount' => 0,
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'party' => [
+                'id' => $party->id,
+                'name' => $party->name,
+            ],
+            'rows' => $rows,
+        ]);
     }
 
     // Save links and update related invoices

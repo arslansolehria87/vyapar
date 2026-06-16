@@ -46,16 +46,8 @@ class PaymentInController extends Controller
                 ->pluck('linked_amount', 'sale_id');
         }
 
-        $normalizedPartyName = mb_strtolower(trim((string) ($party->name ?? '')));
-
         $sales = Sale::query()
-            ->where(function ($query) use ($party, $normalizedPartyName) {
-                $query->where('party_id', $party->id);
-
-                if ($normalizedPartyName !== '') {
-                    $query->orWhereRaw('LOWER(COALESCE(party_name, "")) = ?', [$normalizedPartyName]);
-                }
-            })
+            ->where('party_id', $party->id)
             ->where(function ($query) {
                 $query->whereIn('type', ['invoice', 'pos', 'sale', 'sales'])
                     ->orWhereNull('type');

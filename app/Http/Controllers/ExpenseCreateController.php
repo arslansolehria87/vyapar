@@ -80,6 +80,7 @@ class ExpenseCreateController extends Controller
                         'amount'      => $e->total_amount,
                         'paidAmount'  => max((float) ($e->total_amount ?? 0) - (float) ($e->balance ?? 0), 0),
                         'balance'     => $e->balance,
+                        'linkedRows'  => $this->getExpenseLinkedRows($e->id),
                     ];
                 })->values(),
             ];
@@ -413,6 +414,7 @@ class ExpenseCreateController extends Controller
             'attachments'         => 'nullable',
             'description'         => 'nullable|string',
             'payments_json'       => 'nullable',
+            'linked_rows'         => 'nullable',
             'images'              => 'nullable|array',
             'images.*'            => 'file|mimes:jpg,jpeg,png,pdf,doc,docx|max:4096',
             'documents'           => 'nullable|array',
@@ -483,6 +485,23 @@ class ExpenseCreateController extends Controller
                     'ref' => $payment['ref'] ?? null,
                 ];
             })->filter(fn ($payment) => $payment['type'] !== '')->values();
+
+            $linkedRows = $request->input('linked_rows', []);
+            if (is_string($linkedRows)) {
+                $linkedRows = json_decode($linkedRows, true) ?: [];
+            }
+            if (!is_array($linkedRows)) {
+                $linkedRows = [];
+            }
+            $linkedRows = collect($linkedRows)->map(function ($row) {
+                $targetId = (int) ($row['transaction_id'] ?? $row['purchase_id'] ?? $row['sale_id'] ?? 0);
+                return [
+                    'target_id' => $targetId,
+                    'transaction_id' => (int) ($row['transaction_id'] ?? 0),
+                    'purchase_id' => (int) ($row['purchase_id'] ?? $row['sale_id'] ?? 0),
+                    'linked_amount' => (float) ($row['linked_amount'] ?? 0),
+                ];
+            })->filter(fn ($row) => $row['target_id'] > 0 && $row['linked_amount'] > 0)->values();
 
             $attachmentPaths = $request->input('attachments', []);
             if (is_string($attachmentPaths)) {
@@ -631,13 +650,14 @@ class ExpenseCreateController extends Controller
                 $paidAmount = (float) $request->total_amount;
             }
             $balance = max((float) $request->total_amount - $paidAmount, 0);
-            if (!in_array($status, ['paid', 'partial', 'unpaid'], true)) {
-                $status = $balance <= 0 ? 'paid' : ($paidAmount > 0 ? 'partial' : 'unpaid');
+            if (!in_array($status, ['paid', 'pay', 'unpaid'], true)) {
+                $status = $balance <= 0 ? 'paid' : ($paidAmount > 0 ? 'pay' : 'unpaid');
             }
 
+            $expenseTransaction = null;
             if (!empty($expense->party_id) && (float) $expense->total_amount > 0) {
-                $transactionStatus = $balance <= 0 ? 'paid' : ($paidAmount > 0 ? 'partial' : 'unpaid');
-                Transaction::create([
+                $transactionStatus = $balance <= 0 ? 'paid' : ($paidAmount > 0 ? 'pay' : 'unpaid');
+                $expenseTransaction = Transaction::create([
                     'party_id' => (int) $expense->party_id,
                     'type' => 'payment_out',
                     'number' => 'EXP-' . $expense->id,
@@ -651,6 +671,51 @@ class ExpenseCreateController extends Controller
                     'status' => $transactionStatus,
                     'description' => 'Expense: ' . ($expense->expense_no ?: ('#' . $expense->id)),
                 ]);
+            }
+
+            if ($expenseTransaction && $linkedRows->isNotEmpty()) {
+                foreach ($linkedRows as $linkedRow) {
+                    $targetId = (int) ($linkedRow['target_id'] ?? 0);
+                    $linkedAmount = (float) ($linkedRow['linked_amount'] ?? 0);
+                    if ($targetId <= 0 || $linkedAmount <= 0) {
+                        continue;
+                    }
+
+                    DB::table('payment_links')->insert([
+                        'transaction_id' => $expenseTransaction->id,
+                        'sale_id' => $targetId,
+                        'linked_amount' => $linkedAmount,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
+                    $linkedTransaction = DB::table('transactions')->where('id', $targetId)->first();
+                    if ($linkedTransaction) {
+                        $paid = (float) ($linkedTransaction->paid_amount ?? 0) + $linkedAmount;
+                        $grandTotal = (float) ($linkedTransaction->total ?? 0);
+                        $linkedBalance = max($grandTotal - $paid, 0);
+
+                        DB::table('transactions')->where('id', $targetId)->update([
+                            'paid_amount' => $paid,
+                            'balance' => $linkedBalance,
+                            'status' => $linkedBalance <= 0 ? 'paid' : ($paid > 0 ? 'partial' : 'unpaid'),
+                        ]);
+                        continue;
+                    }
+
+                    $purchase = DB::table('purchases')->where('id', $targetId)->first();
+                    if ($purchase) {
+                        $paid = (float) ($purchase->paid_amount ?? 0) + $linkedAmount;
+                        $grandTotal = (float) ($purchase->grand_total ?? 0);
+                        $purchaseBalance = max($grandTotal - $paid, 0);
+
+                        DB::table('purchases')->where('id', $targetId)->update([
+                            'paid_amount' => $paid,
+                            'balance' => $purchaseBalance,
+                            'status' => $purchaseBalance <= 0 ? 'paid' : ($paid > 0 ? 'partial' : 'unpaid'),
+                        ]);
+                    }
+                }
             }
 
             $expense->balance = $balance;
@@ -688,6 +753,7 @@ class ExpenseCreateController extends Controller
                 'amount'      => $expense->total_amount,
                 'paidAmount'  => $paidAmount,
                 'balance'     => $balance,
+                'linkedRows'  => $linkedRows->values(),
             ]]);
         });
     }
@@ -716,15 +782,83 @@ class ExpenseCreateController extends Controller
                 ->where('reference_id', $expense->id)
                 ->delete();
 
-            Transaction::where('party_id', $expense->party_id)
+            $expenseTransaction = Transaction::where('party_id', $expense->party_id)
                 ->where('type', 'payment_out')
                 ->where('number', 'EXP-' . $expense->id)
-                ->delete();
+                ->first();
+
+            if ($expenseTransaction) {
+                $linkedRows = DB::table('payment_links')
+                    ->where('transaction_id', $expenseTransaction->id)
+                    ->orderBy('id')
+                    ->get(['sale_id', 'linked_amount']);
+
+                foreach ($linkedRows as $linkedRow) {
+                    $targetId = (int) ($linkedRow->sale_id ?? 0);
+                    $linkedAmount = (float) ($linkedRow->linked_amount ?? 0);
+                    if ($targetId <= 0 || $linkedAmount <= 0) {
+                        continue;
+                    }
+
+                    $linkedTransaction = DB::table('transactions')->where('id', $targetId)->first();
+                    if ($linkedTransaction) {
+                        $paid = max((float) ($linkedTransaction->paid_amount ?? 0) - $linkedAmount, 0);
+                        $grandTotal = (float) ($linkedTransaction->total ?? 0);
+                        $linkedBalance = max($grandTotal - $paid, 0);
+
+                        DB::table('transactions')->where('id', $targetId)->update([
+                            'paid_amount' => $paid,
+                            'balance' => $linkedBalance,
+                            'status' => $linkedBalance <= 0 ? 'paid' : ($paid > 0 ? 'partial' : 'unpaid'),
+                        ]);
+                        continue;
+                    }
+
+                    $purchase = DB::table('purchases')->where('id', $targetId)->first();
+                    if ($purchase) {
+                        $paid = max((float) ($purchase->paid_amount ?? 0) - $linkedAmount, 0);
+                        $grandTotal = (float) ($purchase->grand_total ?? 0);
+                        $purchaseBalance = max($grandTotal - $paid, 0);
+
+                        DB::table('purchases')->where('id', $targetId)->update([
+                            'paid_amount' => $paid,
+                            'balance' => $purchaseBalance,
+                            'status' => $purchaseBalance <= 0 ? 'paid' : ($paid > 0 ? 'partial' : 'unpaid'),
+                        ]);
+                    }
+                }
+
+                DB::table('payment_links')->where('transaction_id', $expenseTransaction->id)->delete();
+                $expenseTransaction->delete();
+            }
 
             ExpenseItem::where('expense_id', $expense->id)->delete();
             $expense->delete();
 
             return response()->json(['success' => true]);
         });
+    }
+
+    private function getExpenseLinkedRows(int $expenseId): array
+    {
+        $transaction = Transaction::where('number', 'EXP-' . $expenseId)->first();
+        if (!$transaction) {
+            return [];
+        }
+
+        return DB::table('payment_links')
+            ->where('transaction_id', $transaction->id)
+            ->orderBy('id')
+            ->get(['sale_id', 'linked_amount'])
+            ->map(function ($row) {
+                return [
+                    'transaction_id' => (int) ($row->sale_id ?? 0),
+                    'purchase_id' => (int) ($row->sale_id ?? 0),
+                    'sale_id' => (int) ($row->sale_id ?? 0),
+                    'linked_amount' => (float) ($row->linked_amount ?? 0),
+                ];
+            })
+            ->values()
+            ->all();
     }
 }

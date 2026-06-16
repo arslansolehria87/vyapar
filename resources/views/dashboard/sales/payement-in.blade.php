@@ -2768,20 +2768,19 @@ function openLinkPaymentModal() {
     const partyId = $('.party-id').val();
     const partyName = $('#partyDropdownBtn').val().trim();
 
-    if (!partyId) {
-        alert('Pehle party select karein.');
-        return;
-    }
-
     updateReceivedTotal();
     document.getElementById('linkPaymentPartyName').textContent = partyName || '-';
     document.getElementById('linkPaymentReceivedInput').value = (getCurrentReceivedAmount() || 0).toFixed(2);
     document.getElementById('linkPaymentTypeFilter').value = 'all';
     document.getElementById('linkPaymentSearch').value = '';
 
-    loadLinkableSales(partyId, {
-        paymentInId: $('#paymentInId').val() || '',
-    });
+    if (partyId) {
+        loadLinkableSales(partyId, {
+            paymentInId: $('#paymentInId').val() || '',
+        });
+    } else {
+        resetLinkPaymentState();
+    }
 
     getLinkPaymentModalInstance()?.show();
 }
@@ -2882,13 +2881,18 @@ document.addEventListener('change', function(event) {
         if (event.target.checked) {
             const currentSelected = parseFloat(row.selected_amount || 0) || 0;
             if (currentSelected <= 0) {
-                row.selected_amount = Number((Math.min(parseFloat(row.balance || 0) || 0, Math.max(getLinkReceivedAmount() - calculateLinkedTotal(), 0))).toFixed(2));
+                const availableAmount = Math.min(parseFloat(row.balance || 0) || 0, Math.max(getLinkReceivedAmount() - calculateLinkedTotal(), 0));
+                row.selected_amount = Number(Math.max(availableAmount, 0).toFixed(2));
+                if (row.selected_amount === 0) {
+                    row.selected_amount = Number((parseFloat(row.balance || 0) || 0).toFixed(2));
+                }
             }
         } else {
             row.selected_amount = 0;
         }
 
         renderLinkPaymentRows();
+        refreshLinkPaymentSummary();
     }
 });
 
@@ -3254,4 +3258,3 @@ function useCalculatorResult() {
     document.addEventListener('DOMContentLoaded', init);
   })();
 </script>
-

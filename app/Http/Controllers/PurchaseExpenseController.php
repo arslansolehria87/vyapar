@@ -235,7 +235,7 @@ class PurchaseExpenseController extends Controller
                 'paid_amount' => $amount,
                 'balance' => $balance,
                 'running_balance' => $balance,
-                'status' => $status,
+                'status' => $status === 'partial' ? 'pay' : $status,
                 'description' => trim(implode(' | ', $descriptionParts)),
             ]);
 
@@ -273,15 +273,15 @@ class PurchaseExpenseController extends Controller
                                 'receipt_no' => $data['receipt_no'] ?? null,
                             ]);
 
-                            $newPaidAmount = round($purchasePaid + $allocate, 2);
-                            $newBalance = max(0, round($purchaseGrandTotal - $newPaidAmount, 2));
-                            $purchase->update([
-                                'paid_amount' => $newPaidAmount,
-                                'balance' => $newBalance,
-                                'status' => $newBalance <= 0 ? 'paid' : ($newPaidAmount > 0 ? 'partial' : 'unpaid'),
-                            ]);
-                        }
-                    }
+                    $newPaidAmount = round($purchasePaid + $allocate, 2);
+                    $newBalance = max(0, round($purchaseGrandTotal - $newPaidAmount, 2));
+                    $purchase->update([
+                        'paid_amount' => $newPaidAmount,
+                        'balance' => $newBalance,
+                        'status' => $newBalance <= 0 ? 'Paid' : 'Unpaid',
+                    ]);
+                }
+            }
 
                     // Handle Sale links
                     if ($linkedRow['sale_id'] > 0) {
