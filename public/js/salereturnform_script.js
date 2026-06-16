@@ -404,7 +404,7 @@ function initializeForm(context) {
             const party = (window.parties || []).find(p => String(p.id) === String(saleReturn.party_id || ''));
             $ctx.find('.party-id').val(saleReturn.party_id || '');
             if (party) {
-                $ctx.find('#partyDropdownBtn').text(party.name || 'Select Party');
+                setPartyDropdownDisplay(party.name || 'Select Party');
                 $ctx.find('.phone-input').val(party.phone || saleReturn.phone || '');
                 $ctx.find('.party-phone-input').val(party.phone || saleReturn.phone || '');
                 $ctx.find('.billing-address').val(party.billing_address || saleReturn.billing_address || '');
@@ -415,9 +415,10 @@ function initializeForm(context) {
                 if (saleReturn.party_id) {
                     $ctx.find('#partySelectionContainer').removeClass('d-none');
                     $ctx.find('#partyDropdownBtn').addClass('d-none');
+                    $ctx.find('.purchase-return-link-payment-btn').toggleClass('is-visible', docType === 'purchase_return');
                 }
             } else {
-                $ctx.find('#partyDropdownBtn').text('Select Party');
+                setPartyDropdownDisplay('Select Party');
             }
         } else {
             const partyOption = $ctx.find('.party-select option').filter(function () {
@@ -780,12 +781,14 @@ function initializeForm(context) {
             });
         });
 
+        const partyDisplayName = getPartyDropdownDisplay();
+
         return {
             _token: csrfToken,
             type: docType,
             source_sale_id: isDuplicateSaleReturnMode ? null : ($ctx.find('.source-sale-id').val() || null),
             party_id: $ctx.find('.party-id').val() || $ctx.find('.party-select').val() || null,
-            party_name: ($ctx.find('#partyDropdownBtn').text() || '').trim() === 'Select Party' ? '' : ($ctx.find('#partyDropdownBtn').text() || '').trim(),
+            party_name: partyDisplayName === 'Select Party' ? '' : partyDisplayName,
             phone: $ctx.find('.party-phone-input').val() || $ctx.find('.phone-input').val() || '',
             billing_address: $ctx.find('.billing-address-input').val() || $ctx.find('.billing-address').val() || '',
             shipping_address: $ctx.find('.shipping-address-input').val() || $ctx.find('.shipping-address').val() || '',
@@ -816,6 +819,13 @@ function initializeForm(context) {
             })(),
             items,
             payments,
+            linked_payments: (() => {
+                try {
+                    return JSON.parse($ctx.find('.linked-rows-json').val() || '[]');
+                } catch (e) {
+                    return [];
+                }
+            })(),
         };
     }
 
@@ -864,6 +874,10 @@ function initializeForm(context) {
 
         // Set hidden party ID
         $ctx.find('.party-id').val(partyId);
+        if (docType === 'purchase_return') {
+            $ctx.find('.purchase-return-link-payment-btn').toggleClass('is-visible', Boolean(partyId));
+            $ctx.find('.linked-rows-json').val('[]');
+        }
 
         // Set party dropdown display - party name inside input
         setPartyDropdownDisplay(partyName || 'Select Party');
@@ -944,6 +958,8 @@ function initializeForm(context) {
         $ctx.find('.shipping-address').val('');
         $ctx.find('.shipping-address-input').val('');
         $ctx.find('.billing-name-input').val('');
+        $ctx.find('.purchase-return-link-payment-btn').removeClass('is-visible');
+        $ctx.find('.linked-rows-json').val('[]');
     });
 
     // Prevent dropdown from closing when clicking on search input

@@ -150,8 +150,8 @@
                   <td class="text-end">Rs {{ number_format($purchaseReturn->paid_amount ?? 0, 2) }}</td>
                   <td class="text-end">Rs {{ number_format($purchaseReturn->grand_total ?? 0, 2) }}</td>
                   <td class="action-cell">
-                    <a href="#" onclick="openPurchaseReturnPrint('{{ route('purchase-return.print', $purchaseReturn->id) }}'); return false;" class="icon-action" title="Print"><i class="fa-solid fa-print"></i></a>
-                    <a href="#" onclick="openPurchaseReturnPreview('{{ route('purchase-return.preview', $purchaseReturn->id) }}'); return false;" class="icon-action" title="Preview"><i class="fa-solid fa-share-nodes"></i></a>
+                    <a href="#" onclick="openPurchaseReturnPrint('{{ route('invoice', ['purchase_id' => $purchaseReturn->id, 'type' => 'purchase-return', 'print' => 1]) }}'); return false;" class="icon-action" title="Print"><i class="fa-solid fa-print"></i></a>
+                    <a href="#" onclick="openPurchaseReturnPreview('{{ route('invoice', ['purchase_id' => $purchaseReturn->id, 'type' => 'purchase-return']) }}'); return false;" class="icon-action" title="Preview"><i class="fa-solid fa-share-nodes"></i></a>
                   </td>
                   <td class="text-center action-menu-cell">
                     <div class="dropdown">
@@ -161,8 +161,8 @@
                       <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                         <li><a class="dropdown-item" href="#" onclick="return transactionPasscodeNavigate('{{ route('purchase-return.edit', $purchaseReturn->id) }}');"><i class="fas fa-edit me-2"></i>View/Edit</a></li>
                         <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPdf('{{ route('purchase-return.pdf', $purchaseReturn->id) }}'); return false;"><i class="fas fa-file-pdf me-2"></i>Open PDF</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPreview('{{ route('purchase-return.preview', $purchaseReturn->id) }}'); return false;"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPrint('{{ route('purchase-return.print', $purchaseReturn->id) }}'); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPreview('{{ route('invoice', ['purchase_id' => $purchaseReturn->id, 'type' => 'purchase-return']) }}'); return false;"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPrint('{{ route('invoice', ['purchase_id' => $purchaseReturn->id, 'type' => 'purchase-return', 'print' => 1]) }}'); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
                         <li><a class="dropdown-item" href="#" onclick="duplicatePurchaseReturn('{{ route('purchase-return.duplicate', $purchaseReturn->id) }}'); return false;"><i class="fas fa-copy me-2"></i>Duplicate</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger" href="#" onclick="return transactionPasscodeExecute('deletePurchaseReturn','{{ route('purchase-return.destroy', $purchaseReturn->id) }}');"><i class="fas fa-trash me-2"></i>Delete</a></li>

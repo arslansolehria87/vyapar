@@ -713,6 +713,136 @@
             border-color: #15803d !important;
         }
 
+        .purchase-return-link-spacer {
+            flex: 1;
+        }
+
+        .purchase-return-link-payment-btn {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            border: 0;
+            border-radius: 6px;
+            background: #20d9b0;
+            color: #fff;
+            font-weight: 800;
+            padding: 12px 24px;
+            letter-spacing: .01em;
+        }
+
+        .purchase-return-link-payment-btn.is-visible {
+            display: inline-flex;
+        }
+
+        .purchase-return-link-payment-btn .lp-question {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .32);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .purchase-return-link-payment-modal .modal-dialog {
+            max-width: 800px;
+        }
+
+        .purchase-return-link-payment-modal .modal-content {
+            border: 0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, .22);
+        }
+
+        .link-payment-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            align-items: flex-start;
+            padding: 12px 0 16px;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 14px;
+        }
+
+        .link-payment-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px 28px;
+            align-items: end;
+        }
+
+        .link-payment-label {
+            font-size: 12px;
+            color: #0ea5e9;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .link-payment-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .link-payment-tools {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+        }
+
+        .link-payment-grid-wrap {
+            max-height: 430px;
+            overflow: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+        }
+
+        .link-payment-grid thead th {
+            background: #fafafa;
+            color: #6b7280;
+            font-size: 13px;
+            font-weight: 600;
+            border-bottom: 1px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            white-space: nowrap;
+        }
+
+        .link-payment-grid tbody td {
+            font-size: 13px;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        .link-payment-empty {
+            text-align: center;
+            color: #9ca3af;
+            padding: 22px !important;
+        }
+
+        .unused-amount-negative {
+            color: #dc2626;
+        }
+
+        .purchase-return-link-payment-modal .modal-footer {
+            border-top: 1px solid #e5e7eb;
+            background: #fff;
+        }
+
+        .link-payment-total {
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .link-payment-mini-btn {
+            min-width: 72px;
+        }
+
         @keyframes slideDown {
             from {
                 opacity: 0;
@@ -1266,6 +1396,11 @@
                     </div>
 
                     <div class="sticky-actions">
+                        <button type="button" class="purchase-return-link-payment-btn">
+                            LINK PAYMENT <span class="lp-question">?</span>
+                        </button>
+                        <input type="hidden" class="linked-rows-json" value="[]">
+                        <div class="purchase-return-link-spacer"></div>
                         <div class="btn-share">
                             <button class="btn-share-main">Share</button>
                             <button class="btn-share-arrow"><i class="fa-solid fa-chevron-down"></i></button>
@@ -1303,6 +1438,79 @@
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" id="confirm-close-btn" class="btn btn-danger">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade purchase-return-link-payment-modal" id="purchaseReturnLinkPaymentModal" tabindex="-1" aria-labelledby="purchaseReturnLinkPaymentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="purchaseReturnLinkPaymentModalLabel">Link Payment to Txns</h5>
+                    <button type="button" class="btn-close" aria-label="Close" id="purchaseReturnLinkPaymentCloseBtn"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="link-payment-header">
+                        <div class="link-payment-summary">
+                            <div>
+                                <span class="link-payment-label">Party</span>
+                                <div class="link-payment-value" id="purchaseReturnLinkPartyName">-</div>
+                            </div>
+                            <div>
+                                <span class="link-payment-label">Paid Amount</span>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="purchaseReturnLinkPaidInput" min="0" step="0.01">
+                                    <span class="input-group-text"><i class="fa-solid fa-pen"></i></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="link-payment-tools">
+                            <button type="button" class="btn btn-info text-white link-payment-mini-btn" id="purchaseReturnLinkAutoBtn">AUTO LINK</button>
+                            <button type="button" class="btn btn-light" id="purchaseReturnLinkResetBtn" title="Reset">
+                                <i class="fa-solid fa-rotate-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+                        <select class="form-select" id="purchaseReturnLinkTypeFilter" style="max-width:280px;">
+                            <option value="all">All transactions</option>
+                        </select>
+                        <input type="text" class="form-control" id="purchaseReturnLinkSearch" placeholder="Search transaction" style="max-width:290px;">
+                    </div>
+
+                    <div class="link-payment-grid-wrap">
+                        <table class="table mb-0 link-payment-grid">
+                            <thead>
+                                <tr>
+                                    <th style="width:54px;"></th>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Ref/Inv No.</th>
+                                    <th class="text-end">Total</th>
+                                    <th class="text-end">Balance</th>
+                                    <th style="width:180px;">Linked Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="purchaseReturnLinkRows">
+                                <tr>
+                                    <td colspan="7" class="link-payment-empty">Select a party to load transactions.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <div class="fw-semibold">
+                        Unused Amount :
+                        <span id="purchaseReturnLinkUnusedAmount" class="link-payment-total">0</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-secondary" id="purchaseReturnLinkCancelBtn">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="purchaseReturnLinkDoneBtn">Done</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1630,6 +1838,271 @@
     <script src="{{ asset('js/scriptreturn.js') }}"></script>
     <script src="{{ asset('js/bank-account-modal.js') }}"></script>
     <script src="{{ asset('js/transaction-count-column.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            let linkPaymentRows = [];
+            let appliedLinkPaymentRows = [];
+            let activeLinkPane = null;
+
+            function activePurchaseReturnPane() {
+                return document.querySelector('#content-area .tab-pane.active')
+                    || document.querySelector('#content-area .tab-pane')
+                    || document.getElementById('content-area');
+            }
+
+            function formatLinkPaymentCurrency(value) {
+                return Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            function getLinkPaymentModalInstance() {
+                const modalElement = document.getElementById('purchaseReturnLinkPaymentModal');
+                return modalElement && window.bootstrap ? bootstrap.Modal.getOrCreateInstance(modalElement) : null;
+            }
+
+            function getActivePaidAmount() {
+                return parseFloat(activeLinkPane?.querySelector('.advance-amount, .received-amount')?.value || 0) || 0;
+            }
+
+            function getActivePartyId() {
+                return activeLinkPane?.querySelector('.party-id')?.value || '';
+            }
+
+            function getActivePartyName() {
+                const panelName = activeLinkPane?.querySelector('#partyInfoName')?.textContent?.trim();
+                const inputValue = activeLinkPane?.querySelector('#partyDropdownBtn')?.value?.trim();
+                return panelName || inputValue || '-';
+            }
+
+            function calculateLinkedTotal() {
+                return linkPaymentRows.reduce((sum, row) => sum + (parseFloat(row.selected_amount || 0) || 0), 0);
+            }
+
+            function refreshLinkPaymentSummary() {
+                const paidAmount = parseFloat(document.getElementById('purchaseReturnLinkPaidInput')?.value || getActivePaidAmount()) || 0;
+                const unusedAmount = paidAmount - calculateLinkedTotal();
+                const unusedEl = document.getElementById('purchaseReturnLinkUnusedAmount');
+                if (!unusedEl) return;
+
+                unusedEl.textContent = formatLinkPaymentCurrency(unusedAmount);
+                unusedEl.classList.toggle('unused-amount-negative', unusedAmount < 0);
+            }
+
+            function persistAppliedLinkRows() {
+                const cleaned = linkPaymentRows
+                    .filter(row => (parseFloat(row.selected_amount || 0) || 0) > 0)
+                    .map(row => ({
+                        purchase_id: row.sale_id || row.transaction_id ? null : (row.purchase_id || null),
+                        sale_id: row.sale_id || null,
+                        transaction_id: row.transaction_id || null,
+                        amount: Number(parseFloat(row.selected_amount).toFixed(2)),
+                    }));
+
+                appliedLinkPaymentRows = cleaned;
+                const hiddenField = activeLinkPane?.querySelector('.linked-rows-json');
+                if (hiddenField) hiddenField.value = JSON.stringify(cleaned);
+            }
+
+            function renderLinkPaymentRows() {
+                const filter = (document.getElementById('purchaseReturnLinkTypeFilter')?.value || 'all').toLowerCase();
+                const search = (document.getElementById('purchaseReturnLinkSearch')?.value || '').trim().toLowerCase();
+                const tbody = document.getElementById('purchaseReturnLinkRows');
+                if (!tbody) return;
+
+                const filteredRows = linkPaymentRows.filter((row) => {
+                    const matchesType = filter === 'all' || String(row.type || '').toLowerCase() === filter;
+                    const haystack = `${row.date} ${row.type} ${row.ref_no}`.toLowerCase();
+                    return matchesType && (!search || haystack.includes(search));
+                });
+
+                if (!filteredRows.length) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="link-payment-empty">No transactions found.</td></tr>';
+                    refreshLinkPaymentSummary();
+                    return;
+                }
+
+                tbody.innerHTML = filteredRows.map((row) => {
+                    const rowKey = row.id || row.purchase_id || row.sale_id || row.transaction_id;
+                    const selectedAmount = parseFloat(row.selected_amount || 0) || 0;
+                    const maxAmount = parseFloat(row.balance || 0) || 0;
+                    const checked = selectedAmount > 0 ? 'checked' : '';
+                    const disabled = selectedAmount > 0 ? '' : 'disabled';
+                    return `
+                        <tr data-link-row-key="${rowKey}">
+                            <td><input type="checkbox" class="form-check-input purchase-return-link-check" data-link-row-key="${rowKey}" ${checked}></td>
+                            <td>${row.date}</td>
+                            <td>${row.type}</td>
+                            <td>${row.ref_no}</td>
+                            <td class="text-end">${formatLinkPaymentCurrency(row.total)}</td>
+                            <td class="text-end">${formatLinkPaymentCurrency(row.balance)}</td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm purchase-return-link-amount" data-link-row-key="${rowKey}" min="0" max="${maxAmount}" step="0.01" value="${selectedAmount > 0 ? selectedAmount.toFixed(2) : ''}" ${disabled}>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                refreshLinkPaymentSummary();
+            }
+
+            function syncLinkPaymentSelectionState(target) {
+                const rowKey = target?.dataset?.linkRowKey;
+                if (!rowKey) return;
+
+                const row = linkPaymentRows.find((entry) => String(entry.id || entry.purchase_id || entry.sale_id || entry.transaction_id) === String(rowKey));
+                if (!row) return;
+
+                const checkbox = document.querySelector(`.purchase-return-link-check[data-link-row-key="${CSS.escape(String(rowKey))}"]`);
+                const amountInput = document.querySelector(`.purchase-return-link-amount[data-link-row-key="${CSS.escape(String(rowKey))}"]`);
+                const isChecked = checkbox ? checkbox.checked : false;
+                const maxAmount = parseFloat(row.balance || 0) || 0;
+                const amountValue = parseFloat(amountInput?.value || 0) || 0;
+
+                if (!isChecked) {
+                    row.selected_amount = 0;
+                } else {
+                    row.selected_amount = Number(Math.max(0, Math.min(amountValue || maxAmount, maxAmount)).toFixed(2));
+                }
+
+                if (amountInput) {
+                    amountInput.disabled = !isChecked;
+                    if (!isChecked) {
+                        amountInput.value = '';
+                    } else if (!amountInput.value) {
+                        amountInput.value = Math.min(maxAmount, getActivePaidAmount()).toFixed(2);
+                    }
+                }
+
+                persistAppliedLinkRows();
+                refreshLinkPaymentSummary();
+            }
+
+            function loadLinkablePurchases(partyId) {
+                const tbody = document.getElementById('purchaseReturnLinkRows');
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="link-payment-empty">Loading transactions...</td></tr>';
+                }
+
+                fetch(`/dashboard/payment-out/linkable-purchases/${partyId}`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    }
+                })
+                    .then(async (response) => {
+                        const data = await response.json().catch(() => ({}));
+                        if (!response.ok || !data.success) {
+                            throw new Error(data.message || 'Transactions load nahi ho sakin.');
+                        }
+                        return data;
+                    })
+                    .then((data) => {
+                        document.getElementById('purchaseReturnLinkPartyName').textContent = data.party?.name || getActivePartyName();
+                        linkPaymentRows = (data.rows || []).map((row) => {
+                            const applied = appliedLinkPaymentRows.find((item) => (
+                                (item.sale_id && String(item.sale_id) === String(row.sale_id))
+                                || (item.transaction_id && String(item.transaction_id) === String(row.transaction_id))
+                                || (item.purchase_id && String(item.purchase_id) === String(row.purchase_id))
+                            ));
+                            return {
+                                ...row,
+                                selected_amount: applied ? applied.amount : 0,
+                            };
+                        });
+
+                        const typeFilter = document.getElementById('purchaseReturnLinkTypeFilter');
+                        if (typeFilter) {
+                            const types = [...new Set(linkPaymentRows.map(row => String(row.type || '').trim()).filter(Boolean))].sort();
+                            typeFilter.innerHTML = '<option value="all">All transactions</option>' + types.map(type => `<option value="${type}">${type}</option>`).join('');
+                            typeFilter.value = 'all';
+                        }
+
+                        renderLinkPaymentRows();
+                    })
+                    .catch((error) => {
+                        if (tbody) {
+                            tbody.innerHTML = `<tr><td colspan="7" class="link-payment-empty">${error.message || 'Transactions load nahi ho sakin.'}</td></tr>`;
+                        }
+                    });
+            }
+
+            function openLinkPaymentModal() {
+                activeLinkPane = activePurchaseReturnPane();
+                const partyId = getActivePartyId();
+                if (!partyId) {
+                    alert('Pehle party select karein.');
+                    return;
+                }
+
+                try {
+                    appliedLinkPaymentRows = JSON.parse(activeLinkPane?.querySelector('.linked-rows-json')?.value || '[]');
+                } catch (e) {
+                    appliedLinkPaymentRows = [];
+                }
+
+                document.getElementById('purchaseReturnLinkPartyName').textContent = getActivePartyName();
+                document.getElementById('purchaseReturnLinkPaidInput').value = getActivePaidAmount().toFixed(2);
+                document.getElementById('purchaseReturnLinkSearch').value = '';
+                document.getElementById('purchaseReturnLinkTypeFilter').value = 'all';
+
+                loadLinkablePurchases(partyId);
+                getLinkPaymentModalInstance()?.show();
+            }
+
+            function closeLinkPaymentModal() {
+                getLinkPaymentModalInstance()?.hide();
+            }
+
+            function autoAllocateLinkPayments() {
+                let remaining = parseFloat(document.getElementById('purchaseReturnLinkPaidInput')?.value || getActivePaidAmount()) || 0;
+                linkPaymentRows = linkPaymentRows.map((row) => {
+                    const available = parseFloat(row.balance || 0) || 0;
+                    const allocate = Math.max(0, Math.min(remaining, available));
+                    remaining -= allocate;
+                    return {
+                        ...row,
+                        selected_amount: Number(allocate.toFixed(2)),
+                    };
+                });
+                persistAppliedLinkRows();
+                renderLinkPaymentRows();
+            }
+
+            document.addEventListener('click', function (event) {
+                if (event.target.closest('.purchase-return-link-payment-btn')) {
+                    event.preventDefault();
+                    openLinkPaymentModal();
+                }
+            });
+
+            document.getElementById('purchaseReturnLinkAutoBtn')?.addEventListener('click', autoAllocateLinkPayments);
+            document.getElementById('purchaseReturnLinkResetBtn')?.addEventListener('click', function () {
+                linkPaymentRows = linkPaymentRows.map(row => ({ ...row, selected_amount: 0 }));
+                persistAppliedLinkRows();
+                renderLinkPaymentRows();
+            });
+            document.getElementById('purchaseReturnLinkDoneBtn')?.addEventListener('click', function () {
+                persistAppliedLinkRows();
+                closeLinkPaymentModal();
+            });
+            document.getElementById('purchaseReturnLinkCancelBtn')?.addEventListener('click', closeLinkPaymentModal);
+            document.getElementById('purchaseReturnLinkPaymentCloseBtn')?.addEventListener('click', closeLinkPaymentModal);
+            document.getElementById('purchaseReturnLinkSearch')?.addEventListener('input', renderLinkPaymentRows);
+            document.getElementById('purchaseReturnLinkTypeFilter')?.addEventListener('change', renderLinkPaymentRows);
+            document.getElementById('purchaseReturnLinkPaidInput')?.addEventListener('input', refreshLinkPaymentSummary);
+            document.getElementById('purchaseReturnLinkRows')?.addEventListener('change', function (event) {
+                const target = event.target;
+                if (target.classList.contains('purchase-return-link-check') || target.classList.contains('purchase-return-link-amount')) {
+                    syncLinkPaymentSelectionState(target);
+                }
+            });
+            document.getElementById('purchaseReturnLinkRows')?.addEventListener('click', function (event) {
+                const target = event.target;
+                if (target.classList.contains('purchase-return-link-check')) {
+                    syncLinkPaymentSelectionState(target);
+                }
+            });
+        });
+    </script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const settingsSidebar = document.getElementById('purchaseReturnSettingsSidebar');

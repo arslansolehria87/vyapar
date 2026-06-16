@@ -62,13 +62,16 @@ class InvoiceController extends Controller
     {
         $viewData = $this->buildInvoiceViewData($request);
         $saleId = (int) ($viewData['sale']->id ?? $request->integer('sale_id') ?? $request->integer('payment_in'));
-        $themeDefaults = $this->resolveStoredInvoiceThemeConfig($viewData['sale'] ?? null, $request);
+        $purchase = $viewData['purchase'] ?? null;
+        $themeDefaults = $purchase instanceof Purchase
+            ? $this->resolveStoredPurchaseThemeConfig($purchase, $request)
+            : $this->resolveStoredInvoiceThemeConfig($viewData['sale'] ?? null, $request);
         $themeConfig = $this->resolveInvoiceThemeConfig(
             $themeDefaults['mode'],
             $themeDefaults[$themeDefaults['mode'] === 'thermal' ? 'thermalThemeId' : 'regularThemeId']
         );
 
-        abort_unless($saleId > 0 || !empty($viewData['invoicePreviewData']), 404);
+        abort_unless($saleId > 0 || $purchase instanceof Purchase || !empty($viewData['invoicePreviewData']), 404);
 
         $pdf = Pdf::loadView('themes.sales_invoice_pdf_document', [
             'invoicePreviewData' => $viewData['invoicePreviewData'],
@@ -81,7 +84,10 @@ class InvoiceController extends Controller
             $pdf->setPaper([0, 0, 226.77, 841.89], 'portrait');
         }
 
-        $downloadName = 'invoice-' . ($viewData['invoicePreviewData']['invoiceNo'] ?? $saleId ?: 'preview') . '.pdf';
+        $downloadPrefix = $purchase instanceof Purchase
+            ? ($purchase->type === 'purchase_return' ? 'purchase-return' : 'purchase')
+            : 'invoice';
+        $downloadName = $downloadPrefix . '-' . ($viewData['invoicePreviewData']['invoiceNo'] ?? $saleId ?: 'preview') . '.pdf';
 
         return $pdf->download($downloadName);
     }

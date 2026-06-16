@@ -7,6 +7,8 @@ use App\Models\BankTransaction;
 use App\Models\Item;
 use App\Models\Party;
 use App\Models\Purchase;
+use App\Models\PurchasePayment;
+use App\Models\Transaction;
 use App\Support\TransactionNumberPrefix;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -259,6 +261,11 @@ class PurchaseReturnController extends Controller
             'payments.*.bank_account_id' => 'nullable|exists:bank_accounts,id',
             'payments.*.amount' => 'required|numeric|min:0',
             'payments.*.reference' => 'nullable|string|max:255',
+            'linked_payments' => 'nullable|array',
+            'linked_payments.*.purchase_id' => 'nullable|integer',
+            'linked_payments.*.sale_id' => 'nullable|integer',
+            'linked_payments.*.transaction_id' => 'nullable|integer',
+            'linked_payments.*.amount' => 'required_with:linked_payments|numeric|min:0.01',
         ]);
     }
 
@@ -332,8 +339,110 @@ class PurchaseReturnController extends Controller
                 $this->applyBankAdjustment($purchase, $paymentRecord);
             }
 
+            if (!$isExistingPurchaseReturn && !empty($data['linked_payments'])) {
+                $this->applyLinkedPayments($purchase, $data['linked_payments'], $data['payments'][0] ?? null);
+            }
+
             return $purchase->fresh(['items', 'payments.bankAccount', 'party']);
         });
+    }
+
+    private function applyLinkedPayments(Purchase $purchaseReturn, array $linkedRows, ?array $sourcePayment = null): void
+    {
+        $paymentType = $sourcePayment['payment_type'] ?? 'Purchase Return';
+        $bankAccountId = $sourcePayment['bank_account_id'] ?? null;
+        $receiptNo = $purchaseReturn->bill_number;
+
+        collect($linkedRows)
+            ->map(function ($row) {
+                return [
+                    'purchase_id' => (int) ($row['purchase_id'] ?? 0),
+                    'sale_id' => (int) ($row['sale_id'] ?? 0),
+                    'transaction_id' => (int) ($row['transaction_id'] ?? 0),
+                    'amount' => round((float) ($row['amount'] ?? 0), 2),
+                ];
+            })
+            ->filter(fn ($row) => ($row['purchase_id'] > 0 || $row['sale_id'] > 0 || $row['transaction_id'] > 0) && $row['amount'] > 0)
+            ->each(function ($linkedRow) use ($purchaseReturn, $paymentType, $bankAccountId, $receiptNo) {
+                if ($linkedRow['sale_id'] > 0) {
+                    $sale = DB::table('sales')->lockForUpdate()->find($linkedRow['sale_id']);
+                    if (!$sale) {
+                        return;
+                    }
+
+                    $saleGrandTotal = (float) ($sale->grand_total ?? $sale->total_amount ?? 0);
+                    $saleReceived = (float) ($sale->received_amount ?? 0);
+                    $saleBalance = max(0, $saleGrandTotal - $saleReceived);
+                    $allocate = min($linkedRow['amount'], $saleBalance);
+
+                    if ($allocate > 0) {
+                        $newReceivedAmount = round($saleReceived + $allocate, 2);
+                        $newBalance = max(0, round($saleGrandTotal - $newReceivedAmount, 2));
+                        DB::table('sales')->where('id', $sale->id)->update([
+                            'received_amount' => $newReceivedAmount,
+                            'balance' => $newBalance,
+                            'status' => $newBalance <= 0 ? 'paid' : ($newReceivedAmount > 0 ? 'partial' : 'unpaid'),
+                            'updated_at' => now(),
+                        ]);
+                    }
+
+                    return;
+                }
+
+                if ($linkedRow['transaction_id'] > 0) {
+                    $txn = Transaction::query()->lockForUpdate()->find($linkedRow['transaction_id']);
+                    if (!$txn) {
+                        return;
+                    }
+
+                    $txnTotal = (float) ($txn->total ?? 0);
+                    $txnPaid = (float) ($txn->paid_amount ?? 0);
+                    $txnBalance = max(0, $txnTotal - $txnPaid);
+                    $allocate = min($linkedRow['amount'], $txnBalance);
+
+                    if ($allocate > 0) {
+                        $newPaidAmount = round($txnPaid + $allocate, 2);
+                        $newBalance = max(0, round($txnTotal - $newPaidAmount, 2));
+                        $txn->update([
+                            'paid_amount' => $newPaidAmount,
+                            'balance' => $newBalance,
+                            'status' => $newBalance <= 0 ? 'paid' : ($newPaidAmount > 0 ? 'partial' : 'unpaid'),
+                        ]);
+                    }
+
+                    return;
+                }
+
+                if ($linkedRow['purchase_id'] > 0) {
+                    $purchase = Purchase::query()->lockForUpdate()->find($linkedRow['purchase_id']);
+                    if (!$purchase || (int) $purchase->id === (int) $purchaseReturn->id) {
+                        return;
+                    }
+
+                    $purchaseGrandTotal = (float) ($purchase->grand_total ?? $purchase->total_amount ?? 0);
+                    $purchasePaid = (float) ($purchase->paid_amount ?? 0);
+                    $purchaseBalance = max(0, $purchaseGrandTotal - $purchasePaid);
+                    $allocate = min($linkedRow['amount'], $purchaseBalance);
+
+                    if ($allocate > 0) {
+                        PurchasePayment::create([
+                            'purchase_id' => $purchase->id,
+                            'payment_type' => $paymentType,
+                            'bank_account_id' => $bankAccountId,
+                            'amount' => $allocate,
+                            'reference' => 'purchase_return:' . $purchaseReturn->id,
+                            'receipt_no' => $receiptNo,
+                        ]);
+
+                        $newPaidAmount = round($purchasePaid + $allocate, 2);
+                        $newBalance = max(0, round($purchaseGrandTotal - $newPaidAmount, 2));
+                        $purchase->update([
+                            'paid_amount' => $newPaidAmount,
+                            'balance' => $newBalance,
+                        ]);
+                    }
+                }
+            });
     }
 
     private function mapPurchaseReturnToThemePreviewData(Purchase $purchase): array
