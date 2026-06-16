@@ -53,6 +53,48 @@
 .dropdown-item.party-option:hover {
     background-color: #e2f0ff;
 }
+
+.transportation-details-live-section {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 8px 0;
+    width: 100%;
+}
+
+.transportation-details-live-section .transportation-live-field {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.transportation-details-live-section .floating-input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.transportation-details-live-section .meta-control {
+    width: 100%;
+    height: 46px;
+    border: 1px solid #d7e0ea;
+    border-radius: 6px;
+    background: #fff;
+    padding: 17px 20px 6px;
+    font-size: 13px;
+    color: #1f2937;
+    outline: none;
+}
+
+.transportation-details-live-section label {
+    position: absolute;
+    top: 8px;
+    left: 20px;
+    color: #42526b;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    pointer-events: none;
+}
     </style>
 
 <body>
@@ -276,9 +318,12 @@
                                     <div class="payment-entry d-flex align-items-center gap-2 mb-2">
                                         <select class="input-control default-payment-type">
                                             <option value="" selected disabled>Select Payment Type</option>
+                                            <option value="cash">Cash</option>
+                                            <option value="cheques">Cheques</option>
                                             @foreach($bankAccounts as $bank)
                                                 <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                                             @endforeach
+                                            <option value="add_new_bank">+ Add Bank Account</option>
                                         </select>
                                         <input type="number" class="input-control default-payment-amount d-none" placeholder="Amount" min="0" step="0.01">
                                         <input type="text" class="input-control default-payment-reference d-none" placeholder="Reference">
@@ -294,15 +339,19 @@
                                     </div>
 
                                     <a href="#" class="link-text add-payment-entry">+ Add Payment type</a>
+                                    <div class="transportation-details-live-section d-none mt-3"></div>
                                 </div>
 
                                 <template id="payment-entry-template">
                                     <div class="payment-entry d-flex align-items-center gap-2 mb-2">
                                         <select class="input-control payment-type-entry">
                                             <option value="" selected disabled>Select Bank Account</option>
+                                            <option value="cash">Cash</option>
+                                            <option value="cheques">Cheques</option>
                                             @foreach($bankAccounts as $bank)
                                                 <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                                             @endforeach
+                                            <option value="add_new_bank">+ Add Bank Account</option>
                                         </select>
                                         <input type="number" class="input-control payment-amount" placeholder="Amount" min="0" step="0.01">
                                         <input type="text" class="input-control payment-reference" placeholder="Reference">
@@ -478,6 +527,10 @@
     window.items = @json($items);
     window.parties = @json($parties);
     window.bankAccounts = @json($bankAccounts);
+    window.saleFormSettings = @json($saleFormSettings ?? (json_decode(\App\Models\AppSetting::getValue('sale_form_settings', '{}'), true) ?: []));
+    window.bankAccountRoutes = {
+        store: "{{ route('bank-accounts.store') }}"
+    };
 
     window.saleStoreUrl = "{{ route('purchase-bills.store') }}";
     window.saleMethod = 'POST';
@@ -514,10 +567,13 @@
         </div>
     </div>
 
+    @include('components.bank-account-modal')
+
     <!-- Form Logic -->
     <script src="{{ asset('js/purchase/purchaseform_script.js') }}"></script>
     <!-- Custom JS -->
     <script src="{{ asset('js/purchase/purchasescript.js') }}"></script>
+    <script src="{{ asset('js/bank-account-modal.js') }}"></script>
      <div class="container">
         @yield('content')
     </div>
@@ -818,9 +874,6 @@ else {
 </body>
 
 </html>
-
-
-
 
 
 

@@ -225,6 +225,44 @@
             width: 54px;
         }
 
+        .purchase-return-table-scroll .item-table .col-item-name {
+            width: 24%;
+            min-width: 190px;
+        }
+
+        .purchase-return-table-scroll .item-table .col-tafseel {
+            width: 12%;
+            min-width: 110px;
+        }
+
+        .purchase-return-table-scroll .item-table .col-tadaat,
+        .purchase-return-table-scroll .item-table .col-free-qty,
+        .purchase-return-table-scroll .item-table .col-gross-w,
+        .purchase-return-table-scroll .item-table .col-net-w,
+        .purchase-return-table-scroll .item-table .col-rate,
+        .purchase-return-table-scroll .item-table .col-amount {
+            width: 7.5%;
+            min-width: 68px;
+        }
+
+        .purchase-return-table-scroll .item-table .custom-size-th,
+        .purchase-return-table-scroll .item-table .custom-size-td,
+        .purchase-return-table-scroll .item-table .col-serial-no,
+        .purchase-return-table-scroll .item-table .col-model-no,
+        .purchase-return-table-scroll .item-table .col-description,
+        .purchase-return-table-scroll .item-table .col-batch-no,
+        .purchase-return-table-scroll .item-table .col-exp-date,
+        .purchase-return-table-scroll .item-table .col-mfg-date,
+        .purchase-return-table-scroll .item-table .col-size,
+        .purchase-return-table-scroll .item-table .col-category,
+        .purchase-return-table-scroll .item-table .col-item-code,
+        .purchase-return-table-scroll .item-table .col-discount,
+        .purchase-return-table-scroll .item-table .col-item-tax,
+        .purchase-return-table-scroll .item-table .custom-item-field {
+            width: 9%;
+            min-width: 84px;
+        }
+
         .purchase-return-table-scroll .item-table .item-picker,
         .purchase-return-table-scroll .item-table input,
         .purchase-return-table-scroll .item-table select {
@@ -243,6 +281,54 @@
         .table-footer {
             width: 100%;
             box-sizing: border-box;
+        }
+
+        .purchase-return-table-scroll .item-table th {
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .purchase-return-table-scroll .item-table th:hover {
+            background-color: #f0f4f8;
+        }
+
+        .purchase-return-table-scroll .item-table th.editable-header::after {
+            content: '\270E';
+            margin-left: 4px;
+            opacity: 0.5;
+            font-size: 0.85em;
+        }
+
+        .purchase-return-table-scroll .item-table th.editable-header:hover::after {
+            opacity: 1;
+        }
+
+        .purchase-return-table-scroll .item-table tfoot td {
+            background: #fbfdff;
+            border-top: 1px solid #d8e0ea;
+            border-bottom: 0;
+            padding: 12px 10px;
+        }
+
+        .purchase-return-table-scroll .item-table .column-total-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            color: #6b7280;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .purchase-return-table-scroll .item-table .column-total-value {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .purchase-return-table-scroll .item-table .tfoot-add-row-cell {
+            text-align: left;
         }
 
         .header-mini-fields-grid {
@@ -301,29 +387,44 @@
 
         .transportation-details-live-section {
             display: flex;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             gap: 8px;
+            align-items: flex-start;
             padding: 8px 0;
+            width: 100%;
         }
 
-        .transportation-details-live-section .form-group {
-            flex: 1 1 calc(50% - 4px);
-            min-width: 150px;
+        .transportation-details-live-section .transportation-live-field {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .transportation-details-live-section .floating-input-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .transportation-details-live-section .meta-control {
+            width: 100%;
+            height: 46px;
+            border: 1px solid #d7e0ea;
+            border-radius: 6px;
+            background: #fff;
+            padding: 17px 20px 6px;
+            font-size: 13px;
+            color: #1f2937;
+            outline: none;
         }
 
         .transportation-details-live-section label {
-            color: #64748b;
-            font-size: 11px;
-            margin-bottom: 3px;
-        }
-
-        .transportation-details-live-section input {
-            width: 100%;
-            height: 32px;
-            border: 1px solid #d7e0ea;
-            border-radius: 6px;
+            position: absolute;
+            top: 8px;
+            left: 20px;
+            color: #42526b;
             font-size: 12px;
-            padding: 6px 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            pointer-events: none;
         }
 
         .additional-charge-live-section {
@@ -453,8 +554,8 @@
         }
 
         #partyInfoPanel {
-            max-width: 100%;
-            width: 100%;
+            max-width: 280px;
+            width: 280px;
         }
 
         .party-selection-container > div:not(#partyInfoPanel) {
@@ -506,36 +607,36 @@
         }
 
         .purchase-right-panel {
-            width: 32%;
-            padding-top: 8px;
+            width: 28%;
+            padding-top: 4px;
         }
 
         .purchase-doc-grid {
             display: grid;
-            gap: 16px;
+            gap: 10px;
         }
 
         .purchase-doc-row {
             display: grid;
-            grid-template-columns: 110px 1fr 28px;
+            grid-template-columns: 92px 1fr 24px;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
         }
 
         .purchase-doc-label {
             text-align: right;
             color: #8b93a7;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
         }
 
         .purchase-doc-input {
             border: 0;
             border-bottom: 1px solid #d9deea;
-            padding: 8px 0 6px;
+            padding: 5px 0 4px;
             background: transparent;
             color: #1f2937;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
             outline: none;
         }
@@ -551,7 +652,7 @@
 
         .purchase-doc-icon {
             color: #0d75df;
-            font-size: 18px;
+            font-size: 16px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -574,11 +675,33 @@
 
         #partyInfoPanel h5 {
             letter-spacing: -0.3px;
-            line-height: 1.2;
+            line-height: 1.1;
         }
 
         #partyInfoPanel small {
-            line-height: 1.6;
+            line-height: 1.2;
+        }
+
+        #partyInfoPanel .party-info-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+            line-height: 1.15;
+        }
+
+        #partyInfoPanel .party-info-phone {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            min-width: 0;
+            color: #047857;
+        }
+
+        #partyInfoPanel .party-info-phone span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         #partyInfoPanel .btn {
@@ -644,14 +767,18 @@
         <!-- Top Row: Party Card + Billing Name & Phone -->
         <div style="display: flex; gap: 12px; align-items: flex-start;">
             <!-- Party Info Card Panel -->
-            <div id="partyInfoPanel" class="border rounded-3" style="background-color: #f0fdf4; border: 2px solid #22c55e; padding: 8px; max-width: 220px; flex-shrink: 0;">
+            <div id="partyInfoPanel" class="border rounded-3" style="background-color: #f0fdf4; border: 2px solid #22c55e; padding: 6px 10px; width: 280px; max-width: 280px; flex-shrink: 0;">
                 <!-- Header with Name and Close Button -->
-                <div class="d-flex justify-content-between align-items-flex-start" style="margin-bottom: 4px;">
+                <div class="d-flex justify-content-between align-items-flex-start" style="margin-bottom: 2px;">
                     <div style="flex: 1;">
                         <h5 class="mb-0 fw-700" id="partyInfoName" style="color: #15803d; font-size: 13px; letter-spacing: -0.3px;">Party Name</h5>
-                        <div class="d-flex align-items-center gap-1">
+                        <div class="party-info-meta">
                             <i class="fa-solid fa-location-dot" style="color: #dc2626; font-size: 11px;"></i>
                             <span id="partyInfoDescription" style="font-size: 11px; color: #6b7280;">Party details</span>
+                            <span id="partyInfoPhoneWrap" class="party-info-phone d-none" style="font-size: 11px;">
+                                <i class="fa-solid fa-phone" style="font-size: 10px;"></i>
+                                <span id="partyInfoPhone"></span>
+                            </span>
                         </div>
                     </div>
                     <button type="button" class="btn btn-sm" id="closePartyPanel" title="Close" style="background: white; border: 1px solid #dcfce7; color: #15803d; width: 20px; height: 20px; padding: 0; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
@@ -660,11 +787,11 @@
                 </div>
 
                 <!-- Balance Display -->
-                <div style="border-top: 1px solid #dcfce7; padding-top: 6px;">
+                <div style="border-top: 1px solid #dcfce7; padding-top: 5px;">
                     <div class="d-flex align-items-center gap-1">
                         <span id="partyInfoBalance" class="fw-700" style="color: #15803d; font-size: 13px;">₹0.00</span>
                     </div>
-                    <small style="color: #666; display: block; margin-top: 1px; font-size: 10px;">BALANCE</small>
+                    <small style="color: #666; display: block; margin-top: 0; font-size: 10px;">BALANCE</small>
                 </div>
             </div>
 
@@ -802,32 +929,35 @@
                                         <th class="row-num">#</th>
                                         <th class="col-barcode-scan d-none">SCAN</th>
                                         <th class="col-item-name">ITEM</th>
-                                        <th class="col-serial-no d-none">SERIAL NO.</th>
-                                        <th class="col-category d-none">CATEGORY</th>
-                                        <th class="col-item-code d-none">ITEM CODE</th>
+                                        <th class="col-serial-no">SERIAL NO.</th>
                                         <th class="col-description d-none">DESCRIPTION</th>
                                         <th class="col-count d-none">COUNT</th>
                                         <th class="col-batch-no d-none">BATCH NO.</th>
-                                        <th class="col-model-no d-none">MODEL NO.</th>
+                                        <th class="col-model-no">MODEL NO.</th>
                                         <th class="col-exp-date d-none">EXP. DATE</th>
                                         <th class="col-mfg-date d-none">MFG. DATE</th>
                                         <th class="col-mrp d-none">MRP</th>
                                         <th class="col-size d-none">SIZE</th>
+                                        <th class="col-tafseel">TAFSEEL</th>
+                                        <th class="col-tadaat">TADAAT</th>
+                                        <th class="col-free-qty">FREE QTY</th>
+                                        <th class="col-gross-w">GROSS W</th>
+                                        <th class="col-net-w">NET W</th>
+                                        <th class="custom-size-th">UNIT</th>
+                                        <th class="col-rate">RATE</th>
+                                        <th class="col-amount">AMOUNT</th>
+                                        <th class="col-category d-none">CATEGORY</th>
+                                        <th class="col-item-code d-none">ITEM CODE</th>
                                         <th class="col-discount d-none">DISCOUNT</th>
                                         <th class="col-item-tax d-none">TAX</th>
-                                        <th>QTY</th>
-                                        <th class="col-free-qty d-none">FREE QTY</th>
-                                        <th class="custom-size-th">UNIT</th>
-                                        <th>PRICE/UNIT</th>
-                                        <th>AMOUNT</th>
                                         @for($i = 1; $i <= 6; $i++)
                                             <th class="custom-item-field col-custom-field-{{ $i }} d-none">CUSTOM FIELD {{ $i }}</th>
                                         @endfor
                                         <th class="add-col" style="position: relative;">
-                                            <button type="button" class="btn-add-circle table-settings-btn">
+                                            <button type="button" class="btn-add-circle table-settings-btn" data-bs-toggle="modal" data-bs-target="#purchaseReturnItemColumnModal">
                                                 <i class="fa-solid fa-plus"></i>
                                             </button>
-                                            <div class="settings-box">
+                                            <div class="settings-box d-none">
                                                 <div class="settings-item">
                                                     <input type="checkbox" class="check-category">
                                                     <label>Item Category</label>
@@ -910,26 +1040,29 @@
                                                 </select>
                                             </div>
                                         </td>
-                                        <td class="col-serial-no d-none"><input type="text" class="item-serial-input" placeholder="Serial No."></td>
-                                        <td class="col-category d-none"><input type="text" class="item-category" placeholder="Category"></td>
-                                        <td class="col-item-code d-none"><input type="text" class="item-code" placeholder="Item Code"></td>
+                                        <td class="col-serial-no"><input type="text" class="item-serial-input" placeholder="Serial No."></td>
                                         <td class="col-description d-none"><input type="text" class="item-desc" placeholder="Description"></td>
                                         <td class="col-count d-none"><input type="number" class="item-count-input" value="0" min="0" step="1"></td>
                                         <td class="col-batch-no d-none"><input type="text" class="item-batch-no-input" placeholder="Batch No."></td>
-                                        <td class="col-model-no d-none"><input type="text" class="item-model-no-input" placeholder="Model No."></td>
+                                        <td class="col-model-no"><input type="text" class="item-model-no-input" placeholder="Model No."></td>
                                         <td class="col-exp-date d-none"><input type="date" class="item-exp-date-input"></td>
                                         <td class="col-mfg-date d-none"><input type="date" class="item-mfg-date-input"></td>
                                         <td class="col-mrp d-none"><input type="number" class="item-mrp-input" value="0" min="0" step="0.01"></td>
                                         <td class="col-size d-none"><input type="text" class="item-size-input" placeholder="Size"></td>
-                                        <td class="col-discount d-none"><input type="number" class="item-discount" value="0" min="0" step="0.01"></td>
-                                        <td class="col-item-tax d-none"><input type="number" class="item-tax-amount" value="0" min="0" step="0.01"></td>
-                                        <td><input type="number" class="item-qty" value="1"></td>
-                                        <td class="col-free-qty d-none"><input type="number" class="item-free-qty" value="0" min="0" step="1"></td>
+                                        <td class="col-tafseel"><input type="text" class="item-tafseel" placeholder="Tafseel"></td>
+                                        <td class="col-tadaat"><input type="number" class="item-qty tadaat-input" value="1"></td>
+                                        <td class="col-free-qty"><input type="number" class="item-free-qty" value="0" min="0" step="1"></td>
+                                        <td class="col-gross-w"><input type="number" class="gross-w-input" value="0" min="0" step="0.01"></td>
+                                        <td class="col-net-w"><input type="number" class="net-w-input" value="0" min="0" step="0.01"></td>
                                         <td class="custom-size-td">
                                             <select class="item-unit"><option value="">Select Unit</option><option value="PCS">PCS (Pieces)</option><option value="BOX">BOX</option><option value="PACK">PACK</option><option value="SET">SET</option><option value="KG">KG (Kilogram)</option><option value="G">Gram</option><option value="M">Meter</option><option value="FT">Feet</option><option value="L">Liter</option><option value="ML">Milliliter</option></select>
                                         </td>
-                                        <td><input type="number" class="item-price" value="0"></td>
-                                        <td class="col-amount"><input type="text" class="item-amount" value="0" readonly></td>
+                                        <td class="col-rate"><input type="number" class="item-rate" value="0" min="0" step="0.01"></td>
+                                        <td class="col-amount"><input type="number" class="item-amount" value="0" min="0" step="0.01" readonly></td>
+                                        <td class="col-category d-none"><input type="text" class="item-category" placeholder="Category"></td>
+                                        <td class="col-item-code d-none"><input type="text" class="item-code" placeholder="Item Code"></td>
+                                        <td class="col-discount d-none"><input type="number" class="item-discount" value="0" min="0" step="0.01"></td>
+                                        <td class="col-item-tax d-none"><input type="number" class="item-tax-amount" value="0" min="0" step="0.01"></td>
                                         @for($i = 1; $i <= 6; $i++)
                                             <td class="custom-item-field col-custom-field-{{ $i }} d-none">
                                                 <input type="text" class="item-custom-field-input item-custom-field-{{ $i }}-input" placeholder="Custom Field {{ $i }}">
@@ -938,21 +1071,58 @@
                                         <td class="add-col"></td>
                                     </tr>
                                 </tbody>
+                                <tfoot>
+                                    <tr class="item-totals-row">
+                                        <td class="tfoot-add-row-cell">
+                                            <span class="column-total-label">#</span>
+                                        </td>
+                                        <td class="col-barcode-scan d-none"></td>
+                                        <td class="tfoot-add-row-cell">
+                                            <button type="button" class="btn-add-row add-row-btn">ADD ROW</button>
+                                        </td>
+                                        <td class="col-serial-no"></td>
+                                        <td class="col-description d-none"></td>
+                                        <td class="col-count d-none"></td>
+                                        <td class="col-batch-no d-none"></td>
+                                        <td class="col-model-no"></td>
+                                        <td class="col-exp-date d-none"></td>
+                                        <td class="col-mfg-date d-none"></td>
+                                        <td class="col-mrp d-none"></td>
+                                        <td class="col-size d-none"></td>
+                                        <td class="col-tafseel"></td>
+                                        <td class="col-tadaat">
+                                            <span class="column-total-label">Total Tadaat</span>
+                                            <span class="column-total-value total-qty">0</span>
+                                        </td>
+                                        <td class="col-free-qty">
+                                            <span class="column-total-label">Free Qty</span>
+                                            <span class="column-total-value total-free-qty">0</span>
+                                        </td>
+                                        <td class="col-gross-w">
+                                            <span class="column-total-label">Total Gross W</span>
+                                            <span class="column-total-value total-gross-w">0.00</span>
+                                        </td>
+                                        <td class="col-net-w">
+                                            <span class="column-total-label">Total Net W</span>
+                                            <span class="column-total-value total-net-w">0.00</span>
+                                        </td>
+                                        <td class="custom-size-td"></td>
+                                        <td class="col-rate"></td>
+                                        <td class="col-amount">
+                                            <span class="column-total-label">Total</span>
+                                            <span class="column-total-value total-base-amount">0.00</span>
+                                        </td>
+                                        <td class="col-category d-none"></td>
+                                        <td class="col-item-code d-none"></td>
+                                        <td class="col-discount d-none"></td>
+                                        <td class="col-item-tax d-none"></td>
+                                        @for($i = 1; $i <= 6; $i++)
+                                            <td class="custom-item-field col-custom-field-{{ $i }} d-none"></td>
+                                        @endfor
+                                        <td class="add-col"></td>
+                                    </tr>
+                                </tfoot>
                             </table>
-                            </div>
-                            <div class="table-footer">
-                                <button type="button" class="btn-add-row add-row-btn">ADD ROW</button>
-                                <div class="footer-totals">
-                                    <div>
-                                        <span class="total-label">TOTAL QTY</span>
-                                        <span class="total-qty">0</span>
-                                    </div>
-                                    <div>
-                                        <span class="total-label">TOTAL AMOUNT</span>
-                                        <span class="total-base-amount">0</span>
-                                    </div>
-
-                                </div>
                             </div>
                         </div>
 
@@ -962,9 +1132,12 @@
                                     <div class="payment-entry d-flex align-items-center gap-2 mb-2">
                                         <select class="input-control default-payment-type">
                                             <option value="" selected disabled>Select Payment Type</option>
+                                            <option value="cash">Cash</option>
+                                            <option value="cheques">Cheques</option>
                                             @foreach($bankAccounts as $bank)
                                                 <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                                             @endforeach
+                                            <option value="add_new_bank">+ Add Bank Account</option>
                                         </select>
                                         <input type="number" class="input-control default-payment-amount d-none" placeholder="Amount" min="0" step="0.01">
                                         <input type="text" class="input-control default-payment-reference d-none" placeholder="Reference">
@@ -985,9 +1158,12 @@
                                     <div class="payment-entry d-flex align-items-center gap-2 mb-2">
                                         <select class="input-control payment-type-entry">
                                             <option value="" selected disabled>Select Bank Account</option>
+                                            <option value="cash">Cash</option>
+                                            <option value="cheques">Cheques</option>
                                             @foreach($bankAccounts as $bank)
                                                 <option value="bank-{{ $bank->id }}">{{ $bank->display_with_account }}</option>
                                             @endforeach
+                                            <option value="add_new_bank">+ Add Bank Account</option>
                                         </select>
                                         <input type="number" class="input-control payment-amount" placeholder="Amount" min="0" step="0.01">
                                         <input type="text" class="input-control payment-reference" placeholder="Reference">
@@ -1005,13 +1181,6 @@
                                     <div class="description-pane d-none mt-2">
                                         <label class="form-label">Description</label>
                                         <textarea class="form-control description-input" rows="3" placeholder="Enter a remark or description" style="max-width: 400px;"></textarea>
-                                    </div>
-                                </div>
-
-                                <div class="terms-conditions-settings-field terms-condition-group d-none mb-2">
-                                    <div class="terms-condition-card">
-                                        <h6 class="terms-condition-card-title">Terms &amp; Conditions</h6>
-                                        <textarea class="form-control terms-condition-text" rows="5" placeholder="Thanks for doing business with us!"></textarea>
                                     </div>
                                 </div>
 
@@ -1390,6 +1559,9 @@
     <script>
         window.saleFormSettings = @json($purchaseReturnSaleFormSettings);
         window.itemFormSettings = @json($purchaseReturnItemFormSettings);
+        window.bankAccountRoutes = {
+            store: "{{ route('bank-accounts.store') }}"
+        };
         window.transactionSettings = {
             countEnabled: @json($purchaseReturnCountEnabled),
             countLabel: @json($purchaseReturnCountLabel)
@@ -1452,8 +1624,11 @@
         </div>
     </div>
 
+    @include('components.bank-account-modal')
+
     <script src="{{ asset('js/salereturnform_script.js') }}"></script>
     <script src="{{ asset('js/scriptreturn.js') }}"></script>
+    <script src="{{ asset('js/bank-account-modal.js') }}"></script>
     <script src="{{ asset('js/transaction-count-column.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -1489,7 +1664,53 @@
                     target.dispatchEvent(new Event('change', { bubbles: true }));
                 });
             });
+
+            initializePurchaseReturnEditableHeaders();
         });
+
+        function initializePurchaseReturnEditableHeaders() {
+            const storageKey = 'purchaseReturnItemTableHeaders';
+            const tableHeaders = document.querySelectorAll('.purchase-return-table-scroll .item-table th');
+
+            tableHeaders.forEach(function (th, index) {
+                const text = th.textContent.trim();
+                const headerKey = Array.from(th.classList)
+                    .find(function (cls) {
+                        return cls.startsWith('col-') || cls === 'row-num' || cls === 'custom-size-th';
+                    }) || `header-${index}`;
+
+                th.dataset.headerKey = headerKey;
+
+                if (!text || th.classList.contains('add-col')) {
+                    return;
+                }
+
+                th.classList.add('editable-header');
+                th.addEventListener('click', function (event) {
+                    if (event.target.closest('button')) return;
+
+                    const currentText = th.textContent.trim();
+                    const nextText = prompt('Edit column name:', currentText);
+
+                    if (nextText !== null && nextText.trim() !== '') {
+                        const trimmedText = nextText.trim();
+                        th.textContent = trimmedText;
+
+                        const savedHeaders = JSON.parse(localStorage.getItem(storageKey) || '{}');
+                        savedHeaders[headerKey] = trimmedText;
+                        localStorage.setItem(storageKey, JSON.stringify(savedHeaders));
+                    }
+                });
+            });
+
+            const savedHeaders = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            tableHeaders.forEach(function (th) {
+                const headerKey = th.dataset.headerKey;
+                if (headerKey && savedHeaders[headerKey]) {
+                    th.textContent = savedHeaders[headerKey];
+                }
+            });
+        }
     </script>
     <script>
         // Item Picker Functionality using Event Delegation

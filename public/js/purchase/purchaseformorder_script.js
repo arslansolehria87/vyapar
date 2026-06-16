@@ -14,6 +14,48 @@ function initializeForm(context) {
     }).join('');
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const saleFormSettings = window.saleFormSettings || {};
+
+    function boolSetting(value) {
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'number') return value === 1;
+        const normalized = String(value ?? '').trim().toLowerCase();
+        if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+        if (['0', 'false', 'no', 'off', '', 'null', 'undefined'].includes(normalized)) return false;
+        return !!value;
+    }
+
+    function escapeSettingText(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function renderTransportationFields() {
+        const $section = $ctx.find('.transportation-details-live-section');
+        if (!$section.length) return;
+
+        const settings = saleFormSettings.transportation_details || {};
+        const fields = Array.isArray(settings.fields)
+            ? settings.fields.filter(field => field && boolSetting(field.enabled))
+            : [];
+
+        if (!fields.length) {
+            $section.addClass('d-none').empty();
+            return;
+        }
+
+        const html = fields.map(field => {
+            const key = escapeSettingText(field.key || '');
+            const label = escapeSettingText(field.label || field.key || 'Transportation Detail');
+            return `<div class="party-meta-field header-mini-field transportation-live-field" data-transport-key="${key}"><div class="floating-input-wrapper"><input type="text" class="meta-control transportation-live-input" data-transport-key="${key}" placeholder=" "><label>${label}</label></div></div>`;
+        }).join('');
+
+        $section.removeClass('d-none').html(html);
+    }
 
     // IMPORTANT: Set the doc-type field from window.docType
     // This ensures the correct type is captured when form is saved
@@ -514,8 +556,27 @@ function initializeForm(context) {
         toast.show();
     }
 
+    function syncDefaultPaymentFields() {
+        const hasDefaultPaymentType = Boolean($ctx.find('.default-payment-type').val());
+        const $defaultAmount = $ctx.find('.default-payment-amount');
+        const $defaultReference = $ctx.find('.default-payment-reference');
+
+        if (!$defaultAmount.length || !$defaultReference.length) {
+            return;
+        }
+
+        $defaultAmount.toggleClass('d-none', !hasDefaultPaymentType);
+        $defaultReference.toggleClass('d-none', !hasDefaultPaymentType);
+
+        if (!hasDefaultPaymentType) {
+            $defaultAmount.val('0');
+            $defaultReference.val('');
+        }
+    }
+
     // Update payment summary when default payment type is changed
     $ctx.on('change', '.default-payment-type', function() {
+        syncDefaultPaymentFields();
         updatePaymentSummary();
     });
 
@@ -554,14 +615,17 @@ function initializeForm(context) {
         // Default payment type (amount + reference shown when selected)
         const defaultTypeVal = $ctx.find('.default-payment-type').val();
         if (defaultTypeVal) {
-            const bankId = parseInt(defaultTypeVal.replace('bank-', ''), 10);
-            const bank = (window.bankAccounts || []).find(b => b.id === bankId);
+            const isBank = defaultTypeVal.startsWith('bank-');
+            const isCash = defaultTypeVal === 'cash';
+            const isCheque = defaultTypeVal === 'cheques';
+            const bankId = isBank ? parseInt(defaultTypeVal.replace('bank-', ''), 10) : null;
+            const bank = isBank ? (window.bankAccounts || []).find(b => b.id === bankId) : null;
             const defaultAmount = parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
             const defaultReference = $ctx.find('.default-payment-reference').val() || null;
 
-            if (defaultAmount > 0) {
+            if ((isBank || isCash || isCheque) && defaultAmount > 0) {
                 payments.push({
-                    payment_type: bank?.display_with_account || bank?.display_name || 'Bank',
+                    payment_type: isCheque ? 'Cheques' : (isCash ? 'cash' : (bank?.display_with_account || bank?.display_name || 'Bank')),
                     bank_account_id: bankId || null,
                     amount: defaultAmount,
                     reference: defaultReference,
@@ -574,15 +638,17 @@ function initializeForm(context) {
             const $entry = $(entry);
             const rawType = $entry.find('.payment-type-entry').val() || '';
             const isBank = rawType.startsWith('bank-');
+            const isCash = rawType === 'cash';
+            const isCheque = rawType === 'cheques';
             const bankId = isBank ? rawType.replace('bank-', '') : null;
             const bank = isBank ? (window.bankAccounts || []).find(b => String(b.id) === String(bankId)) : null;
 
             const amount = parseFloat($entry.find('.payment-amount').val() || 0) || 0;
             const reference = $entry.find('.payment-reference').val() || null;
-            if (!rawType || amount <= 0) return;
+            if ((!isBank && !isCash && !isCheque) || amount <= 0) return;
 
             payments.push({
-                payment_type: isBank ? (bank?.display_with_account || bank?.display_name || 'Bank') : rawType,
+                payment_type: isCheque ? 'Cheques' : (isCash ? 'cash' : (bank?.display_with_account || bank?.display_name || 'Bank')),
                 bank_account_id: bankId,
                 amount: amount,
                 reference: reference,
@@ -820,13 +886,13 @@ function initializeForm(context) {
         let paymentTotal = 0;
 
         const defaultType = $ctx.find('.default-payment-type').val() || '';
-        if (defaultType.startsWith('bank-')) {
+        if (defaultType.startsWith('bank-') || defaultType === 'cash' || defaultType === 'cheques') {
             paymentTotal += parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
         }
 
         paymentTotal += Array.from($ctx.find('.payment-type-entry')).reduce((sum, el) => {
             const rawType = $(el).val() || '';
-            if (!rawType.startsWith('bank-')) {
+            if (!rawType.startsWith('bank-') && rawType !== 'cash' && rawType !== 'cheques') {
                 return sum;
             }
 
@@ -872,6 +938,7 @@ function initializeForm(context) {
     });
 
     setupAdjustmentControls();
+    renderTransportationFields();
     calculateTotals();
     applyTableSettings();
 }

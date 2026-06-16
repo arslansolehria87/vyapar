@@ -236,18 +236,19 @@ function initializeForm(context) {
         const settings = window.itemFormSettings || window.itemSettings || {};
         const tableSettings = window.saleFormSettings?.items_table || {};
         const showFreeQty = boolSetting(settings.free_item_qty_enabled) || boolSetting(tableSettings.free_item_qty_enabled);
+        const showPurchaseReturnMarketColumns = docType === 'purchase_return';
         const mappings = [
             { selector: '.col-barcode-scan', enabled: boolSetting(settings.barcode_scan_enabled) || boolSetting(settings.direct_barcode_scan_enabled), label: 'Scan' },
-            { selector: '.col-serial-no', enabled: boolSetting(settings.serial_tracking?.enabled), label: settings.serial_tracking?.label || 'Serial No.' },
+            { selector: '.col-serial-no', enabled: showPurchaseReturnMarketColumns || boolSetting(settings.serial_tracking?.enabled), label: settings.serial_tracking?.label || 'Serial No.' },
             { selector: '.col-description', enabled: boolSetting(settings.description_enabled), label: settings.description_label || 'Description' },
             { selector: '.col-count', enabled: boolSetting(settings.count_enabled) || boolSetting(tableSettings.count_enabled), label: settings.count_label || tableSettings.count_label || 'Count' },
             { selector: '.col-batch-no', enabled: boolSetting(settings.batch_tracking?.batch_no?.enabled), label: settings.batch_tracking?.batch_no?.label || 'Batch No.' },
-            { selector: '.col-model-no', enabled: boolSetting(settings.batch_tracking?.model_no?.enabled), label: settings.batch_tracking?.model_no?.label || 'Model No.' },
+            { selector: '.col-model-no', enabled: showPurchaseReturnMarketColumns || boolSetting(settings.batch_tracking?.model_no?.enabled), label: settings.batch_tracking?.model_no?.label || 'Model No.' },
             { selector: '.col-exp-date', enabled: boolSetting(settings.batch_tracking?.exp_date?.enabled), label: settings.batch_tracking?.exp_date?.label || 'Exp. Date' },
             { selector: '.col-mfg-date', enabled: boolSetting(settings.batch_tracking?.mfg_date?.enabled), label: settings.batch_tracking?.mfg_date?.label || 'Mfg. Date' },
             { selector: '.col-mrp', enabled: boolSetting(settings.mrp?.enabled), label: settings.mrp?.label || 'MRP' },
             { selector: '.col-size', enabled: boolSetting(settings.batch_tracking?.size?.enabled), label: settings.batch_tracking?.size?.label || 'Size' },
-            { selector: '.col-free-qty', enabled: showFreeQty, label: 'Free Qty' },
+            { selector: '.col-free-qty', enabled: showPurchaseReturnMarketColumns || showFreeQty, label: 'Free Qty' },
             { selector: '.col-item-tax', enabled: boolSetting(settings.item_wise_tax_enabled), label: 'Tax' }
         ];
 
@@ -355,7 +356,7 @@ function initializeForm(context) {
         const rows = fields.map(field => {
             const key = escapeSettingText(field.key || '');
             const label = escapeSettingText(field.label || field.key || 'Transportation Detail');
-            return `<div class="form-group"><label>${label}</label><input type="text" class="transportation-live-input" data-transport-key="${key}" placeholder="${label}"></div>`;
+            return `<div class="party-meta-field header-mini-field transportation-live-field" data-transport-key="${key}"><div class="floating-input-wrapper"><input type="text" class="meta-control transportation-live-input" data-transport-key="${key}" placeholder=" "><label>${label}</label></div></div>`;
         });
 
         $ctx.find('.transportation-details-live-section').toggleClass('d-none', !rows.length).html(rows.join(''));
@@ -498,6 +499,9 @@ function initializeForm(context) {
         const isCodeVisible = $ctx.find('.check-item-code').is(':checked');
         const isDescVisible = $ctx.find('.check-description').is(':checked');
         const isDiscVisible = $ctx.find('.check-discount').is(':checked');
+        const isSerialVisible = !$ctx.find('th.col-serial-no').first().hasClass('d-none');
+        const isModelVisible = !$ctx.find('th.col-model-no').first().hasClass('d-none');
+        const isFreeQtyVisible = !$ctx.find('th.col-free-qty').first().hasClass('d-none');
         const escapeHtml = value => String(value ?? '')
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
@@ -552,26 +556,29 @@ function initializeForm(context) {
                         </select>
                     </div>
                 </td>
-                <td class="col-serial-no d-none"><input type="text" class="item-serial-input" placeholder="Serial No."></td>
-                <td class="col-category ${isCatVisible ? '' : 'd-none'}"><input type="text" class="item-category" placeholder="Category"></td>
-                <td class="col-item-code ${isCodeVisible ? '' : 'd-none'}"><input type="text" class="item-code" placeholder="Item Code"></td>
+                <td class="col-serial-no ${isSerialVisible ? '' : 'd-none'}"><input type="text" class="item-serial-input" placeholder="Serial No."></td>
                 <td class="col-description ${isDescVisible ? '' : 'd-none'}"><input type="text" class="item-desc" placeholder="Description"></td>
                 <td class="col-count d-none"><input type="number" class="item-count-input" value="0" min="0" step="1"></td>
                 <td class="col-batch-no d-none"><input type="text" class="item-batch-no-input" placeholder="Batch No."></td>
-                <td class="col-model-no d-none"><input type="text" class="item-model-no-input" placeholder="Model No."></td>
+                <td class="col-model-no ${isModelVisible ? '' : 'd-none'}"><input type="text" class="item-model-no-input" placeholder="Model No."></td>
                 <td class="col-exp-date d-none"><input type="date" class="item-exp-date-input"></td>
                 <td class="col-mfg-date d-none"><input type="date" class="item-mfg-date-input"></td>
                 <td class="col-mrp d-none"><input type="number" class="item-mrp-input" value="0" min="0" step="0.01"></td>
                 <td class="col-size d-none"><input type="text" class="item-size-input" placeholder="Size"></td>
-                <td class="col-discount ${isDiscVisible ? '' : 'd-none'}"><input type="number" class="item-discount" value="0"></td>
-                <td class="col-item-tax d-none"><input type="number" class="item-tax-amount" value="0" min="0" step="0.01"></td>
-                <td><input type="number" class="item-qty" value="1"></td>
-                <td class="col-free-qty d-none"><input type="number" class="item-free-qty" value="0" min="0" step="1"></td>
+                <td class="col-tafseel"><input type="text" class="item-tafseel" placeholder="Tafseel"></td>
+                <td class="col-tadaat"><input type="number" class="item-qty tadaat-input" value="1"></td>
+                <td class="col-free-qty ${isFreeQtyVisible ? '' : 'd-none'}"><input type="number" class="item-free-qty" value="0" min="0" step="1"></td>
+                <td class="col-gross-w"><input type="number" class="gross-w-input" value="0" min="0" step="0.01"></td>
+                <td class="col-net-w"><input type="number" class="net-w-input" value="0" min="0" step="0.01"></td>
                 <td class="custom-size-td">
                     <select class="item-unit"><option value="">Select Unit</option><option value="PCS">PCS (Pieces)</option><option value="BOX">BOX</option><option value="PACK">PACK</option><option value="SET">SET</option><option value="KG">KG (Kilogram)</option><option value="G">Gram</option><option value="M">Meter</option><option value="FT">Feet</option><option value="L">Liter</option><option value="ML">Milliliter</option></select>
                 </td>
-                <td><input type="number" class="item-price" value="0"></td>
-                <td class="col-amount"><input type="text" class="item-amount" value="0" readonly></td>
+                <td class="col-rate"><input type="number" class="item-rate" value="0" min="0" step="0.01"></td>
+                <td class="col-amount"><input type="number" class="item-amount" value="0" min="0" step="0.01" readonly></td>
+                <td class="col-category ${isCatVisible ? '' : 'd-none'}"><input type="text" class="item-category" placeholder="Category"></td>
+                <td class="col-item-code ${isCodeVisible ? '' : 'd-none'}"><input type="text" class="item-code" placeholder="Item Code"></td>
+                <td class="col-discount ${isDiscVisible ? '' : 'd-none'}"><input type="number" class="item-discount" value="0"></td>
+                <td class="col-item-tax d-none"><input type="number" class="item-tax-amount" value="0" min="0" step="0.01"></td>
                 <td class="custom-item-field col-custom-field-1 d-none"><input type="text" class="item-custom-field-input item-custom-field-1-input" placeholder="Custom Field 1"></td>
                 <td class="custom-item-field col-custom-field-2 d-none"><input type="text" class="item-custom-field-input item-custom-field-2-input" placeholder="Custom Field 2"></td>
                 <td class="custom-item-field col-custom-field-3 d-none"><input type="text" class="item-custom-field-input item-custom-field-3-input" placeholder="Custom Field 3"></td>
@@ -596,13 +603,13 @@ function initializeForm(context) {
         let received = 0;
 
         const defaultType = $ctx.find('.default-payment-type').val() || '';
-        if (defaultType.startsWith('bank-') || defaultType === 'cash') {
+        if (defaultType.startsWith('bank-') || defaultType === 'cash' || defaultType === 'cheques') {
             received += parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
         }
 
         received += Array.from($ctx.find('.payment-type-entry')).reduce((sum, el) => {
             const rawType = $(el).val() || '';
-            if (!rawType.startsWith('bank-') && rawType !== 'cash') {
+            if (!rawType.startsWith('bank-') && rawType !== 'cash' && rawType !== 'cheques') {
                 return sum;
             }
 
@@ -618,6 +625,24 @@ function initializeForm(context) {
         $ctx.find('.payment-total-amount').text(received.toFixed(2));
         $paidInput.val(received.toFixed(2));
         $ctx.find('.balance-amount').text(balance.toFixed(2));
+    }
+
+    function syncDefaultPaymentFields() {
+        const hasDefaultPaymentType = Boolean($ctx.find('.default-payment-type').val());
+        const $defaultAmount = $ctx.find('.default-payment-amount');
+        const $defaultReference = $ctx.find('.default-payment-reference');
+
+        if (!$defaultAmount.length || !$defaultReference.length) {
+            return;
+        }
+
+        $defaultAmount.toggleClass('d-none', !hasDefaultPaymentType);
+        $defaultReference.toggleClass('d-none', !hasDefaultPaymentType);
+
+        if (!hasDefaultPaymentType) {
+            $defaultAmount.val('0');
+            $defaultReference.val('');
+        }
     }
 
     function applyDiscountTax(base) {
@@ -656,12 +681,17 @@ function initializeForm(context) {
 
     function calculateTotals() {
         let totalQty = 0;
+        let totalFreeQty = 0;
+        let totalGrossW = 0;
+        let totalNetW = 0;
         let totalBaseAmount = 0;
 
         $ctx.find('.item-row').each(function() {
             const $row = $(this);
             const qty = parseFloat($row.find('.item-qty').val()) || 0;
+            const freeQty = parseFloat($row.find('.item-free-qty').val()) || 0;
             const rate = parseFloat($row.find('.item-rate').val()) || parseFloat($row.find('.item-price').val()) || 0;
+            const grossW = parseFloat($row.find('.gross-w-input').val()) || 0;
             const netW = parseFloat($row.find('.net-w-input').val()) || 0;
             const discount = parseFloat($row.find('.item-discount').val()) || 0;
             const baseQty = netW > 0 ? netW : qty;
@@ -670,10 +700,16 @@ function initializeForm(context) {
             $row.find('.item-amount').val(amount.toFixed(2));
 
             totalQty += qty;
+            totalFreeQty += freeQty;
+            totalGrossW += grossW;
+            totalNetW += netW;
             totalBaseAmount += amount;
         });
 
         $ctx.find('.total-qty').text(totalQty);
+        $ctx.find('.total-free-qty').text(totalFreeQty);
+        $ctx.find('.total-gross-w').text(totalGrossW.toFixed(2));
+        $ctx.find('.total-net-w').text(totalNetW.toFixed(2));
         $ctx.find('.total-base-amount').text(totalBaseAmount.toFixed(2));
         applyDiscountTax(totalBaseAmount);
     }
@@ -704,14 +740,16 @@ function initializeForm(context) {
 
         if (defaultTypeVal) {
             const isCash = defaultTypeVal === 'cash';
-            const bankId = isCash ? null : parseInt(defaultTypeVal.replace('bank-', ''), 10);
-            const bank = !isCash ? (window.bankAccounts || []).find(b => b.id === bankId) : null;
+            const isCheque = defaultTypeVal === 'cheques';
+            const isBank = defaultTypeVal.startsWith('bank-');
+            const bankId = isBank ? parseInt(defaultTypeVal.replace('bank-', ''), 10) : null;
+            const bank = isBank ? (window.bankAccounts || []).find(b => b.id === bankId) : null;
             const defaultAmount = parseFloat($ctx.find('.default-payment-amount').val() || 0) || 0;
             const defaultReference = $ctx.find('.default-payment-reference').val() || null;
 
-            if (defaultAmount > 0) {
+            if ((isBank || isCash || isCheque) && defaultAmount > 0) {
                 payments.push({
-                    payment_type: isCash ? 'cash' : (bank?.display_with_account || bank?.display_name || 'Bank'),
+                    payment_type: isCheque ? 'Cheques' : (isCash ? 'cash' : (bank?.display_with_account || bank?.display_name || 'Bank')),
                     bank_account_id: bankId || null,
                     amount: defaultAmount,
                     reference: defaultReference,
@@ -724,6 +762,7 @@ function initializeForm(context) {
             const rawType = $entry.find('.payment-type-entry').val() || '';
             const isBank = rawType.startsWith('bank-');
             const isCash = rawType === 'cash';
+            const isCheque = rawType === 'cheques';
             const bankId = isBank ? rawType.replace('bank-', '') : null;
             const bank = isBank ? (window.bankAccounts || []).find(b => String(b.id) === String(bankId)) : null;
             const amount = parseFloat($entry.find('.payment-amount').val() || 0) || 0;
@@ -734,7 +773,7 @@ function initializeForm(context) {
             }
 
             payments.push({
-                payment_type: isCash ? 'cash' : (isBank ? (bank?.display_with_account || bank?.display_name || 'Bank') : rawType),
+            payment_type: isCheque ? 'Cheques' : (isCash ? 'cash' : (isBank ? (bank?.display_with_account || bank?.display_name || 'Bank') : rawType)),
                 bank_account_id: bankId,
                 amount,
                 reference,
@@ -838,6 +877,9 @@ function initializeForm(context) {
             // Set party name and description
             $ctx.find('#partyInfoName').text(partyRecord.name || 'Party');
             $ctx.find('#partyInfoDescription').text(partyRecord.party_group ? 'Group: ' + partyRecord.party_group : 'Party selected');
+            const partyPhone = partyRecord.phone || '';
+            $ctx.find('#partyInfoPhone').text(partyPhone);
+            $ctx.find('#partyInfoPhoneWrap').toggleClass('d-none', !partyPhone);
 
             // Set balance with proper formatting
             const balance = Number(partyRecord.opening_balance || 0).toFixed(2);
@@ -895,6 +937,8 @@ function initializeForm(context) {
         $ctx.find('#partyDropdownBtn').val('');
         $ctx.find('.phone-input').val('');
         $ctx.find('.party-phone-input').val('');
+        $ctx.find('#partyInfoPhone').text('');
+        $ctx.find('#partyInfoPhoneWrap').addClass('d-none');
         $ctx.find('.billing-address').val('');
         $ctx.find('.billing-address-input').val('');
         $ctx.find('.shipping-address').val('');
@@ -1061,7 +1105,7 @@ function initializeForm(context) {
         calculateTotals();
     });
 
-    $ctx.on('keyup change', '.item-qty, .gross-w-input, .net-w-input, .item-rate, .item-price, .item-discount', function() {
+    $ctx.on('keyup change', '.item-qty, .item-free-qty, .gross-w-input, .net-w-input, .item-rate, .item-price, .item-discount', function() {
         const $row = $(this).closest('tr');
         const qty = parseFloat($row.find('.item-qty').val()) || 0;
         const rate = parseFloat($row.find('.item-rate').val()) || parseFloat($row.find('.item-price').val()) || 0;
@@ -1097,7 +1141,11 @@ function initializeForm(context) {
         $ctx.find('.payment-entries .payment-entry').last().find('.payment-amount').focus();
     });
 
-    $ctx.on('change', '.default-payment-type, .payment-type-entry', updatePaymentSummary);
+    $ctx.on('change', '.default-payment-type', function() {
+        syncDefaultPaymentFields();
+        updatePaymentSummary();
+    });
+    $ctx.on('change', '.payment-type-entry', updatePaymentSummary);
     $ctx.on('keyup change', '.default-payment-amount, .payment-amount', updatePaymentSummary);
 
     $ctx.on('click', '.remove-payment-entry', function() {
