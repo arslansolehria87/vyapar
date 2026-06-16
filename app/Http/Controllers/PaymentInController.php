@@ -46,11 +46,22 @@ class PaymentInController extends Controller
                 ->pluck('linked_amount', 'sale_id');
         }
 
+        $normalizedPartyName = mb_strtolower(trim((string) ($party->name ?? '')));
+
         $sales = Sale::query()
-            ->where('party_id', $party->id)
-            ->whereIn('type', ['invoice', 'pos'])
+            ->where(function ($query) use ($party, $normalizedPartyName) {
+                $query->where('party_id', $party->id);
+
+                if ($normalizedPartyName !== '') {
+                    $query->orWhereRaw('LOWER(COALESCE(party_name, "")) = ?', [$normalizedPartyName]);
+                }
+            })
+            ->where(function ($query) {
+                $query->whereIn('type', ['invoice', 'pos', 'sale', 'sales'])
+                    ->orWhereNull('type');
+            })
             ->where(function ($query) use ($existingLinks) {
-                $query->where('balance', '>', 0);
+                $query->whereRaw('(COALESCE(balance, 0) > 0 OR (COALESCE(grand_total, total_amount, 0) - COALESCE(received_amount, 0)) > 0)');
 
                 if ($existingLinks->isNotEmpty()) {
                     $query->orWhereIn('id', $existingLinks->keys());
@@ -491,7 +502,10 @@ class PaymentInController extends Controller
         foreach ($linkedRows as $row) {
             $sale = Sale::query()
                 ->whereKey($row['sale_id'])
-                ->whereIn('type', ['invoice', 'pos'])
+                ->where(function ($query) {
+                    $query->whereIn('type', ['invoice', 'pos', 'sale', 'sales'])
+                        ->orWhereNull('type');
+                })
                 ->first();
 
             if (!$sale) {
