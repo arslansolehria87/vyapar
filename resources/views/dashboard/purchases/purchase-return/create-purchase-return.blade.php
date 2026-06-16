@@ -1334,24 +1334,24 @@
 
                         <ul class="nav nav-tabs" id="partyModalTabs" role="tablist">
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#partyAddressPane" type="button" role="tab">
+                                <button class="nav-link active" id="party-address-tab" data-bs-toggle="tab" data-bs-target="#partyAddressPane" type="button" role="tab" aria-controls="partyAddressPane" aria-selected="true">
                                     <i class="fa-solid fa-location-dot me-1"></i> Address
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#partyCreditPane" type="button" role="tab">
+                                <button class="nav-link" id="party-credit-tab" data-bs-toggle="tab" data-bs-target="#partyCreditPane" type="button" role="tab" aria-controls="partyCreditPane" aria-selected="false">
                                     <i class="fa-solid fa-credit-card me-1"></i> Credit & Balance
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#partyAdditionalPane" type="button" role="tab">
+                                <button class="nav-link" id="party-additional-tab" data-bs-toggle="tab" data-bs-target="#partyAdditionalPane" type="button" role="tab" aria-controls="partyAdditionalPane" aria-selected="false">
                                     <i class="fa-solid fa-sliders me-1"></i> Additional Fields
                                 </button>
                             </li>
                         </ul>
 
                         <div class="tab-content pt-3" id="partyModalTabContent">
-                            <div class="tab-pane fade show active" id="partyAddressPane" role="tabpanel">
+                            <div class="tab-pane fade show active" id="partyAddressPane" role="tabpanel" aria-labelledby="party-address-tab">
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label class="form-label">Email ID</label>
@@ -1369,7 +1369,7 @@
                                 </div>
                             </div>
 
-                            <div class="tab-pane fade" id="partyCreditPane" role="tabpanel">
+                            <div class="tab-pane fade" id="partyCreditPane" role="tabpanel" aria-labelledby="party-credit-tab">
                                 <div class="row g-3">
                                     <div class="col-md-4">
                                         <label class="form-label">Opening Balance <span class="text-danger">*</span></label>
@@ -1416,7 +1416,7 @@
                                 </div>
                             </div>
 
-                            <div class="tab-pane fade" id="partyAdditionalPane" role="tabpanel">
+                            <div class="tab-pane fade" id="partyAdditionalPane" role="tabpanel" aria-labelledby="party-additional-tab">
                                 <p class="text-muted mb-3" style="font-size:13px;">Add custom fields to track additional information.</p>
                                 <div class="row g-3">
                                     @for($i=1; $i<=4; $i++)
@@ -2291,9 +2291,29 @@
                 });
             });
 
+            function resetPartyTabs() {
+                const addressTab = document.getElementById('party-address-tab');
+                if (addressTab && window.bootstrap && bootstrap.Tab) {
+                    bootstrap.Tab.getOrCreateInstance(addressTab).show();
+                }
+
+                document.querySelectorAll('#partyModalTabs .nav-link').forEach(function (tab) {
+                    const isAddress = tab.getAttribute('data-bs-target') === '#partyAddressPane';
+                    tab.classList.toggle('active', isAddress);
+                    tab.setAttribute('aria-selected', isAddress ? 'true' : 'false');
+                });
+
+                document.querySelectorAll('#partyModalTabContent .tab-pane').forEach(function (pane) {
+                    const isAddress = pane.id === 'partyAddressPane';
+                    pane.classList.toggle('show', isAddress);
+                    pane.classList.toggle('active', isAddress);
+                });
+            }
+
             function resetPartyModal() {
                 addPartyForm.reset();
                 transactionTypeValue.value = '';
+                resetPartyTabs();
             }
 
             function appendPartyToDropdowns(party) {
@@ -2394,6 +2414,8 @@
                     addPartyModal.show();
                 }
             });
+
+            addPartyModalEl.addEventListener('shown.bs.modal', resetPartyTabs);
 
             document.getElementById('btnSaveParty').addEventListener('click', function () {
                 saveParty(true);

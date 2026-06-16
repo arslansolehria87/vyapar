@@ -293,14 +293,15 @@
     }
 
     function resetPartyTabs() {
-        const tabEl = document.getElementById('party-address-tab');
+        const tabEl = document.getElementById('party-address-tab')
+            || document.querySelector('#addPartyModal [data-bs-target="#partyAddressPane"]');
         if (tabEl && window.bootstrap && bootstrap.Tab) {
             bootstrap.Tab.getOrCreateInstance(tabEl).show();
         }
         $('#partyAddressPane').addClass('show active');
         $('#partyCreditPane, #partyAdditionalPane').removeClass('show active');
-        $('#party-address-tab').addClass('active').attr('aria-selected', 'true');
-        $('#party-credit-tab, #party-additional-tab').removeClass('active').attr('aria-selected', 'false');
+        $('#party-address-tab, #addPartyModal [data-bs-target="#partyAddressPane"]').addClass('active').attr('aria-selected', 'true');
+        $('#party-credit-tab, #party-additional-tab, #addPartyModal [data-bs-target="#partyCreditPane"], #addPartyModal [data-bs-target="#partyAdditionalPane"]').removeClass('active').attr('aria-selected', 'false');
     }
 
     function resetItemTabs() {
