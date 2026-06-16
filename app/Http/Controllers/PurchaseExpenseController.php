@@ -77,50 +77,53 @@ class PurchaseExpenseController extends Controller
     public function linkablePurchases(Request $request, Party $party)
     {
         $paymentOutId = $request->integer('payment_out_id');
-        $existingLinks = collect();
 
-        if ($paymentOutId > 0) {
-            $existingLinks = PurchasePayment::query()
-                ->selectRaw('purchase_id, SUM(amount) as linked_amount')
-                ->where('reference', 'payment_out:' . $paymentOutId)
-                ->groupBy('purchase_id')
-                ->pluck('linked_amount', 'purchase_id');
-        }
-
-        $purchases = Purchase::query()
-            ->whereIn('type', ['purchase_bill', 'purchase'])
-            ->where(function ($query) use ($party) {
-                $query->where('party_id', $party->id);
-
-                if (!empty($party->name)) {
-                    $query->orWhereRaw('LOWER(COALESCE(party_name, "")) = ?', [mb_strtolower($party->name)]);
-                }
-            })
-            ->where(function ($query) use ($existingLinks) {
-                $query->whereRaw('(COALESCE(balance, 0) > 0 OR (COALESCE(grand_total, total_amount, 0) - COALESCE(paid_amount, 0)) > 0)');
-
-                if ($existingLinks->isNotEmpty()) {
-                    $query->orWhereIn('id', $existingLinks->keys());
-                }
-            })
-            ->orderByDesc('bill_date')
+        $salesRows = \DB::table('sales')
+            ->where('party_id', $party->id)
+            ->whereNotIn('status', ['paid'])
+            ->orderByDesc('invoice_date')
             ->orderByDesc('id')
             ->get()
-            ->map(function (Purchase $purchase) use ($existingLinks) {
-                $existingAmount = (float) ($existingLinks[$purchase->id] ?? 0);
-                $currentBalance = (float) ($purchase->balance ?? max(0, (float) ($purchase->grand_total ?? 0) - (float) ($purchase->paid_amount ?? 0)));
-                $availableBalance = $currentBalance + $existingAmount;
-
+            ->map(function ($sale) {
+                $balance = (float) ($sale->balance ?? max(0, (float) ($sale->grand_total ?? 0) - (float) ($sale->received_amount ?? 0)));
                 return [
-                    'purchase_id' => $purchase->id,
-                    'date' => optional($purchase->bill_date)->format('d/m/Y') ?: '-',
-                    'type' => 'Purchase Bill',
-                    'ref_no' => $purchase->bill_number ?: ('PB-' . $purchase->id),
-                    'total' => round((float) ($purchase->grand_total ?? $purchase->total_amount ?? 0), 2),
-                    'balance' => round($availableBalance, 2),
-                    'linked_amount' => round($existingAmount, 2),
+                    'id' => 'sale:' . $sale->id,
+                    'sale_id' => $sale->id,
+                    'purchase_id' => $sale->id,
+                    'date' => $sale->invoice_date ? \Carbon\Carbon::parse($sale->invoice_date)->format('d/m/Y') : '-',
+                    'type' => 'Sale',
+                    'ref_no' => $sale->bill_number ?: ('S-' . $sale->id),
+                    'total' => round((float) ($sale->grand_total ?? $sale->total_amount ?? 0), 2),
+                    'balance' => round($balance, 2),
+                    'linked_amount' => 0,
                 ];
-            })
+            });
+
+        $transactionRows = Transaction::query()
+            ->where('party_id', $party->id)
+            ->whereNotIn('status', ['paid'])
+            ->whereNotNull('balance')
+            ->where('balance', '>', 0)
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->get()
+            ->map(function (Transaction $txn) {
+                $balance = (float) ($txn->balance ?? 0);
+                return [
+                    'id' => 'txn:' . $txn->id,
+                    'transaction_id' => $txn->id,
+                    'purchase_id' => $txn->id,
+                    'date' => $txn->date ? \Carbon\Carbon::parse($txn->date)->format('d/m/Y') : '-',
+                    'type' => ucfirst(str_replace('_', ' ', $txn->type ?? 'Transaction')),
+                    'ref_no' => $txn->number ?: ('T-' . $txn->id),
+                    'total' => round((float) ($txn->total ?? 0), 2),
+                    'balance' => round($balance, 2),
+                    'linked_amount' => 0,
+                ];
+            });
+
+        $rows = $salesRows->merge($transactionRows)
+            ->sortByDesc('date')
             ->values();
 
         return response()->json([
@@ -129,7 +132,7 @@ class PurchaseExpenseController extends Controller
                 'id' => $party->id,
                 'name' => $party->name,
             ],
-            'rows' => $purchases,
+            'rows' => $rows,
         ]);
     }
 
@@ -151,7 +154,9 @@ class PurchaseExpenseController extends Controller
             'entity_name' => ['nullable', 'string', 'max:255'],
             'item_id' => ['nullable', 'exists:items,id'],
             'linked_rows' => ['nullable', 'array'],
-            'linked_rows.*.purchase_id' => ['required_with:linked_rows', 'exists:purchases,id'],
+            'linked_rows.*.purchase_id' => ['nullable', 'integer'],
+            'linked_rows.*.sale_id' => ['nullable', 'integer'],
+            'linked_rows.*.transaction_id' => ['nullable', 'integer'],
             'linked_rows.*.amount' => ['required_with:linked_rows', 'numeric', 'min:0.01'],
         ]);
 
@@ -238,40 +243,88 @@ class PurchaseExpenseController extends Controller
                 ->map(function ($row) {
                     return [
                         'purchase_id' => (int) ($row['purchase_id'] ?? 0),
+                        'sale_id' => (int) ($row['sale_id'] ?? 0),
+                        'transaction_id' => (int) ($row['transaction_id'] ?? 0),
                         'amount' => round((float) ($row['amount'] ?? 0), 2),
                     ];
                 })
-                ->filter(fn ($row) => $row['purchase_id'] > 0 && $row['amount'] > 0)
+                ->filter(fn ($row) => ($row['purchase_id'] > 0 || $row['sale_id'] > 0 || $row['transaction_id'] > 0) && $row['amount'] > 0)
                 ->values();
 
             if ($linkedRows->isNotEmpty()) {
                 foreach ($linkedRows as $linkedRow) {
-                    $purchase = Purchase::query()->lockForUpdate()->findOrFail($linkedRow['purchase_id']);
-                    $purchaseGrandTotal = (float) ($purchase->grand_total ?? $purchase->total_amount ?? 0);
-                    $purchasePaid = (float) ($purchase->paid_amount ?? 0);
-                    $purchaseBalance = max(0, $purchaseGrandTotal - $purchasePaid);
-                    $allocate = min($linkedRow['amount'], $purchaseBalance);
+                    // Handle Purchase links
+                    if ($linkedRow['purchase_id'] > 0) {
+                        $purchase = Purchase::query()->lockForUpdate()->find($linkedRow['purchase_id']);
+                        if (!$purchase) continue;
 
-                    if ($allocate <= 0) {
-                        continue;
+                        $purchaseGrandTotal = (float) ($purchase->grand_total ?? $purchase->total_amount ?? 0);
+                        $purchasePaid = (float) ($purchase->paid_amount ?? 0);
+                        $purchaseBalance = max(0, $purchaseGrandTotal - $purchasePaid);
+                        $allocate = min($linkedRow['amount'], $purchaseBalance);
+
+                        if ($allocate > 0) {
+                            PurchasePayment::create([
+                                'purchase_id' => $purchase->id,
+                                'payment_type' => $paymentType,
+                                'bank_account_id' => $bankAccountId,
+                                'amount' => $allocate,
+                                'reference' => 'payment_out:' . $savedTransaction->id,
+                                'receipt_no' => $data['receipt_no'] ?? null,
+                            ]);
+
+                            $newPaidAmount = round($purchasePaid + $allocate, 2);
+                            $newBalance = max(0, round($purchaseGrandTotal - $newPaidAmount, 2));
+                            $purchase->update([
+                                'paid_amount' => $newPaidAmount,
+                                'balance' => $newBalance,
+                                'status' => $newBalance <= 0 ? 'paid' : ($newPaidAmount > 0 ? 'partial' : 'unpaid'),
+                            ]);
+                        }
                     }
 
-                    PurchasePayment::create([
-                        'purchase_id' => $purchase->id,
-                        'payment_type' => $paymentType,
-                        'bank_account_id' => $bankAccountId,
-                        'amount' => $allocate,
-                        'reference' => 'payment_out:' . $savedTransaction->id,
-                        'receipt_no' => $data['receipt_no'] ?? null,
-                    ]);
+                    // Handle Sale links
+                    if ($linkedRow['sale_id'] > 0) {
+                        $sale = \DB::table('sales')->lockForUpdate()->find($linkedRow['sale_id']);
+                        if (!$sale) continue;
 
-                    $newPaidAmount = round($purchasePaid + $allocate, 2);
-                    $newBalance = max(0, round($purchaseGrandTotal - $newPaidAmount, 2));
-                    $purchase->update([
-                        'paid_amount' => $newPaidAmount,
-                        'balance' => $newBalance,
-                        'status' => $newBalance <= 0 ? 'paid' : ($newPaidAmount > 0 ? 'partial' : 'unpaid'),
-                    ]);
+                        $saleGrandTotal = (float) ($sale->grand_total ?? $sale->total_amount ?? 0);
+                        $saleReceived = (float) ($sale->received_amount ?? 0);
+                        $saleBalance = max(0, $saleGrandTotal - $saleReceived);
+                        $allocate = min($linkedRow['amount'], $saleBalance);
+
+                        if ($allocate > 0) {
+                            $newReceivedAmount = round($saleReceived + $allocate, 2);
+                            $newBalance = max(0, round($saleGrandTotal - $newReceivedAmount, 2));
+                            \DB::table('sales')->where('id', $sale->id)->update([
+                                'received_amount' => $newReceivedAmount,
+                                'balance' => $newBalance,
+                                'status' => $newBalance <= 0 ? 'paid' : ($newReceivedAmount > 0 ? 'partial' : 'unpaid'),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    }
+
+                    // Handle Transaction links
+                    if ($linkedRow['transaction_id'] > 0) {
+                        $txn = Transaction::query()->lockForUpdate()->find($linkedRow['transaction_id']);
+                        if (!$txn) continue;
+
+                        $txnTotal = (float) ($txn->total ?? 0);
+                        $txnPaid = (float) ($txn->paid_amount ?? 0);
+                        $txnBalance = max(0, $txnTotal - $txnPaid);
+                        $allocate = min($linkedRow['amount'], $txnBalance);
+
+                        if ($allocate > 0) {
+                            $newPaidAmount = round($txnPaid + $allocate, 2);
+                            $newBalance = max(0, round($txnTotal - $newPaidAmount, 2));
+                            $txn->update([
+                                'paid_amount' => $newPaidAmount,
+                                'balance' => $newBalance,
+                                'status' => $newBalance <= 0 ? 'paid' : ($newPaidAmount > 0 ? 'partial' : 'unpaid'),
+                            ]);
+                        }
+                    }
                 }
             }
 

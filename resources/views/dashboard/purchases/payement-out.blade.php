@@ -2268,41 +2268,42 @@
       const bankAccountId = paymentType.startsWith('bank:') ? parseInt(paymentType.replace('bank:', ''), 10) : null;
       const discount = parseFloat(document.getElementById('paymentDiscountInput')?.value || 0) || 0;
       const total = Math.max(paid - discount, 0);
-      const payload = new URLSearchParams();
-      if (selectedPartyId) payload.set('party_id', selectedPartyId);
-      if (selectedBrokerId) payload.set('broker_id', selectedBrokerId);
-      if (selectedItemId) payload.set('item_id', selectedItemId);
-      payload.set('payment_type', paymentType);
-      if (bankAccountId) payload.set('bank_account_id', bankAccountId);
-      payload.set('amount', paid.toFixed(2));
-      payload.set('discount', discount.toFixed(2));
-      payload.set('total', total.toFixed(2));
-      payload.set('reference', document.getElementById('refNoInput').value || '');
-      payload.set('receipt_no', document.getElementById('modalReceiptNo').value || '');
-      payload.set('payment_date', document.getElementById('modalDate').value || '');
-      payload.set('description', document.getElementById('descriptionArea').value || '');
-      payload.set('entity_type', selectedEntityType);
-      payload.set('entity_name', selectedEntityName || document.getElementById('partyDisplayText').textContent || '');
 
       const linkedRows = (appliedLinkPaymentRows.length ? appliedLinkPaymentRows : linkPaymentRows)
         .filter(row => (parseFloat(row.selected_amount || 0) || 0) > 0)
-        .map((row, index) => {
-          payload.set(`linked_rows[${index}][purchase_id]`, row.purchase_id);
-          payload.set(`linked_rows[${index}][amount]`, Number(parseFloat(row.selected_amount).toFixed(2)));
-          return row;
-        });
-      if (linkedRows.length === 0) {
-        payload.set('linked_rows', '[]');
-      }
+        .map(row => ({
+          purchase_id: row.purchase_id || null,
+          sale_id: row.sale_id || null,
+          transaction_id: row.transaction_id || null,
+          amount: Number(parseFloat(row.selected_amount).toFixed(2))
+        }));
+
+      const payload = {
+        party_id: selectedPartyId || null,
+        broker_id: selectedBrokerId || null,
+        item_id: selectedItemId || null,
+        payment_type: paymentType,
+        bank_account_id: bankAccountId,
+        amount: paid.toFixed(2),
+        discount: discount.toFixed(2),
+        total: total.toFixed(2),
+        reference: document.getElementById('refNoInput').value || '',
+        receipt_no: document.getElementById('modalReceiptNo').value || '',
+        payment_date: document.getElementById('modalDate').value || '',
+        description: document.getElementById('descriptionArea').value || '',
+        entity_type: selectedEntityType,
+        entity_name: selectedEntityName || document.getElementById('partyDisplayText').textContent || '',
+        linked_rows: linkedRows
+      };
 
       fetch(@json(route('payment-out.store')), {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'Content-Type': 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
         },
-        body: payload.toString(),
+        body: JSON.stringify(payload),
       })
       .then(async res => {
         const data = await res.json().catch(() => ({}));
