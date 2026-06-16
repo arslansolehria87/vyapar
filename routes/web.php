@@ -19,7 +19,7 @@ use App\Http\Controllers\PurchaseBillController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\PaymentInController;
+use App\Http\Controllers\PaymentInController;\nuse App\Http\Controllers\PaymentLinkController;
 use App\Http\Controllers\PerfomaController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\ExpenseCreateController;
@@ -112,7 +112,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::post('/estimates', [EstimateController::class, 'store'])->name('estimate.store');
 
     // Sale Sections
-    Route::get('/payment-in', [PaymentInController::class, 'index'])->name('payment-in');
+    Route::get('/payment-in', [PaymentInController::class, 'index'])->name('payment-in');\n\n    // Link Payment endpoints\n    Route::post('/payments/link-data', [PaymentLinkController::class, 'linkData']);\n    Route::post('/payments/link-save', [PaymentLinkController::class, 'saveLinks']);
 
 
 

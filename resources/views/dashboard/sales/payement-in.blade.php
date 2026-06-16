@@ -2734,7 +2734,8 @@ function loadLinkableSales(partyId, options = {}) {
         headers: {
             'Accept': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-        }
+        },
+        credentials: 'same-origin'
     })
     .then(async (response) => {
         const data = await response.json().catch(() => ({}));
