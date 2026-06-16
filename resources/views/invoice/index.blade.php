@@ -148,7 +148,7 @@
       window.docType = @json($documentType ?? null);
       window.invoiceAppData = {
         invoiceData: @json($invoicePreviewData ?? null),
-        saleId: @json($sale->id ?? null),
+        saleId: @json($sale->id ?? ($purchase->id ?? null)),
         initialTheme: @json($initialMode ?? 'tally'),
         initialColor: @json($initialAccent ?? '#707070'),
         initialColor2: @json($initialAccent2 ?? '#ff981f'),
@@ -176,7 +176,7 @@
       <script>
         window.serverInvoicePdfConfig = {
           purchaseId: @json($purchase->id),
-          downloadUrl: @json(route('purchase-bills.download-pdf', $purchase)),
+          downloadUrl: @json(($purchase->type ?? null) === 'purchase_return' ? route('purchase-return.pdf', $purchase) : route('purchase-bills.download-pdf', $purchase)),
           defaultMode: @json($initialMode ?? 'regular'),
           defaultThemeId: @json($initialMode === 'thermal' ? ($initialThermalThemeId ?? 1) : ($initialRegularThemeId ?? 1)),
           defaultAccent: @json($initialAccent ?? '#1f4e79'),
@@ -261,6 +261,74 @@
         return '#707070';
       }
 
+      function getThemePayload() {
+        const theme = getSelectedTheme();
+        const regularThemeIds = {
+          tally: 1,
+          LandScapeTheme1: 2,
+          LandScapeTheme2: 3,
+          tax1: 4,
+          tax2: 5,
+          tax3: 6,
+          tax4: 7,
+          tax5: 8,
+          tax6: 9,
+          divine: 10,
+          french: 11,
+          theme1: 12,
+          theme2: 13,
+          theme3: 14,
+          theme4: 15
+        };
+        const thermalThemeIds = {
+          thermal1: 1,
+          thermal2: 2,
+          thermal3: 3,
+          thermal4: 4,
+          thermal5: 5
+        };
+        const isThermal = Object.prototype.hasOwnProperty.call(thermalThemeIds, theme);
+
+        return {
+          mode: isThermal ? 'thermal' : 'regular',
+          regularThemeId: isThermal ? null : (regularThemeIds[theme] || 1),
+          thermalThemeId: isThermal ? (thermalThemeIds[theme] || 1) : null,
+          accent: getSelectedColor() || '#1f4e79',
+          accent2: '#ff981f'
+        };
+      }
+
+      let lastThemeSaveSignature = '';
+      let themeSaveTimer = null;
+      function persistSelectedInvoiceTheme() {
+        const themeSaveUrl = window.invoiceAppData?.themeSaveUrl;
+        if (!themeSaveUrl) {
+          return Promise.resolve();
+        }
+
+        const payload = getThemePayload();
+        const signature = JSON.stringify(payload);
+        if (signature === lastThemeSaveSignature) {
+          return Promise.resolve();
+        }
+        lastThemeSaveSignature = signature;
+
+        return fetch(themeSaveUrl, {
+          method: 'POST',
+          headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: signature
+        }).catch(function () {});
+      }
+
+      function scheduleThemeSave() {
+        clearTimeout(themeSaveTimer);
+        themeSaveTimer = setTimeout(persistSelectedInvoiceTheme, 350);
+      }
+
       function triggerInvoiceDownload() {
         const config = window.serverInvoicePdfConfig || {};
         if (!config.downloadUrl) {
@@ -275,8 +343,16 @@
         if (config.purchaseId) {
           url.searchParams.set('purchase_id', String(config.purchaseId));
         }
+        const themePayload = getThemePayload();
+        const activeThemeId = themePayload.mode === 'thermal' ? themePayload.thermalThemeId : themePayload.regularThemeId;
         url.searchParams.set('theme', getSelectedTheme());
         url.searchParams.set('color', getSelectedColor());
+        url.searchParams.set('mode', themePayload.mode);
+        if (activeThemeId) {
+          url.searchParams.set('theme_id', String(activeThemeId));
+        }
+        url.searchParams.set('accent', themePayload.accent);
+        url.searchParams.set('accent2', themePayload.accent2);
         window.location.href = url.toString();
       }
 
@@ -291,7 +367,20 @@
       }
 
       document.addEventListener('click', function (event) {
+        const saveCloseLink = event.target.closest('.preview-save');
+        if (saveCloseLink && window.invoiceAppData?.themeSaveUrl) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          const href = saveCloseLink.href;
+          persistSelectedInvoiceTheme().finally(function () {
+            window.location.href = href;
+          });
+          return;
+        }
+
         if (!isDownloadPdfAction(event.target)) {
+          scheduleThemeSave();
           return;
         }
 
@@ -300,6 +389,12 @@
         event.stopImmediatePropagation();
         triggerInvoiceDownload();
       }, true);
+
+      document.addEventListener('change', scheduleThemeSave, true);
+      document.addEventListener('input', scheduleThemeSave, true);
+      window.addEventListener('load', function () {
+        setTimeout(persistSelectedInvoiceTheme, 900);
+      });
 
       window.triggerInvoiceDownload = triggerInvoiceDownload;
 

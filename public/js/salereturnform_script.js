@@ -239,6 +239,7 @@ function initializeForm(context) {
         const mappings = [
             { selector: '.col-barcode-scan', enabled: boolSetting(settings.barcode_scan_enabled) || boolSetting(settings.direct_barcode_scan_enabled), label: 'Scan' },
             { selector: '.col-serial-no', enabled: boolSetting(settings.serial_tracking?.enabled), label: settings.serial_tracking?.label || 'Serial No.' },
+            { selector: '.col-description', enabled: boolSetting(settings.description_enabled), label: settings.description_label || 'Description' },
             { selector: '.col-count', enabled: boolSetting(settings.count_enabled) || boolSetting(tableSettings.count_enabled), label: settings.count_label || tableSettings.count_label || 'Count' },
             { selector: '.col-batch-no', enabled: boolSetting(settings.batch_tracking?.batch_no?.enabled), label: settings.batch_tracking?.batch_no?.label || 'Batch No.' },
             { selector: '.col-model-no', enabled: boolSetting(settings.batch_tracking?.model_no?.enabled), label: settings.batch_tracking?.model_no?.label || 'Model No.' },
@@ -266,17 +267,21 @@ function initializeForm(context) {
             $cells.find('input').attr('placeholder', label);
         });
 
-        $ctx.find('.custom-size-th, .custom-size-td').toggleClass('d-none', settings.items_unit_enabled === false);
+        const unitsEnabled = settings.items_unit_enabled === undefined || boolSetting(settings.items_unit_enabled);
+        $ctx.find('.custom-size-th, .custom-size-td').toggleClass('d-none', !unitsEnabled);
 
         const quantityDecimals = Math.max(0, Math.min(4, parseInt(settings.quantity_decimals ?? 2, 10) || 0));
         $ctx.find('.item-qty').attr('step', quantityDecimals ? `0.${'0'.repeat(Math.max(0, quantityDecimals - 1))}1` : '1');
     }
 
     function renderTransactionSettings() {
-        const totals = window.saleFormSettings?.transaction_totals || {};
-        const discountEnabled = totals.discount_enabled !== false;
-        const taxEnabled = totals.tax_enabled !== false;
-        const roundEnabled = totals.round_total_enabled !== false;
+        const saleSettings = window.saleFormSettings || {};
+        const totals = saleSettings.transaction_totals || {};
+        const header = saleSettings.transaction_header || {};
+        const more = saleSettings.more_transaction_features || {};
+        const discountEnabled = totals.discount_enabled === undefined || boolSetting(totals.discount_enabled);
+        const taxEnabled = totals.tax_enabled === undefined || boolSetting(totals.tax_enabled);
+        const roundEnabled = totals.round_total_enabled === undefined || boolSetting(totals.round_total_enabled);
 
         $ctx.find('.transaction-discount-row').toggleClass('d-none', !discountEnabled);
         $ctx.find('.transaction-tax-row').toggleClass('d-none', !taxEnabled);
@@ -292,6 +297,100 @@ function initializeForm(context) {
             $ctx.find('.round-off-check').prop('checked', false);
             $ctx.find('.round-off-val').val('0');
         }
+
+        $ctx.find('.transaction-invoice-number-row').toggleClass('d-none', header.invoice_number_enabled !== undefined && !boolSetting(header.invoice_number_enabled));
+        $ctx.find('.transaction-billing-name-field').toggleClass('d-none', header.billing_name_enabled !== undefined && !boolSetting(header.billing_name_enabled));
+
+        const paymentTermsEnabled = boolSetting(more.due_dates_payment_terms_enabled);
+        $ctx.find('.transaction-due-date-row').toggleClass('d-none', !paymentTermsEnabled);
+        $ctx.find('.customer-po-settings-fields').toggleClass('d-none', !boolSetting(header.customer_po_enabled));
+        $ctx.find('.terms-conditions-settings-field').toggleClass('d-none', !boolSetting(more.terms_conditions_enabled));
+
+        const showTime = boolSetting(header.transaction_time_enabled);
+        $ctx.find('.transaction-time-row').toggleClass('d-none', !showTime);
+        if (showTime) {
+            $ctx.find('.transaction-time-display').val(new Date().toLocaleTimeString('en-PK', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+                timeZone: 'Asia/Karachi'
+            }));
+        }
+
+        renderDynamicInvoiceFields(saleSettings.invoice_fields || {});
+        renderTransportationFields(saleSettings.transportation_details || {});
+        renderAdditionalCharges(saleSettings.additional_charges || {});
+    }
+
+    function escapeSettingText(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function renderDynamicInvoiceFields(fields) {
+        const rows = [];
+        const customField = fields.custom_field_1 || {};
+        const dateField = fields.date_field_2 || {};
+
+        if (boolSetting(customField.enabled)) {
+            const label = escapeSettingText(customField.label || 'Additional Field 1');
+            rows.push(`<div class="party-meta-field header-mini-field settings-custom-field-shell"><div class="floating-input-wrapper"><input type="text" class="meta-control dynamic-invoice-extra-field" data-field-key="custom_field_1" placeholder=" "><label>${label}</label></div></div>`);
+        }
+        if (boolSetting(dateField.enabled)) {
+            const label = escapeSettingText(dateField.label || 'Date Field 2');
+            rows.push(`<div class="party-meta-field header-mini-field settings-date-field-shell"><div class="floating-input-wrapper"><input type="date" class="meta-control dynamic-invoice-extra-field" data-field-key="date_field_2" placeholder=" "><label>${label}</label></div></div>`);
+        }
+
+        $ctx.find('.dynamic-invoice-fields-row').toggleClass('d-none', !rows.length).html(rows.join(''));
+    }
+
+    function renderTransportationFields(settings) {
+        const fields = Array.isArray(settings.fields)
+            ? settings.fields.filter(field => field && boolSetting(field.enabled))
+            : [];
+        const rows = fields.map(field => {
+            const key = escapeSettingText(field.key || '');
+            const label = escapeSettingText(field.label || field.key || 'Transportation Detail');
+            return `<div class="form-group"><label>${label}</label><input type="text" class="transportation-live-input" data-transport-key="${key}" placeholder="${label}"></div>`;
+        });
+
+        $ctx.find('.transportation-details-live-section').toggleClass('d-none', !rows.length).html(rows.join(''));
+    }
+
+    function renderAdditionalCharges(settings) {
+        const items = Array.isArray(settings.items)
+            ? settings.items.filter(item => boolSetting(settings.enabled) && item && boolSetting(item.enabled))
+            : [];
+        const rows = items.map(item => {
+            const key = escapeSettingText(item.key || '');
+            const label = escapeSettingText(item.label || item.key || 'Additional Charge');
+            const taxRate = escapeSettingText(item.tax_rate || 'NONE');
+            return `<div class="additional-charge-live-row" data-charge-key="${key}"><div class="additional-charge-live-label">${label}</div><input type="number" class="additional-charge-live-input" min="0" step="0.01" value="0"><select class="additional-charge-live-tax" ${boolSetting(item.tax_enabled) ? '' : 'disabled'}><option value="${taxRate}">${taxRate}</option></select><span class="fw-semibold additional-charge-live-total">0.00</span></div>`;
+        });
+
+        $ctx.find('.additional-charge-live-section').toggleClass('d-none', !rows.length).html(rows.join(''));
+    }
+
+    function parseAdditionalChargeTaxRate(value) {
+        const match = String(value || '').match(/(\d+(?:\.\d+)?)\s*%/);
+        return match ? (parseFloat(match[1]) || 0) : 0;
+    }
+
+    function getAdditionalChargesTotal() {
+        let total = 0;
+        $ctx.find('.additional-charge-live-row').each(function() {
+            const $row = $(this);
+            const amount = parseFloat($row.find('.additional-charge-live-input').val() || 0) || 0;
+            const taxRate = parseAdditionalChargeTaxRate($row.find('.additional-charge-live-tax').val());
+            const rowTotal = amount + ((amount * taxRate) / 100);
+            $row.find('.additional-charge-live-total').text(rowTotal.toFixed(2));
+            total += rowTotal;
+        });
+        return total;
     }
 
     function populateFormFromSaleReturn(saleReturn) {
@@ -540,6 +639,9 @@ function initializeForm(context) {
             taxAmount = (finalBase * taxPct / 100);
             finalBase += taxAmount;
         }
+
+        const additionalCharges = getAdditionalChargesTotal();
+        finalBase += additionalCharges;
 
         $ctx.find('.tax-amount-display').text(taxAmount.toFixed(2));
 
@@ -1041,6 +1143,7 @@ function initializeForm(context) {
         const totalBaseAmount = parseFloat($ctx.find('.total-base-amount').text()) || 0;
         applyDiscountTax(totalBaseAmount);
     });
+    $ctx.on('input change', '.additional-charge-live-input', calculateTotals);
     $ctx.on('keyup change', '.advance-amount', function() {
         const value = parseFloat($(this).val() || 0) || 0;
         $(this).val(value.toFixed(2));

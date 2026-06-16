@@ -182,9 +182,9 @@
         }
 
         .col-item-name {
-            width: 300px;
-            min-width: 300px;
-            max-width: 300px;
+            width: auto;
+            min-width: 0;
+            max-width: none;
         }
 
         .table-container {
@@ -193,13 +193,51 @@
         }
 
         .purchase-return-table-scroll {
-            overflow-x: auto;
+            overflow-x: hidden;
             overflow-y: visible;
+            width: 100%;
         }
 
         .purchase-return-table-scroll .item-table {
-            width: max-content;
+            width: 100%;
+            min-width: 100%;
+            table-layout: fixed;
+        }
+
+        .purchase-return-table-scroll .item-table th,
+        .purchase-return-table-scroll .item-table td {
             min-width: 0;
+            padding-left: 6px;
+            padding-right: 6px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .purchase-return-table-scroll .item-table .row-num {
+            width: 42px;
+        }
+
+        .purchase-return-table-scroll .item-table .add-col {
+            width: 42px;
+        }
+
+        .purchase-return-table-scroll .item-table .col-barcode-scan {
+            width: 54px;
+        }
+
+        .purchase-return-table-scroll .item-table .item-picker,
+        .purchase-return-table-scroll .item-table input,
+        .purchase-return-table-scroll .item-table select {
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .purchase-return-table-scroll .item-table input,
+        .purchase-return-table-scroll .item-table select,
+        .purchase-return-table-scroll .item-table .item-picker-input {
+            padding-left: 4px;
+            padding-right: 4px;
+            text-overflow: ellipsis;
         }
 
         .table-footer {
@@ -207,8 +245,129 @@
             box-sizing: border-box;
         }
 
-        .item-table td {
-            overflow: visible;
+        .header-mini-fields-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 6px;
+            margin-top: 8px;
+            width: 100%;
+        }
+
+        .header-mini-field {
+            min-width: 0;
+        }
+
+        .floating-input-wrapper {
+            position: relative;
+        }
+
+        .header-mini-field .meta-control {
+            width: 100%;
+            height: 34px;
+            border: 1px solid #d7e0ea;
+            border-radius: 6px;
+            background: #fbfdff;
+            font-size: 12px;
+            padding: 10px 8px 5px;
+        }
+
+        .header-mini-field .floating-input-wrapper label {
+            position: absolute;
+            top: 2px;
+            left: 8px;
+            color: #64748b;
+            font-size: 9px;
+            pointer-events: none;
+        }
+
+        .transaction-billing-name-field .meta-control {
+            width: 100%;
+            height: 34px;
+            border: 1px solid #d7e0ea;
+            border-radius: 6px;
+            background: #fff;
+            font-size: 12px;
+            padding: 10px 8px 5px;
+        }
+
+        .transaction-billing-name-field .floating-input-wrapper label {
+            position: absolute;
+            top: 2px;
+            left: 8px;
+            color: #64748b;
+            font-size: 9px;
+            pointer-events: none;
+        }
+
+        .transportation-details-live-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px 0;
+        }
+
+        .transportation-details-live-section .form-group {
+            flex: 1 1 calc(50% - 4px);
+            min-width: 150px;
+        }
+
+        .transportation-details-live-section label {
+            color: #64748b;
+            font-size: 11px;
+            margin-bottom: 3px;
+        }
+
+        .transportation-details-live-section input {
+            width: 100%;
+            height: 32px;
+            border: 1px solid #d7e0ea;
+            border-radius: 6px;
+            font-size: 12px;
+            padding: 6px 8px;
+        }
+
+        .additional-charge-live-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 8px 0 12px;
+        }
+
+        .additional-charge-live-row {
+            display: grid;
+            grid-template-columns: 90px 1fr 86px 54px;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .additional-charge-live-label {
+            color: #6b7280;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .additional-charge-live-input,
+        .additional-charge-live-tax {
+            width: 100%;
+            min-height: 38px;
+            border: 1px solid #d7dee8;
+            border-radius: 8px;
+            background: #fff;
+            padding: 8px 12px;
+        }
+
+        .terms-condition-card {
+            max-width: 460px;
+            padding: 14px;
+            border: 1px solid #dfe5ec;
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        .terms-condition-card-title {
+            margin-bottom: 10px;
+            font-size: 13px;
+            font-weight: 700;
         }
 
         .modal-stack-top {
@@ -512,8 +671,11 @@
             <!-- Billing Name & Phone Inputs (Side by Side) -->
             <div style="display: flex; gap: 12px; flex: 1.5; align-items: center; margin-left: 100px;">
                 <!-- Billing Name Input -->
-                <div style="flex: 1.5; min-width: 200px;">
-                    <input type="text" class="form-control billing-name-input" style="font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; width: 100%;" placeholder="BILLING NAME (OPTIONAL)">
+                <div class="transaction-billing-name-field" style="flex: 1.5; min-width: 200px;">
+                    <div class="floating-input-wrapper">
+                        <input type="text" class="meta-control billing-name-input" placeholder=" ">
+                        <label>Billing Name (Optional)</label>
+                    </div>
                 </div>
 
                 <!-- Phone Number Input -->
@@ -580,11 +742,26 @@
 
                                 </div>
 
+                                <div class="header-mini-fields-grid customer-po-settings-fields d-none">
+                                    <div class="party-meta-field header-mini-field">
+                                        <div class="floating-input-wrapper">
+                                            <input type="text" class="meta-control po-no-input" placeholder=" ">
+                                            <label>PO No.</label>
+                                        </div>
+                                    </div>
+                                    <div class="party-meta-field header-mini-field">
+                                        <div class="floating-input-wrapper">
+                                            <input type="date" class="meta-control po-date-input" placeholder=" ">
+                                            <label>PO Date</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="header-mini-fields-grid dynamic-invoice-fields-row d-none"></div>
                             </div>
 
                             <div class="purchase-right-panel">
                                 <div class="purchase-doc-grid">
-                                    <div class="purchase-doc-row">
+                                    <div class="purchase-doc-row transaction-invoice-number-row">
                                         <span class="purchase-doc-label">Return No.</span>
                                         <input type="text" class="purchase-doc-input bill-number" value="{{ $nextInvoiceNumber ?? 'PR-0001' }}" readonly>
                                         <span></span>
@@ -600,11 +777,16 @@
                                         <span class="purchase-doc-icon"><i class="bi bi-calendar-date"></i></span>
                                         <input type="date" class="order-date purchase-hidden-date">
                                     </div>
-                                    <div class="purchase-doc-row">
+                                    <div class="purchase-doc-row transaction-due-date-row">
                                         <span class="purchase-doc-label">Date</span>
                                         <input type="text" class="purchase-doc-input due-date-text" placeholder="DD/MM/YYYY" readonly>
                                         <span class="purchase-doc-icon"><i class="bi bi-calendar-date"></i></span>
                                         <input type="date" class="due-date purchase-hidden-date">
+                                    </div>
+                                    <div class="purchase-doc-row transaction-time-row d-none">
+                                        <span class="purchase-doc-label">Time</span>
+                                        <input type="text" class="purchase-doc-input transaction-time-display" readonly>
+                                        <span></span>
                                     </div>
                                 </div>
                             </div>
@@ -796,6 +978,7 @@
                                     </div>
 
                                     <a href="#" class="link-text add-payment-entry">+ Add Payment type</a>
+                                    <div class="transportation-details-live-section d-none mt-3"></div>
                                 </div>
 
                                 <template id="payment-entry-template">
@@ -822,6 +1005,13 @@
                                     <div class="description-pane d-none mt-2">
                                         <label class="form-label">Description</label>
                                         <textarea class="form-control description-input" rows="3" placeholder="Enter a remark or description" style="max-width: 400px;"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="terms-conditions-settings-field terms-condition-group d-none mb-2">
+                                    <div class="terms-condition-card">
+                                        <h6 class="terms-condition-card-title">Terms &amp; Conditions</h6>
+                                        <textarea class="form-control terms-condition-text" rows="5" placeholder="Thanks for doing business with us!"></textarea>
                                     </div>
                                 </div>
 
@@ -885,6 +1075,8 @@
                                         <input type="number" class="mini-input round-off-val" value="0" readonly>
                                     </div>
                                 </div>
+
+                                <div class="additional-charge-live-section d-none"></div>
 
                                 <div class="final-total-group">
                                     <div class="calc-row" style="margin-bottom: 5px;">

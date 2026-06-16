@@ -6,6 +6,7 @@ use App\Models\BankAccount;
 use App\Models\AppSetting;
 use App\Models\Broker;
 use App\Models\PaymentIn;
+use App\Models\Purchase;
 use App\Models\Sale;
 use App\Models\SaleDetail;
 use Illuminate\Http\Request;
@@ -316,6 +317,25 @@ class InvoiceController extends Controller
                 $viewData['documentType'] = 'proforma-invoice';
                 $viewData['browserTabLabel'] = 'Proforma #' . ($invoiceSource->bill_number ?: $invoiceSource->id);
             }
+        } elseif ($request->filled('purchase_id')) {
+            $purchase = Purchase::with(['items', 'party', 'payments.bankAccount'])
+                ->findOrFail($request->integer('purchase_id'));
+
+            $viewData['purchase'] = $purchase;
+            $viewData['invoicePreviewData'] = $this->mapPurchaseToThemePreviewData($purchase);
+            $viewData['browserTabLabel'] = ($purchase->type === 'purchase_return' ? 'Purchase Return' : 'Purchase') . ' #' . ($purchase->bill_number ?: $purchase->id);
+            $viewData['saveCloseUrl'] = $purchase->type === 'purchase_return' ? route('purchase-return') : route('purchase-expenses');
+            $viewData['documentType'] = $purchase->type === 'purchase_return' ? 'purchase-return' : 'purchase';
+
+            if ($purchase->type === 'purchase_return') {
+                $themeDefaults = $this->resolveStoredPurchaseThemeConfig($purchase, $request);
+                $viewData['initialMode'] = $themeDefaults['mode'];
+                $viewData['initialRegularThemeId'] = $themeDefaults['regularThemeId'];
+                $viewData['initialThermalThemeId'] = $themeDefaults['thermalThemeId'];
+                $viewData['initialAccent'] = $themeDefaults['accent'];
+                $viewData['initialAccent2'] = $themeDefaults['accent2'];
+                $viewData['themeSaveUrl'] = route('purchase-return.invoice-theme.store', $purchase);
+            }
         } elseif ($request->filled('payment_in')) {
             $paymentInRecord = PaymentIn::with(['party', 'bankAccount'])
                 ->findOrFail($request->integer('payment_in'));
@@ -326,6 +346,86 @@ class InvoiceController extends Controller
         }
 
         return $viewData;
+    }
+
+    private function mapPurchaseToThemePreviewData(Purchase $purchase): array
+    {
+        $items = $purchase->items->map(function ($item) use ($purchase) {
+            $quantity = (float) ($item->quantity ?? 0);
+            $rate = (float) ($item->unit_price ?? 0);
+            $amount = (float) ($item->amount ?? ($quantity * $rate));
+
+            return [
+                'name' => (string) ($item->item_name ?: 'Item'),
+                'hsn' => (string) ($item->item_code ?? ''),
+                'qty' => $quantity,
+                'unit' => (string) ($item->unit ?? ''),
+                'rate' => $rate,
+                'disc' => (string) ($item->discount ?? '0'),
+                'gst' => (float) ($purchase->tax_pct ?? 0) . '%',
+                'amt' => $amount,
+                'customFieldSummary' => trim((string) ($item->item_description ?? '')),
+            ];
+        })->values()->all();
+
+        $billDate = $purchase->bill_date ?: $purchase->created_at;
+        $dueDate = $purchase->due_date ?: $billDate;
+        $firstBankPayment = $purchase->payments->first(fn ($payment) => $payment->bankAccount);
+
+        return [
+            'title' => $purchase->type === 'purchase_return' ? 'Purchase Return / Debit Note' : 'Purchase',
+            'businessName' => config('app.name', 'Vyapar'),
+            'phone' => '',
+            'invoiceNo' => (string) ($purchase->bill_number ?: $purchase->id),
+            'date' => optional($billDate)->format('d/m/Y') ?: '',
+            'time' => optional($purchase->created_at)->format('h:i A') ?: '',
+            'dueDate' => optional($dueDate)->format('d/m/Y') ?: '',
+            'billTo' => (string) ($purchase->party_name ?: ($purchase->party?->name ?? '')),
+            'billAddress' => (string) ($purchase->billing_address ?? ''),
+            'billPhone' => (string) ($purchase->phone ?? ''),
+            'shipTo' => (string) ($purchase->billing_address ?? ''),
+            'items' => $items,
+            'subtotal' => (float) ($purchase->total_amount ?? 0),
+            'discount' => (float) ($purchase->discount_rs ?? 0),
+            'taxAmount' => (float) ($purchase->tax_amount ?? 0),
+            'total' => (float) ($purchase->grand_total ?? 0),
+            'received' => (float) ($purchase->paid_amount ?? 0),
+            'balance' => (float) ($purchase->balance ?? 0),
+            'description' => (string) ($purchase->description ?: 'Thanks for doing business with us!'),
+            'bankName' => (string) ($firstBankPayment?->bankAccount?->display_name ?? ''),
+            'bankAccountNumber' => (string) ($firstBankPayment?->bankAccount?->account_number ?? ''),
+            'bankAccountHolder' => (string) ($firstBankPayment?->bankAccount?->account_holder_name ?? ''),
+        ];
+    }
+
+    private function resolveStoredPurchaseThemeConfig(Purchase $purchase, Request $request): array
+    {
+        $stored = $purchase->invoice_theme;
+        if (is_string($stored)) {
+            $stored = json_decode($stored, true);
+        }
+        $stored = is_array($stored) ? $stored : [];
+
+        $mode = (string) $request->query('mode', $stored['mode'] ?? 'regular');
+        $mode = $mode === 'thermal' ? 'thermal' : 'regular';
+        $regularThemeId = (int) $request->query(
+            'theme_id',
+            (int) ($stored['regularThemeId'] ?? ($stored['theme_id'] ?? 1))
+        );
+        $thermalThemeId = (int) $request->query(
+            'theme_id',
+            (int) ($stored['thermalThemeId'] ?? ($stored['theme_id'] ?? 1))
+        );
+        $accent = (string) $request->query('accent', (string) ($stored['accent'] ?? '#1f4e79'));
+        $accent2 = (string) $request->query('accent2', (string) ($stored['accent2'] ?? '#ff981f'));
+
+        return [
+            'mode' => $mode,
+            'regularThemeId' => $regularThemeId > 0 ? $regularThemeId : 1,
+            'thermalThemeId' => $thermalThemeId > 0 ? $thermalThemeId : 1,
+            'accent' => $accent !== '' ? $accent : '#1f4e79',
+            'accent2' => $accent2 !== '' ? $accent2 : '#ff981f',
+        ];
     }
 
     private function resolveInvoiceThemeConfig(string $mode, int $themeId): array

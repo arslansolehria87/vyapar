@@ -61,12 +61,17 @@ class PurchaseReturnController extends Controller
     {
         $data = $this->validatePurchaseReturn($request);
         $purchaseReturn = $this->savePurchaseReturn(new Purchase(), $data);
+        $invoiceUrl = route('invoice', [
+            'purchase_id' => $purchaseReturn->id,
+            'type' => 'purchase-return',
+        ]);
 
         return response()->json([
             'success' => true,
             'purchase_id' => $purchaseReturn->id,
             'bill_number' => $purchaseReturn->bill_number,
-            'redirect_url' => route('purchase-return'),
+            'redirect_url' => $invoiceUrl,
+            'share_url' => $invoiceUrl,
         ]);
     }
 
@@ -75,12 +80,51 @@ class PurchaseReturnController extends Controller
         abort_unless($purchase->type === 'purchase_return', 404);
         $data = $this->validatePurchaseReturn($request);
         $purchaseReturn = $this->savePurchaseReturn($purchase, $data);
+        $invoiceUrl = route('invoice', [
+            'purchase_id' => $purchaseReturn->id,
+            'type' => 'purchase-return',
+        ]);
 
         return response()->json([
             'success' => true,
             'purchase_id' => $purchaseReturn->id,
             'bill_number' => $purchaseReturn->bill_number,
-            'redirect_url' => route('purchase-return'),
+            'redirect_url' => $invoiceUrl,
+            'share_url' => $invoiceUrl,
+        ]);
+    }
+
+    public function storeInvoiceTheme(Request $request, Purchase $purchase)
+    {
+        abort_unless($purchase->type === 'purchase_return', 404);
+
+        $data = $request->validate([
+            'mode' => 'required|in:regular,thermal',
+            'regularThemeId' => 'nullable|integer|min:1',
+            'thermalThemeId' => 'nullable|integer|min:1',
+            'accent' => 'nullable|string|max:30',
+            'accent2' => 'nullable|string|max:30',
+        ]);
+
+        $currentTheme = $purchase->invoice_theme;
+        if (is_string($currentTheme)) {
+            $currentTheme = json_decode($currentTheme, true);
+        }
+        $currentTheme = is_array($currentTheme) ? $currentTheme : [];
+
+        $purchase->forceFill([
+            'invoice_theme' => [
+                'mode' => $data['mode'],
+                'regularThemeId' => (int) ($data['regularThemeId'] ?? ($currentTheme['regularThemeId'] ?? 1)),
+                'thermalThemeId' => (int) ($data['thermalThemeId'] ?? ($currentTheme['thermalThemeId'] ?? 1)),
+                'accent' => $data['accent'] ?? '#1f4e79',
+                'accent2' => $data['accent2'] ?? '#ff981f',
+            ],
+        ])->save();
+
+        return response()->json([
+            'success' => true,
+            'invoice_theme' => $purchase->invoice_theme,
         ]);
     }
 
@@ -126,11 +170,29 @@ class PurchaseReturnController extends Controller
         abort_unless($purchase->type === 'purchase_return', 404);
         $purchase->load(['items', 'payments.bankAccount', 'party']);
 
+        $themeDefaults = $this->resolveStoredPurchaseThemeConfig($purchase, request());
+        $themeConfig = $this->resolvePurchaseReturnThemeConfig(
+            $themeDefaults['mode'],
+            $themeDefaults[$themeDefaults['mode'] === 'thermal' ? 'thermalThemeId' : 'regularThemeId']
+        );
+
         $fileName = 'purchase-return-' . ($purchase->bill_number ?: $purchase->id) . '.pdf';
-        $pdf = Pdf::loadView('dashboard.purchases.purchase-return.purchase-return-preview', [
+        $pdf = Pdf::loadView('themes.sales_invoice_pdf_document', [
             'purchase' => $purchase,
-            'pdfMode' => true,
-        ])->setPaper('a4', 'portrait');
+            'invoicePreviewData' => $this->mapPurchaseReturnToThemePreviewData($purchase),
+            'themeConfig' => $themeConfig,
+            'accent' => $themeDefaults['accent'],
+            'accent2' => $themeDefaults['accent2'],
+            'pageTitle' => 'Purchase Return PDF',
+            'browserTabLabel' => 'Purchase Return #' . ($purchase->bill_number ?: $purchase->id),
+            'saveCloseUrl' => route('purchase-return'),
+        ]);
+
+        if (($themeConfig['mode'] ?? 'regular') === 'thermal') {
+            $pdf->setPaper([0, 0, 226.77, 841.89], 'portrait');
+        } else {
+            $pdf->setPaper('a4', 'portrait');
+        }
 
         if (request()->boolean('download')) {
             return $pdf->download($fileName);
@@ -272,6 +334,126 @@ class PurchaseReturnController extends Controller
 
             return $purchase->fresh(['items', 'payments.bankAccount', 'party']);
         });
+    }
+
+    private function mapPurchaseReturnToThemePreviewData(Purchase $purchase): array
+    {
+        $items = $purchase->items->map(function ($item) {
+            $quantity = (float) ($item->quantity ?? 0);
+            $rate = (float) ($item->unit_price ?? 0);
+            $amount = (float) ($item->amount ?? ($quantity * $rate));
+
+            return [
+                'name' => (string) ($item->item_name ?: 'Item'),
+                'hsn' => (string) ($item->item_code ?? ''),
+                'qty' => $quantity,
+                'unit' => (string) ($item->unit ?? ''),
+                'rate' => $rate,
+                'disc' => (string) ($item->discount ?? '0'),
+                'gst' => (float) ($purchase->tax_pct ?? 0) . '%',
+                'amt' => $amount,
+                'customFieldSummary' => trim((string) ($item->item_description ?? '')),
+            ];
+        })->values()->all();
+
+        $billDate = $purchase->bill_date ?: $purchase->created_at;
+        $dueDate = $purchase->due_date ?: $billDate;
+        $firstBankPayment = $purchase->payments->first(fn ($payment) => $payment->bankAccount);
+
+        return [
+            'title' => 'Purchase Return / Debit Note',
+            'businessName' => config('app.name', 'Vyapar'),
+            'phone' => '',
+            'invoiceNo' => (string) ($purchase->bill_number ?: $purchase->id),
+            'date' => optional($billDate)->format('d/m/Y') ?: '',
+            'time' => optional($purchase->created_at)->format('h:i A') ?: '',
+            'dueDate' => optional($dueDate)->format('d/m/Y') ?: '',
+            'billTo' => (string) ($purchase->party_name ?: ($purchase->party?->name ?? '')),
+            'billAddress' => (string) ($purchase->billing_address ?? ''),
+            'billPhone' => (string) ($purchase->phone ?? ''),
+            'shipTo' => (string) ($purchase->billing_address ?? ''),
+            'items' => $items,
+            'subtotal' => (float) ($purchase->total_amount ?? 0),
+            'discount' => (float) ($purchase->discount_rs ?? 0),
+            'taxAmount' => (float) ($purchase->tax_amount ?? 0),
+            'total' => (float) ($purchase->grand_total ?? 0),
+            'received' => (float) ($purchase->paid_amount ?? 0),
+            'balance' => (float) ($purchase->balance ?? 0),
+            'description' => (string) ($purchase->description ?: 'Thanks for doing business with us!'),
+            'bankName' => (string) ($firstBankPayment?->bankAccount?->display_name ?? ''),
+            'bankAccountNumber' => (string) ($firstBankPayment?->bankAccount?->account_number ?? ''),
+            'bankAccountHolder' => (string) ($firstBankPayment?->bankAccount?->account_holder_name ?? ''),
+        ];
+    }
+
+    private function resolveStoredPurchaseThemeConfig(Purchase $purchase, Request $request): array
+    {
+        $stored = $purchase->invoice_theme;
+        if (is_string($stored)) {
+            $stored = json_decode($stored, true);
+        }
+        $stored = is_array($stored) ? $stored : [];
+
+        $mode = (string) $request->query('mode', $stored['mode'] ?? 'regular');
+        $mode = $mode === 'thermal' ? 'thermal' : 'regular';
+
+        $regularThemeId = (int) $request->query(
+            'theme_id',
+            (int) ($stored['regularThemeId'] ?? ($stored['theme_id'] ?? 1))
+        );
+        $thermalThemeId = (int) $request->query(
+            'theme_id',
+            (int) ($stored['thermalThemeId'] ?? ($stored['theme_id'] ?? 1))
+        );
+        $accent = (string) $request->query('accent', (string) ($stored['accent'] ?? '#1f4e79'));
+        $accent2 = (string) $request->query('accent2', (string) ($stored['accent2'] ?? '#ff981f'));
+
+        return [
+            'mode' => $mode,
+            'regularThemeId' => $regularThemeId > 0 ? $regularThemeId : 1,
+            'thermalThemeId' => $thermalThemeId > 0 ? $thermalThemeId : 1,
+            'accent' => $accent !== '' ? $accent : '#1f4e79',
+            'accent2' => $accent2 !== '' ? $accent2 : '#ff981f',
+        ];
+    }
+
+    private function resolvePurchaseReturnThemeConfig(string $mode, int $themeId): array
+    {
+        $mode = $mode === 'thermal' ? 'thermal' : 'regular';
+        $themes = $mode === 'thermal'
+            ? [
+                1 => ['name' => 'Thermal Theme 1', 'variant' => 'thermal1'],
+                2 => ['name' => 'Thermal Theme 2', 'variant' => 'thermal2'],
+                3 => ['name' => 'Thermal Theme 3', 'variant' => 'thermal3'],
+                4 => ['name' => 'Thermal Theme 4', 'variant' => 'thermal4'],
+                5 => ['name' => 'Thermal Theme 5', 'variant' => 'thermal5'],
+            ]
+            : [
+                1 => ['name' => 'Telly Theme', 'variant' => 'classicA'],
+                2 => ['name' => 'Landscape Theme 1', 'variant' => 'purpleA'],
+                3 => ['name' => 'Landscape Theme 2', 'variant' => 'classicB'],
+                4 => ['name' => 'Tax Theme 1', 'variant' => 'purpleB'],
+                5 => ['name' => 'Tax Theme 2', 'variant' => 'classicC'],
+                6 => ['name' => 'Tax Theme 3', 'variant' => 'modernPurple'],
+                7 => ['name' => 'Tax Theme 4', 'variant' => 'purpleC'],
+                8 => ['name' => 'Tax Theme 5', 'variant' => 'classicSale'],
+                9 => ['name' => 'Tax Theme 6', 'variant' => 'taxTheme6'],
+                10 => ['name' => 'Double Divine', 'variant' => 'doubleDivine'],
+                11 => ['name' => 'French Elite', 'variant' => 'frenchElite'],
+                12 => ['name' => 'Theme 1', 'variant' => 'theme1'],
+                13 => ['name' => 'Theme 2', 'variant' => 'theme2'],
+                14 => ['name' => 'Theme 3', 'variant' => 'theme3'],
+                15 => ['name' => 'Theme 4', 'variant' => 'theme4'],
+            ];
+
+        $theme = $themes[$themeId] ?? reset($themes);
+
+        return [
+            'id' => $themeId,
+            'mode' => $mode,
+            'name' => $theme['name'],
+            'variant' => $theme['variant'],
+        ];
     }
 
     private function applyBankAdjustment(Purchase $purchase, $payment): void

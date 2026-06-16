@@ -27,6 +27,7 @@ class Purchase extends Model
         'grand_total',
         'paid_amount',
         'balance',
+        'invoice_theme',
         'description',
         'image_path',
         'document_path',
@@ -35,6 +36,7 @@ class Purchase extends Model
     protected $casts = [
         'bill_date' => 'date',
         'due_date' => 'date',
+        'invoice_theme' => 'array',
     ];
 
     public function items()

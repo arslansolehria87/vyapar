@@ -340,6 +340,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/purchase-return/{purchase}/preview', [PurchaseReturnController::class, 'preview'])->name('purchase-return.preview');
     Route::get('/purchase-return/{purchase}/print', [PurchaseReturnController::class, 'print'])->name('purchase-return.print');
     Route::get('/purchase-return/{purchase}/pdf', [PurchaseReturnController::class, 'pdf'])->name('purchase-return.pdf');
+    Route::post('/purchase-return/{purchase}/invoice-theme', [PurchaseReturnController::class, 'storeInvoiceTheme'])->name('purchase-return.invoice-theme.store');
     Route::get('/purchase-return/{purchase}/duplicate', [PurchaseReturnController::class, 'duplicate'])->name('purchase-return.duplicate');
 
 
