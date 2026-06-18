@@ -27,6 +27,33 @@
     };
     $reactCss = $withAssetVersion($reactCss ?? null);
     $reactJs = $withAssetVersion($reactJs ?? null);
+    $regularThemeKeys = [
+      1 => 'tally',
+      2 => 'LandScapeTheme1',
+      3 => 'LandScapeTheme2',
+      4 => 'tax1',
+      5 => 'tax2',
+      6 => 'tax3',
+      7 => 'tax4',
+      8 => 'tax5',
+      9 => 'tax6',
+      10 => 'divine',
+      11 => 'french',
+      12 => 'theme1',
+      13 => 'theme2',
+      14 => 'theme3',
+      15 => 'theme4',
+    ];
+    $thermalThemeKeys = [
+      1 => 'thermal1',
+      2 => 'thermal2',
+      3 => 'thermal3',
+      4 => 'thermal4',
+      5 => 'thermal5',
+    ];
+    $initialThemeKey = ($initialMode ?? 'regular') === 'thermal'
+      ? ($thermalThemeKeys[(int) ($initialThermalThemeId ?? 1)] ?? 'thermal1')
+      : ($regularThemeKeys[(int) ($initialRegularThemeId ?? 1)] ?? 'tally');
   @endphp
 
   @if (!empty($pdfDirectDownload) && !empty($reactCssInline))
@@ -149,7 +176,8 @@
       window.invoiceAppData = {
         invoiceData: @json($invoicePreviewData ?? null),
         saleId: @json($sale->id ?? ($purchase->id ?? null)),
-        initialTheme: @json($initialMode ?? 'tally'),
+        purchaseId: @json($purchase->id ?? null),
+        initialTheme: @json($initialThemeKey),
         initialColor: @json($initialAccent ?? '#707070'),
         initialColor2: @json($initialAccent2 ?? '#ff981f'),
         browserTabLabel: @json($browserTabLabel ?? 'Invoice Preview'),
@@ -195,6 +223,7 @@
     (function () {
       const themeLabelMap = {
         'tally': 'tally',
+        'telly theme': 'tally',
         'tax theme 1': 'tax1',
         'tax theme 2': 'tax2',
         'tax theme 3': 'tax3',
@@ -215,6 +244,33 @@
         'thermal theme 4': 'thermal4',
         'thermal theme 5': 'thermal5'
       };
+      const regularThemeIds = {
+        tally: 1,
+        LandScapeTheme1: 2,
+        LandScapeTheme2: 3,
+        tax1: 4,
+        tax2: 5,
+        tax3: 6,
+        tax4: 7,
+        tax5: 8,
+        tax6: 9,
+        divine: 10,
+        french: 11,
+        theme1: 12,
+        theme2: 13,
+        theme3: 14,
+        theme4: 15
+      };
+      const thermalThemeIds = {
+        thermal1: 1,
+        thermal2: 2,
+        thermal3: 3,
+        thermal4: 4,
+        thermal5: 5
+      };
+      const regularThemeKeysById = Object.fromEntries(Object.entries(regularThemeIds).map(([key, id]) => [String(id), key]));
+      let lastSelectedThemeKey = window.invoiceAppData?.initialTheme || 'tally';
+      let lastThemeSelectionAt = 0;
 
       function rgbToHex(value) {
         if (!value) {
@@ -236,10 +292,48 @@
         }).join('');
       }
 
+      function themeKeyFromLabel(label) {
+        return themeLabelMap[(label || '').replace(/\s+/g, ' ').trim().toLowerCase()] || '';
+      }
+
+      function rememberThemeFromTarget(target) {
+        const regularTheme = target.closest('.theme-item');
+        if (regularTheme) {
+          const datasetId = regularTheme.dataset.templateId || regularTheme.dataset.themeId || regularTheme.dataset.id;
+          lastSelectedThemeKey = regularThemeKeysById[String(datasetId)] || themeKeyFromLabel(regularTheme.textContent) || lastSelectedThemeKey;
+          lastThemeSelectionAt = Date.now();
+          persistThemeLocally(buildThemePayloadFromKey(lastSelectedThemeKey));
+          return;
+        }
+
+        const thermalTheme = target.closest('.thermal-theme-item');
+        if (thermalTheme) {
+          const datasetId = thermalTheme.dataset.id || thermalTheme.dataset.themeId;
+          const labelKey = themeKeyFromLabel('thermal ' + (thermalTheme.textContent || ''));
+          lastSelectedThemeKey = datasetId ? ('thermal' + datasetId) : (labelKey || lastSelectedThemeKey);
+          lastThemeSelectionAt = Date.now();
+          persistThemeLocally(buildThemePayloadFromKey(lastSelectedThemeKey));
+        }
+      }
+
       function getSelectedTheme() {
+        if (lastThemeSelectionAt && Date.now() - lastThemeSelectionAt < 1500) {
+          return lastSelectedThemeKey || 'tally';
+        }
+
         const activeTheme = document.querySelector('.theme-item.active');
-        const label = activeTheme ? activeTheme.textContent.replace(/\s+/g, ' ').trim().toLowerCase() : '';
-        return themeLabelMap[label] || 'tally';
+        if (activeTheme) {
+          const datasetId = activeTheme.dataset.templateId || activeTheme.dataset.themeId || activeTheme.dataset.id;
+          return regularThemeKeysById[String(datasetId)] || themeKeyFromLabel(activeTheme.textContent) || lastSelectedThemeKey || 'tally';
+        }
+
+        const activeThermalTheme = document.querySelector('.thermal-theme-item.is-active, .thermal-theme-item.active');
+        if (activeThermalTheme) {
+          const datasetId = activeThermalTheme.dataset.id || activeThermalTheme.dataset.themeId;
+          return datasetId ? ('thermal' + datasetId) : (themeKeyFromLabel('thermal ' + activeThermalTheme.textContent) || lastSelectedThemeKey || 'thermal1');
+        }
+
+        return lastSelectedThemeKey || 'tally';
       }
 
       function getSelectedColor() {
@@ -261,35 +355,11 @@
         return '#707070';
       }
 
-      function getThemePayload() {
-        const theme = getSelectedTheme();
-        const regularThemeIds = {
-          tally: 1,
-          LandScapeTheme1: 2,
-          LandScapeTheme2: 3,
-          tax1: 4,
-          tax2: 5,
-          tax3: 6,
-          tax4: 7,
-          tax5: 8,
-          tax6: 9,
-          divine: 10,
-          french: 11,
-          theme1: 12,
-          theme2: 13,
-          theme3: 14,
-          theme4: 15
-        };
-        const thermalThemeIds = {
-          thermal1: 1,
-          thermal2: 2,
-          thermal3: 3,
-          thermal4: 4,
-          thermal5: 5
-        };
+      function buildThemePayloadFromKey(theme) {
         const isThermal = Object.prototype.hasOwnProperty.call(thermalThemeIds, theme);
 
         return {
+          theme: theme,
           mode: isThermal ? 'thermal' : 'regular',
           regularThemeId: isThermal ? null : (regularThemeIds[theme] || 1),
           thermalThemeId: isThermal ? (thermalThemeIds[theme] || 1) : null,
@@ -298,7 +368,40 @@
         };
       }
 
+      function getThemePayload() {
+        return buildThemePayloadFromKey(getSelectedTheme());
+      }
+
+      function persistThemeLocally(payload) {
+        const config = window.serverInvoicePdfConfig || {};
+        const storageKey = config.purchaseId
+          ? ('purchaseInvoiceTheme:' + config.purchaseId)
+          : (config.saleId ? ('saleInvoiceTheme:' + config.saleId) : '');
+
+        if (!storageKey) {
+          return;
+        }
+
+        try {
+          window.localStorage.setItem(storageKey, JSON.stringify(payload));
+        } catch (error) {}
+      }
+
+      if (window.serverInvoicePdfConfig?.purchaseId) {
+        const purchaseThemeKey = 'purchaseInvoiceTheme:' + window.serverInvoicePdfConfig.purchaseId;
+        const reactThemeKey = 'saleInvoiceTheme:' + window.serverInvoicePdfConfig.purchaseId;
+        const originalSetItem = window.localStorage.setItem.bind(window.localStorage);
+
+        window.localStorage.setItem = function (key, value) {
+          originalSetItem(key, value);
+          if (key === reactThemeKey) {
+            originalSetItem(purchaseThemeKey, value);
+          }
+        };
+      }
+
       let lastThemeSaveSignature = '';
+      let lastThemeSavePromise = Promise.resolve();
       let themeSaveTimer = null;
       function persistSelectedInvoiceTheme() {
         const themeSaveUrl = window.invoiceAppData?.themeSaveUrl;
@@ -307,13 +410,14 @@
         }
 
         const payload = getThemePayload();
+        persistThemeLocally(payload);
         const signature = JSON.stringify(payload);
         if (signature === lastThemeSaveSignature) {
-          return Promise.resolve();
+          return lastThemeSavePromise;
         }
         lastThemeSaveSignature = signature;
 
-        return fetch(themeSaveUrl, {
+        lastThemeSavePromise = fetch(themeSaveUrl, {
           method: 'POST',
           headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
@@ -322,6 +426,8 @@
           },
           body: signature
         }).catch(function () {});
+
+        return lastThemeSavePromise;
       }
 
       function scheduleThemeSave() {
@@ -353,7 +459,9 @@
         }
         url.searchParams.set('accent', themePayload.accent);
         url.searchParams.set('accent2', themePayload.accent2);
-        window.location.href = url.toString();
+        persistSelectedInvoiceTheme().finally(function () {
+          window.location.href = url.toString();
+        });
       }
 
       function isDownloadPdfAction(target) {
@@ -367,6 +475,8 @@
       }
 
       document.addEventListener('click', function (event) {
+        rememberThemeFromTarget(event.target);
+
         const saveCloseLink = event.target.closest('.preview-save');
         if (saveCloseLink && window.invoiceAppData?.themeSaveUrl) {
           event.preventDefault();
@@ -392,9 +502,6 @@
 
       document.addEventListener('change', scheduleThemeSave, true);
       document.addEventListener('input', scheduleThemeSave, true);
-      window.addEventListener('load', function () {
-        setTimeout(persistSelectedInvoiceTheme, 900);
-      });
 
       window.triggerInvoiceDownload = triggerInvoiceDownload;
 

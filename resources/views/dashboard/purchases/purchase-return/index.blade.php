@@ -25,7 +25,7 @@
   .custom-table th, .custom-table td { border-right: 1px solid #f1f1f1; }
   .custom-table th:last-child, .custom-table td:last-child { border-right: none; }
   .table-wrapper {
-    overflow-x: auto; overflow-y: auto;
+    overflow-x: hidden; overflow-y: auto;
     max-height: 68vh; border: 1px solid #eef2f7; border-radius: 12px;
   }
   @media (max-width: 991px) {
@@ -46,7 +46,30 @@
     .purchase-return-search i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #64748b; }
     .purchase-return-search input { border-radius: 999px; border: 1px solid #d7deea; padding: 0.85rem 1rem 0.85rem 2.75rem; width: 100%; background: #fff; }
     .purchase-return-add-btn { border-radius: 999px; background: #1d8cf8; border: 0; color: #fff; padding: 0.8rem 1.35rem; font-weight: 600; box-shadow: 0 10px 20px rgba(29, 140, 248, 0.18); }
-    .purchase-return-table { min-width: 1180px; }
+    .purchase-return-table { width: 100%; min-width: 0; table-layout: fixed; }
+    .purchase-return-table th:nth-child(1),
+    .purchase-return-table td:nth-child(1) { width: 5%; }
+    .purchase-return-table th:nth-child(2),
+    .purchase-return-table td:nth-child(2) { width: 10%; }
+    .purchase-return-table th:nth-child(3),
+    .purchase-return-table td:nth-child(3) { width: 17%; }
+    .purchase-return-table th:nth-child(4),
+    .purchase-return-table td:nth-child(4) { width: 13%; }
+    .purchase-return-table th:nth-child(5),
+    .purchase-return-table td:nth-child(5),
+    .purchase-return-table th:nth-child(6),
+    .purchase-return-table td:nth-child(6),
+    .purchase-return-table th:nth-child(7),
+    .purchase-return-table td:nth-child(7) { width: 12%; }
+    .purchase-return-table th:nth-child(8),
+    .purchase-return-table td:nth-child(8) { width: 12%; }
+    .purchase-return-table th:nth-child(9),
+    .purchase-return-table td:nth-child(9) { width: 5%; }
+    .purchase-return-table th,
+    .purchase-return-table td {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     .purchase-return-table thead th { background: #f8fbff; color: #334155; font-size: 0.92rem; font-weight: 700; border-bottom: 1px solid #dbe4f0; padding: 1rem 0.85rem; vertical-align: middle; white-space: nowrap; }
     .purchase-return-table tbody td { padding: 1rem 0.85rem; border-bottom: 1px solid #edf2f7; vertical-align: middle; color: #0f172a; white-space: nowrap; }
     .purchase-return-table tbody tr:hover { background: #f8fbff; }
@@ -188,16 +211,53 @@
   <script src="{{ asset('js/components.js') }}?v={{ filemtime(public_path('js/components.js')) }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
   <script>
+    function buildPurchaseReturnThemedUrl(url) {
+      var resolvedUrl = new URL(url, window.location.origin);
+      var purchaseId = resolvedUrl.searchParams.get('purchase_id');
+
+      if (!purchaseId) {
+        var match = resolvedUrl.pathname.match(/\/purchase-return\/(\d+)(?:\/|$)/);
+        purchaseId = match ? match[1] : '';
+      }
+
+      if (!purchaseId) {
+        return resolvedUrl.toString();
+      }
+
+      try {
+        var savedTheme = JSON.parse(
+          window.localStorage.getItem('purchaseInvoiceTheme:' + purchaseId)
+          || 'null'
+        );
+        if (savedTheme) {
+          resolvedUrl.searchParams.set('mode', savedTheme.mode || 'regular');
+          if (savedTheme.mode === 'thermal' && savedTheme.thermalThemeId) {
+            resolvedUrl.searchParams.set('theme_id', savedTheme.thermalThemeId);
+          } else if (savedTheme.regularThemeId) {
+            resolvedUrl.searchParams.set('theme_id', savedTheme.regularThemeId);
+          }
+          if (savedTheme.accent) {
+            resolvedUrl.searchParams.set('accent', savedTheme.accent);
+          }
+          if (savedTheme.accent2) {
+            resolvedUrl.searchParams.set('accent2', savedTheme.accent2);
+          }
+        }
+      } catch (error) {}
+
+      return resolvedUrl.toString();
+    }
+
     function openPurchaseReturnPdf(url) {
-      window.open(url, '_blank');
+      window.open(buildPurchaseReturnThemedUrl(url), '_blank');
     }
 
     function openPurchaseReturnPreview(url) {
-      window.open(url, '_blank');
+      window.open(buildPurchaseReturnThemedUrl(url), '_blank');
     }
 
     function openPurchaseReturnPrint(url) {
-      window.open(url, '_blank');
+      window.open(buildPurchaseReturnThemedUrl(url), '_blank');
     }
 
     function duplicatePurchaseReturn(url) {
