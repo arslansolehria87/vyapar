@@ -173,8 +173,8 @@
                   <td class="text-end">Rs {{ number_format($purchaseReturn->paid_amount ?? 0, 2) }}</td>
                   <td class="text-end">Rs {{ number_format($purchaseReturn->grand_total ?? 0, 2) }}</td>
                   <td class="action-cell">
-                    <a href="#" onclick="openPurchaseReturnPrint('{{ route('invoice', ['purchase_id' => $purchaseReturn->id, 'type' => 'purchase-return', 'print' => 1]) }}', {{ \Illuminate\Support\Js::from($purchaseReturn->invoice_theme) }}); return false;" class="icon-action" title="Print"><i class="fa-solid fa-print"></i></a>
-                    <a href="#" onclick="openPurchaseReturnPreview('{{ route('invoice', ['purchase_id' => $purchaseReturn->id, 'type' => 'purchase-return']) }}', {{ \Illuminate\Support\Js::from($purchaseReturn->invoice_theme) }}); return false;" class="icon-action" title="Preview"><i class="fa-solid fa-share-nodes"></i></a>
+                    <a href="#" onclick="openPurchaseReturnPrint('{{ route('purchase-return.print', $purchaseReturn->id) }}', {{ \Illuminate\Support\Js::from($purchaseReturn->invoice_theme) }}); return false;" class="icon-action" title="Print"><i class="fa-solid fa-print"></i></a>
+                    <a href="#" onclick="openPurchaseReturnPreview('{{ route('purchase-return.preview', $purchaseReturn->id) }}', '{{ route('purchase-return.pdf', $purchaseReturn->id) }}', '{{ route('purchase-return.print', $purchaseReturn->id) }}', '{{ route('purchase-return.email', $purchaseReturn->id) }}', {{ \Illuminate\Support\Js::from($purchaseReturn->invoice_theme) }}, {{ \Illuminate\Support\Js::from($purchaseReturn->bill_number ?? $purchaseReturn->id) }}, {{ \Illuminate\Support\Js::from($purchaseReturn->party?->email ?? '') }}, {{ \Illuminate\Support\Js::from($purchaseReturn->party_name ?: ($purchaseReturn->party?->name ?? '')) }}); return false;" class="icon-action" title="Preview"><i class="fa-solid fa-share-nodes"></i></a>
                   </td>
                   <td class="text-center action-menu-cell">
                     <div class="dropdown">
@@ -184,8 +184,8 @@
                       <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                         <li><a class="dropdown-item" href="#" onclick="return transactionPasscodeNavigate('{{ route('purchase-return.edit', $purchaseReturn->id) }}');"><i class="fas fa-edit me-2"></i>View/Edit</a></li>
                         <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPdf('{{ route('purchase-return.pdf', $purchaseReturn->id) }}', {{ \Illuminate\Support\Js::from($purchaseReturn->invoice_theme) }}); return false;"><i class="fas fa-file-pdf me-2"></i>Open PDF</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPreview('{{ route('invoice', ['purchase_id' => $purchaseReturn->id, 'type' => 'purchase-return']) }}', {{ \Illuminate\Support\Js::from($purchaseReturn->invoice_theme) }}); return false;"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPrint('{{ route('invoice', ['purchase_id' => $purchaseReturn->id, 'type' => 'purchase-return', 'print' => 1]) }}', {{ \Illuminate\Support\Js::from($purchaseReturn->invoice_theme) }}); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPreview('{{ route('purchase-return.preview', $purchaseReturn->id) }}', '{{ route('purchase-return.pdf', $purchaseReturn->id) }}', '{{ route('purchase-return.print', $purchaseReturn->id) }}', '{{ route('purchase-return.email', $purchaseReturn->id) }}', {{ \Illuminate\Support\Js::from($purchaseReturn->invoice_theme) }}, {{ \Illuminate\Support\Js::from($purchaseReturn->bill_number ?? $purchaseReturn->id) }}, {{ \Illuminate\Support\Js::from($purchaseReturn->party?->email ?? '') }}, {{ \Illuminate\Support\Js::from($purchaseReturn->party_name ?: ($purchaseReturn->party?->name ?? '')) }}); return false;"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPrint('{{ route('purchase-return.print', $purchaseReturn->id) }}', {{ \Illuminate\Support\Js::from($purchaseReturn->invoice_theme) }}); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
                         <li><a class="dropdown-item" href="#" onclick="duplicatePurchaseReturn('{{ route('purchase-return.duplicate', $purchaseReturn->id) }}'); return false;"><i class="fas fa-copy me-2"></i>Duplicate</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger" href="#" onclick="return transactionPasscodeExecute('deletePurchaseReturn','{{ route('purchase-return.destroy', $purchaseReturn->id) }}');"><i class="fas fa-trash me-2"></i>Delete</a></li>
@@ -206,10 +206,41 @@
   </main>
 
   @include('dashboard.partials.transaction-passcode-guard')
+  @include('dashboard.partials.document-email-modal', [
+    'modalId' => 'purchaseReturnEmailModal',
+    'toId' => 'purchaseReturnEmailTo',
+    'subjectId' => 'purchaseReturnEmailSubject',
+    'messageId' => 'purchaseReturnEmailMessage',
+    'viewPdfBtnId' => 'purchaseReturnEmailViewPdfBtn',
+    'sendBtnId' => 'purchaseReturnEmailSendBtn',
+  ])
+
+  <div class="modal fade" id="purchaseReturnPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="purchaseReturnPreviewModalTitle">Preview</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-0" style="min-height:70vh;">
+          <iframe id="purchaseReturnPreviewFrame" title="Preview" style="width:100%; min-height:70vh; border:0;"></iframe>
+        </div>
+        <div class="modal-footer justify-content-center gap-2 flex-wrap">
+          <button type="button" class="btn btn-outline-danger rounded-pill px-4" id="purchaseReturnPreviewOpenPdf">Open PDF</button>
+          <button type="button" class="btn btn-outline-secondary rounded-pill px-4" id="purchaseReturnPreviewPrint">Print</button>
+          <button type="button" class="btn btn-outline-success rounded-pill px-4" id="purchaseReturnPreviewSavePdf">Save PDF</button>
+          <button type="button" class="btn btn-outline-primary rounded-pill px-4" id="purchaseReturnPreviewEmailPdf">Email PDF</button>
+          <button type="button" class="btn btn-danger rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="{{ asset('js/components.js') }}?v={{ filemtime(public_path('js/components.js')) }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
+  <script src="{{ asset('js/document-email-preview.js') }}"></script>
   <script>
     function applyPurchaseReturnThemeToUrl(resolvedUrl, savedTheme) {
       if (!savedTheme) {
@@ -263,8 +294,65 @@
       window.open(buildPurchaseReturnThemedUrl(url, rowTheme), '_blank');
     }
 
-    function openPurchaseReturnPreview(url, rowTheme) {
-      window.open(buildPurchaseReturnThemedUrl(url, rowTheme), '_blank');
+    function triggerPurchaseReturnPdfDownload(url) {
+      if (!url) {
+        return;
+      }
+
+      var link = document.createElement('a');
+      link.href = url;
+      link.download = '';
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    function openPurchaseReturnPreview(previewUrl, pdfUrl, printUrl, emailUrl, rowTheme, billNumber, partyEmail, partyName) {
+      var themedPreviewUrl = buildPurchaseReturnThemedUrl(previewUrl, rowTheme);
+      var themedPdfUrl = buildPurchaseReturnThemedUrl(pdfUrl, rowTheme);
+      var themedPrintUrl = buildPurchaseReturnThemedUrl(printUrl, rowTheme);
+      var themedEmailUrl = buildPurchaseReturnThemedUrl(emailUrl, rowTheme);
+      var modalEl = document.getElementById('purchaseReturnPreviewModal');
+      var frame = document.getElementById('purchaseReturnPreviewFrame');
+      var title = document.getElementById('purchaseReturnPreviewModalTitle');
+      var emailButton = document.getElementById('purchaseReturnPreviewEmailPdf');
+
+      if (!modalEl || !frame || !window.bootstrap) {
+        window.open(themedPreviewUrl, '_blank');
+        return;
+      }
+
+      title.textContent = 'Invoice Preview - ' + (billNumber || '');
+      frame.src = themedPreviewUrl;
+      frame.dataset.previewUrl = themedPreviewUrl;
+      frame.dataset.pdfUrl = themedPdfUrl;
+      frame.dataset.printUrl = themedPrintUrl;
+      frame.dataset.emailUrl = themedEmailUrl;
+      frame.dataset.partyEmail = partyEmail || '';
+      frame.dataset.partyName = partyName || '';
+      frame.dataset.saleNumber = billNumber || '';
+      frame.dataset.documentLabel = 'Purchase Return';
+
+      modalEl.setAttribute('data-preview-url', themedPreviewUrl);
+      modalEl.setAttribute('data-pdf-url', themedPdfUrl);
+      modalEl.setAttribute('data-print-url', themedPrintUrl);
+      modalEl.setAttribute('data-email-url', themedEmailUrl);
+      modalEl.setAttribute('data-party-email', partyEmail || '');
+      modalEl.setAttribute('data-party-name', partyName || '');
+      modalEl.setAttribute('data-sale-number', billNumber || '');
+      modalEl.setAttribute('data-document-label', 'Purchase Return');
+
+      emailButton?.setAttribute('data-preview-url', themedPreviewUrl);
+      emailButton?.setAttribute('data-pdf-url', themedPdfUrl);
+      emailButton?.setAttribute('data-print-url', themedPrintUrl);
+      emailButton?.setAttribute('data-email-url', themedEmailUrl);
+      emailButton?.setAttribute('data-party-email', partyEmail || '');
+      emailButton?.setAttribute('data-party-name', partyName || '');
+      emailButton?.setAttribute('data-sale-number', billNumber || '');
+      emailButton?.setAttribute('data-document-label', 'Purchase Return');
+
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
     }
 
     function openPurchaseReturnPrint(url, rowTheme) {
@@ -296,6 +384,98 @@
           alert(error.message || 'Unable to delete debit note.');
         });
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      var modalEl = document.getElementById('purchaseReturnPreviewModal');
+      var frame = document.getElementById('purchaseReturnPreviewFrame');
+      var openPdfBtn = document.getElementById('purchaseReturnPreviewOpenPdf');
+      var printBtn = document.getElementById('purchaseReturnPreviewPrint');
+      var savePdfBtn = document.getElementById('purchaseReturnPreviewSavePdf');
+      var emailPdfBtn = document.getElementById('purchaseReturnPreviewEmailPdf');
+      var purchaseReturnEmailComposer = window.DocumentEmailPreview?.init({
+        name: 'purchase-return-email-preview',
+        previewModalId: 'purchaseReturnPreviewModal',
+        previewFrameId: 'purchaseReturnPreviewFrame',
+        emailModalId: 'purchaseReturnEmailModal',
+        emailToId: 'purchaseReturnEmailTo',
+        emailSubjectId: 'purchaseReturnEmailSubject',
+        emailMessageId: 'purchaseReturnEmailMessage',
+        viewPdfBtnId: 'purchaseReturnEmailViewPdfBtn',
+        sendBtnId: 'purchaseReturnEmailSendBtn',
+        openButtonId: 'purchaseReturnPreviewEmailPdf',
+        toastId: 'documentEmailToast',
+        bindOpenButton: false,
+        defaultSubject: function (context) {
+          return 'Purchase Return PDF' + (context.saleNumber ? ' - ' + context.saleNumber : '');
+        },
+        defaultMessage: function (context) {
+          var pdfLink = context.pdfUrl || context.previewUrl || '';
+          return 'Dear ' + (context.partyName || 'Sir') + ',\n\nPlease find the purchase return PDF attached below.\n' + (pdfLink ? 'PDF Link: ' + pdfLink + '\n' : '') + '\nThank you for doing business with us.\nThanks and regards.';
+        },
+      });
+
+      openPdfBtn?.addEventListener('click', function () {
+        var pdfUrl = frame?.dataset?.pdfUrl || frame?.src;
+        if (pdfUrl) {
+          triggerPurchaseReturnPdfDownload(pdfUrl);
+        }
+      });
+
+      printBtn?.addEventListener('click', function () {
+        var printUrl = frame?.dataset?.printUrl || frame?.src;
+        if (printUrl) {
+          window.open(printUrl, '_blank');
+        }
+      });
+
+      savePdfBtn?.addEventListener('click', function () {
+        var pdfUrl = frame?.dataset?.pdfUrl || frame?.src;
+        if (pdfUrl) {
+          triggerPurchaseReturnPdfDownload(pdfUrl);
+        }
+      });
+
+      emailPdfBtn?.addEventListener('click', function (event) {
+        event.preventDefault();
+        if (purchaseReturnEmailComposer && typeof purchaseReturnEmailComposer.open === 'function') {
+          purchaseReturnEmailComposer.open(this);
+        }
+      });
+
+      modalEl?.addEventListener('hidden.bs.modal', function () {
+        if (!frame) {
+          return;
+        }
+
+        frame.src = 'about:blank';
+        delete frame.dataset.previewUrl;
+        delete frame.dataset.pdfUrl;
+        delete frame.dataset.printUrl;
+        delete frame.dataset.emailUrl;
+        delete frame.dataset.partyEmail;
+        delete frame.dataset.partyName;
+        delete frame.dataset.saleNumber;
+        delete frame.dataset.documentLabel;
+
+        modalEl.removeAttribute('data-preview-url');
+        modalEl.removeAttribute('data-pdf-url');
+        modalEl.removeAttribute('data-print-url');
+        modalEl.removeAttribute('data-email-url');
+        modalEl.removeAttribute('data-party-email');
+        modalEl.removeAttribute('data-party-name');
+        modalEl.removeAttribute('data-sale-number');
+        modalEl.removeAttribute('data-document-label');
+
+        emailPdfBtn?.removeAttribute('data-preview-url');
+        emailPdfBtn?.removeAttribute('data-pdf-url');
+        emailPdfBtn?.removeAttribute('data-print-url');
+        emailPdfBtn?.removeAttribute('data-email-url');
+        emailPdfBtn?.removeAttribute('data-party-email');
+        emailPdfBtn?.removeAttribute('data-party-name');
+        emailPdfBtn?.removeAttribute('data-sale-number');
+        emailPdfBtn?.removeAttribute('data-document-label');
+      });
+    });
   </script>
   <script>
   (function () {

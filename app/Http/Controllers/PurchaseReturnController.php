@@ -10,9 +10,11 @@ use App\Models\Purchase;
 use App\Models\PurchasePayment;
 use App\Models\Transaction;
 use App\Support\TransactionNumberPrefix;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Mail;
 use Symfony\Component\Process\Process;
 
 class PurchaseReturnController extends Controller
@@ -156,18 +158,27 @@ class PurchaseReturnController extends Controller
         abort_unless($purchase->type === 'purchase_return', 404);
         $purchase->load(['items', 'payments.bankAccount', 'party']);
 
-        return view('dashboard.purchases.purchase-return.purchase-return-preview', compact('purchase'));
+        $themeDefaults = $this->resolveStoredPurchaseThemeConfig($purchase, request());
+        $themeConfig = $this->resolvePurchaseReturnThemeConfig(
+            $themeDefaults['mode'],
+            $themeDefaults[$themeDefaults['mode'] === 'thermal' ? 'thermalThemeId' : 'regularThemeId']
+        );
+
+        return view('themes.sales_invoice_pdf_document', [
+            'invoicePreviewData' => $this->mapPurchaseReturnToThemePreviewData($purchase),
+            'themeConfig' => $themeConfig,
+            'accent' => $themeDefaults['accent'],
+            'accent2' => $themeDefaults['accent2'],
+            'autoPrint' => request()->boolean('print'),
+        ]);
     }
 
     public function print(Purchase $purchase)
     {
         abort_unless($purchase->type === 'purchase_return', 404);
-        $purchase->load(['items', 'payments.bankAccount', 'party']);
+        request()->merge(['print' => true]);
 
-        return view('dashboard.purchases.purchase-return.purchase-return-preview', [
-            'purchase' => $purchase,
-            'autoPrint' => true,
-        ]);
+        return $this->preview($purchase);
     }
 
     public function pdf(Purchase $purchase)
@@ -248,6 +259,67 @@ class PurchaseReturnController extends Controller
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="' . $fileName . '"',
         ])->deleteFileAfterSend(true);
+    }
+
+    public function email(Request $request, Purchase $purchase)
+    {
+        abort_unless($purchase->type === 'purchase_return', 404);
+
+        $data = $request->validate([
+            'email' => 'required|email',
+            'subject' => 'nullable|string|max:255',
+            'message' => 'nullable|string|max:5000',
+        ]);
+
+        $purchase->load(['items', 'payments.bankAccount', 'party']);
+        $themeDefaults = $this->resolveStoredPurchaseThemeConfig($purchase, $request);
+        $themeConfig = $this->resolvePurchaseReturnThemeConfig(
+            $themeDefaults['mode'],
+            $themeDefaults[$themeDefaults['mode'] === 'thermal' ? 'thermalThemeId' : 'regularThemeId']
+        );
+
+        $pdf = Pdf::loadView('themes.sales_invoice_pdf_document', [
+            'invoicePreviewData' => $this->mapPurchaseReturnToThemePreviewData($purchase),
+            'themeConfig' => $themeConfig,
+            'accent' => $themeDefaults['accent'],
+            'accent2' => $themeDefaults['accent2'],
+        ]);
+
+        if (($themeConfig['mode'] ?? 'regular') === 'thermal') {
+            $pdf->setPaper([0, 0, 226.77, 841.89], 'portrait');
+        } else {
+            $pdf->setPaper('a4', 'portrait');
+        }
+
+        $billNumber = $purchase->bill_number ?: $purchase->id;
+        $subject = trim((string) ($data['subject'] ?? '')) ?: 'Purchase Return PDF - ' . $billNumber;
+        $message = trim((string) ($data['message'] ?? '')) ?: "Dear Sir,\n\nPlease find the purchase return PDF attached below.\n\nThank you for doing business with us.\nThanks and regards.";
+        $fileName = 'purchase-return-' . $billNumber . '.pdf';
+
+        try {
+            Mail::raw($message, function ($mail) use ($data, $subject, $pdf, $fileName) {
+                $mail->to($data['email'])
+                    ->subject($subject)
+                    ->attachData($pdf->output(), $fileName, ['mime' => 'application/pdf']);
+
+                $fromAddress = config('mail.from.address');
+                if (!empty($fromAddress)) {
+                    $mail->from($fromAddress, config('mail.from.name'));
+                }
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to send email right now.',
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Email sent successfully.',
+        ]);
     }
 
     private function renderPurchaseReturnForm(?Purchase $purchaseReturn = null, ?Purchase $duplicatePurchaseReturn = null)

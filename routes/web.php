@@ -133,6 +133,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::post('/proforma-invoice/{sale}/email', [InvoiceController::class, 'emailProforma'])->name('proforma-invoice.email');
     //emailsend
     Route::post('/sales/{sale}/invoice-email', [InvoiceController::class, 'emailDocument'])->name('sale.invoice-email');
+    Route::post('/purchase-return/{purchase}/email', [PurchaseReturnController::class, 'email'])->name('purchase-return.email');
     // Sale Return
     Route::get('/sale-return', [SaleReturnController::class, 'saleReturn'])->name('sale-return');
     Route::get('/sale-return/create', [SaleReturnController::class, 'salereturncreate'])->name('sale-return.create');
