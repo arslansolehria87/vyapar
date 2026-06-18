@@ -94,6 +94,35 @@
       font-family: Roboto, sans-serif;
     }
 
+    @if (!empty($clientPdfAutoOpen))
+      body {
+        background: #ffffff;
+        overflow: hidden;
+      }
+
+      #root {
+        position: absolute;
+        top: 0;
+        left: -12000px;
+        width: 1200px;
+        min-height: 100vh;
+      }
+
+      .client-pdf-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #ffffff;
+        color: #0f172a;
+        font-family: Roboto, Arial, sans-serif;
+        font-size: 15px;
+        font-weight: 600;
+      }
+    @endif
+
     @media print {
       html,
       body {
@@ -157,6 +186,10 @@
 
 
 <body>
+  @if (!empty($clientPdfAutoOpen))
+    <div class="client-pdf-loader">Opening PDF...</div>
+  @endif
+
   @if (!empty($paymentIn))
     <script>
       window.paymentInInvoice = @json($paymentIn);
