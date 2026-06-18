@@ -10,9 +10,10 @@ use App\Models\Purchase;
 use App\Models\PurchasePayment;
 use App\Models\Transaction;
 use App\Support\TransactionNumberPrefix;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Symfony\Component\Process\Process;
 
 class PurchaseReturnController extends Controller
 {
@@ -102,6 +103,7 @@ class PurchaseReturnController extends Controller
 
         $data = $request->validate([
             'mode' => 'required|in:regular,thermal',
+            'theme' => 'nullable|string|max:60',
             'regularThemeId' => 'nullable|integer|min:1',
             'thermalThemeId' => 'nullable|integer|min:1',
             'accent' => 'nullable|string|max:30',
@@ -117,6 +119,7 @@ class PurchaseReturnController extends Controller
         $purchase->forceFill([
             'invoice_theme' => [
                 'mode' => $data['mode'],
+                'theme' => $data['theme'] ?? ($currentTheme['theme'] ?? null),
                 'regularThemeId' => (int) ($data['regularThemeId'] ?? ($currentTheme['regularThemeId'] ?? 1)),
                 'thermalThemeId' => (int) ($data['thermalThemeId'] ?? ($currentTheme['thermalThemeId'] ?? 1)),
                 'accent' => $data['accent'] ?? '#1f4e79',
@@ -173,34 +176,78 @@ class PurchaseReturnController extends Controller
         $purchase->load(['items', 'payments.bankAccount', 'party']);
 
         $themeDefaults = $this->resolveStoredPurchaseThemeConfig($purchase, request());
-        $themeConfig = $this->resolvePurchaseReturnThemeConfig(
-            $themeDefaults['mode'],
-            $themeDefaults[$themeDefaults['mode'] === 'thermal' ? 'thermalThemeId' : 'regularThemeId']
-        );
-
         $fileName = 'purchase-return-' . ($purchase->bill_number ?: $purchase->id) . '.pdf';
-        $pdf = Pdf::loadView('themes.sales_invoice_pdf_document', [
+        $reactAssets = $this->resolveReactInvoiceAssets();
+
+        abort_unless($reactAssets['css_path'] && $reactAssets['js_path'], 500, 'React invoice assets not found for PDF generation.');
+
+        $viewData = [
             'purchase' => $purchase,
             'invoicePreviewData' => $this->mapPurchaseReturnToThemePreviewData($purchase),
-            'themeConfig' => $themeConfig,
-            'accent' => $themeDefaults['accent'],
-            'accent2' => $themeDefaults['accent2'],
             'pageTitle' => 'Purchase Return PDF',
             'browserTabLabel' => 'Purchase Return #' . ($purchase->bill_number ?: $purchase->id),
             'saveCloseUrl' => route('purchase-return'),
+            'themeSaveUrl' => route('purchase-return.invoice-theme.store', $purchase),
+            'documentType' => 'purchase-return',
+            'initialMode' => $themeDefaults['mode'],
+            'initialRegularThemeId' => $themeDefaults['regularThemeId'],
+            'initialThermalThemeId' => $themeDefaults['thermalThemeId'],
+            'initialAccent' => $themeDefaults['accent'],
+            'initialAccent2' => $themeDefaults['accent2'],
+            'pdfDirectDownload' => true,
+            'reactCssInline' => File::get($reactAssets['css_path']),
+            'reactJsInline' => File::get($reactAssets['js_path']),
+            'reactCss' => $reactAssets['css_url'],
+            'reactJs' => $reactAssets['js_url'],
+        ];
+
+        $htmlDirectory = storage_path('app/purchase-return-pdf');
+        File::ensureDirectoryExists($htmlDirectory);
+
+        $htmlPath = $htmlDirectory . DIRECTORY_SEPARATOR . 'purchase-return-' . $purchase->id . '-' . uniqid() . '.html';
+        $pdfPath = $htmlDirectory . DIRECTORY_SEPARATOR . 'purchase-return-' . $purchase->id . '-' . uniqid() . '.pdf';
+
+        File::put($htmlPath, view('invoice.index', $viewData)->render());
+
+        $chromePath = $this->resolveChromeExecutable();
+        abort_unless($chromePath !== null, 500, 'Chrome/Edge executable not found for PDF generation.');
+
+        $process = new Process([
+            $chromePath,
+            '--headless=new',
+            '--disable-gpu',
+            '--disable-extensions',
+            '--disable-sync',
+            '--no-pdf-header-footer',
+            '--run-all-compositor-stages-before-draw',
+            '--virtual-time-budget=2500',
+            '--print-to-pdf=' . $pdfPath,
+            'file:///' . str_replace('\\', '/', $htmlPath),
         ]);
 
-        if (($themeConfig['mode'] ?? 'regular') === 'thermal') {
-            $pdf->setPaper([0, 0, 226.77, 841.89], 'portrait');
-        } else {
-            $pdf->setPaper('a4', 'portrait');
+        $process->setTimeout(60);
+        $process->run();
+
+        File::delete($htmlPath);
+
+        if (! $process->isSuccessful() || ! File::exists($pdfPath)) {
+            File::delete($pdfPath);
+            return view('invoice.index', array_merge($viewData, [
+                'pdfDirectDownload' => false,
+                'clientPdfAutoOpen' => true,
+                'clientPdfFileName' => $fileName,
+                'pdfGenerationError' => trim($process->getErrorOutput()),
+            ]));
         }
 
         if (request()->boolean('download')) {
-            return $pdf->download($fileName);
+            return response()->download($pdfPath, $fileName)->deleteFileAfterSend(true);
         }
 
-        return $pdf->stream($fileName);
+        return response()->file($pdfPath, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $fileName . '"',
+        ])->deleteFileAfterSend(true);
     }
 
     private function renderPurchaseReturnForm(?Purchase $purchaseReturn = null, ?Purchase $duplicatePurchaseReturn = null)
@@ -505,24 +552,153 @@ class PurchaseReturnController extends Controller
 
         $mode = (string) $request->query('mode', $stored['mode'] ?? 'regular');
         $mode = $mode === 'thermal' ? 'thermal' : 'regular';
+        $theme = (string) $request->query('theme', (string) ($stored['theme'] ?? ''));
+        $themeIds = $this->purchaseReturnThemeIdsByKey();
 
         $regularThemeId = (int) $request->query(
             'theme_id',
-            (int) ($stored['regularThemeId'] ?? ($stored['theme_id'] ?? 1))
+            (int) ($themeIds['regular'][$theme] ?? ($stored['regularThemeId'] ?? ($stored['theme_id'] ?? 1)))
         );
         $thermalThemeId = (int) $request->query(
             'theme_id',
-            (int) ($stored['thermalThemeId'] ?? ($stored['theme_id'] ?? 1))
+            (int) ($themeIds['thermal'][$theme] ?? ($stored['thermalThemeId'] ?? ($stored['theme_id'] ?? 1)))
         );
         $accent = (string) $request->query('accent', (string) ($stored['accent'] ?? '#1f4e79'));
         $accent2 = (string) $request->query('accent2', (string) ($stored['accent2'] ?? '#ff981f'));
 
         return [
             'mode' => $mode,
+            'theme' => $theme,
             'regularThemeId' => $regularThemeId > 0 ? $regularThemeId : 1,
             'thermalThemeId' => $thermalThemeId > 0 ? $thermalThemeId : 1,
             'accent' => $accent !== '' ? $accent : '#1f4e79',
             'accent2' => $accent2 !== '' ? $accent2 : '#ff981f',
+        ];
+    }
+
+    private function purchaseReturnThemeIdsByKey(): array
+    {
+        return [
+            'regular' => [
+                'tally' => 1,
+                'LandScapeTheme1' => 2,
+                'LandScapeTheme2' => 3,
+                'tax1' => 4,
+                'tax2' => 5,
+                'tax3' => 6,
+                'tax4' => 7,
+                'tax5' => 8,
+                'tax6' => 9,
+                'divine' => 10,
+                'french' => 11,
+                'theme1' => 12,
+                'theme2' => 13,
+                'theme3' => 14,
+                'theme4' => 15,
+            ],
+            'thermal' => [
+                'thermal1' => 1,
+                'thermal2' => 2,
+                'thermal3' => 3,
+                'thermal4' => 4,
+                'thermal5' => 5,
+            ],
+        ];
+    }
+
+    private function resolveChromeExecutable(): ?string
+    {
+        $candidates = [
+            'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+            'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_file($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveReactInvoiceAssets(): array
+    {
+        $resolved = null;
+
+        foreach ($this->reactInvoiceAssetCandidates() as $source => $candidate) {
+            $assetDirectory = $candidate['path'];
+            if (! File::isDirectory($assetDirectory)) {
+                continue;
+            }
+
+            $cssFile = collect(File::glob($assetDirectory . DIRECTORY_SEPARATOR . 'index-*.css'))
+                ->sortByDesc(fn ($path) => filemtime($path))
+                ->first();
+            $jsFile = collect(File::glob($assetDirectory . DIRECTORY_SEPARATOR . 'index-*.js'))
+                ->sortByDesc(fn ($path) => filemtime($path))
+                ->first();
+
+            if (! $cssFile || ! $jsFile) {
+                continue;
+            }
+
+            $latestTimestamp = max(
+                @filemtime($cssFile) ?: 0,
+                @filemtime($jsFile) ?: 0
+            );
+
+            $payload = [
+                'timestamp' => $latestTimestamp,
+                'css_path' => $cssFile,
+                'js_path' => $jsFile,
+                'css_url' => route('invoice.react-asset', ['source' => $source, 'file' => basename($cssFile)]) . '?v=' . (@filemtime($cssFile) ?: time()),
+                'js_url' => route('invoice.react-asset', ['source' => $source, 'file' => basename($jsFile)]) . '?v=' . (@filemtime($jsFile) ?: time()),
+            ];
+
+            if ($resolved === null || $latestTimestamp > $resolved['timestamp']) {
+                $resolved = $payload;
+            }
+        }
+
+        return $resolved
+            ? [
+                'css_path' => $resolved['css_path'],
+                'js_path' => $resolved['js_path'],
+                'css_url' => $resolved['css_url'],
+                'js_url' => $resolved['js_url'],
+            ]
+            : [
+                'css_path' => null,
+                'js_path' => null,
+                'css_url' => null,
+                'js_url' => null,
+            ];
+    }
+
+    private function reactInvoiceAssetCandidates(): array
+    {
+        return [
+            'root' => [
+                'path' => base_path('react-invoice/assets'),
+            ],
+            'public_parent' => [
+                'path' => dirname(public_path()) . DIRECTORY_SEPARATOR . 'react-invoice' . DIRECTORY_SEPARATOR . 'assets',
+            ],
+            'base_parent' => [
+                'path' => dirname(base_path()) . DIRECTORY_SEPARATOR . 'react-invoice' . DIRECTORY_SEPARATOR . 'assets',
+            ],
+            'dist' => [
+                'path' => base_path('dist/assets'),
+            ],
+            'public' => [
+                'path' => public_path('react-invoice/assets'),
+            ],
+            'nested_public' => [
+                'path' => public_path('react-invoice/react-invoice/assets'),
+            ],
         ];
     }
 

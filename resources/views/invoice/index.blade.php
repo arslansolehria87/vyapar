@@ -464,14 +464,14 @@
         });
       }
 
-      function isDownloadPdfAction(target) {
+      function isPdfAction(target) {
         const shareItem = target.closest('.share-item');
         if (!shareItem) {
           return false;
         }
 
         const text = (shareItem.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-        return text.includes('download') && text.includes('pdf');
+        return text.includes('pdf') && (text.includes('download') || text.includes('open'));
       }
 
       document.addEventListener('click', function (event) {
@@ -489,7 +489,7 @@
           return;
         }
 
-        if (!isDownloadPdfAction(event.target)) {
+        if (!isPdfAction(event.target)) {
           scheduleThemeSave();
           return;
         }
@@ -504,6 +504,74 @@
       document.addEventListener('input', scheduleThemeSave, true);
 
       window.triggerInvoiceDownload = triggerInvoiceDownload;
+
+      @if (!empty($clientPdfAutoOpen))
+        function waitForInvoicePreview(callback, attempts) {
+          attempts = attempts || 0;
+          const target = document.querySelector('.right-panel');
+          if (target && target.offsetHeight > 0) {
+            callback(target);
+            return;
+          }
+
+          if (attempts > 80) {
+            window.print();
+            return;
+          }
+
+          setTimeout(function () {
+            waitForInvoicePreview(callback, attempts + 1);
+          }, 150);
+        }
+
+        function waitForHtml2Pdf(callback, attempts) {
+          attempts = attempts || 0;
+          if (window.html2pdf) {
+            callback();
+            return;
+          }
+
+          if (attempts > 80) {
+            window.print();
+            return;
+          }
+
+          setTimeout(function () {
+            waitForHtml2Pdf(callback, attempts + 1);
+          }, 150);
+        }
+
+        window.addEventListener('load', function () {
+          waitForHtml2Pdf(function () {
+            waitForInvoicePreview(function (target) {
+              const fileName = @json($clientPdfFileName ?? 'invoice.pdf');
+              const options = {
+                margin: 0,
+                filename: fileName,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                  scale: 2,
+                  useCORS: true,
+                  backgroundColor: '#ffffff'
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+              };
+
+              window.html2pdf()
+                .set(options)
+                .from(target)
+                .outputPdf('blob')
+                .then(function (blob) {
+                  const blobUrl = URL.createObjectURL(blob);
+                  window.location.replace(blobUrl);
+                })
+                .catch(function () {
+                  window.print();
+                });
+            });
+          });
+        });
+      @endif
 
       @if (!empty($autoPrintPreview))
         window.addEventListener('load', function () {

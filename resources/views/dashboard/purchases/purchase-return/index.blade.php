@@ -173,8 +173,8 @@
                   <td class="text-end">Rs {{ number_format($purchaseReturn->paid_amount ?? 0, 2) }}</td>
                   <td class="text-end">Rs {{ number_format($purchaseReturn->grand_total ?? 0, 2) }}</td>
                   <td class="action-cell">
-                    <a href="#" onclick="openPurchaseReturnPrint('{{ route('invoice', ['purchase_id' => $purchaseReturn->id, 'type' => 'purchase-return', 'print' => 1]) }}'); return false;" class="icon-action" title="Print"><i class="fa-solid fa-print"></i></a>
-                    <a href="#" onclick="openPurchaseReturnPreview('{{ route('invoice', ['purchase_id' => $purchaseReturn->id, 'type' => 'purchase-return']) }}'); return false;" class="icon-action" title="Preview"><i class="fa-solid fa-share-nodes"></i></a>
+                    <a href="#" onclick="openPurchaseReturnPrint('{{ route('invoice', ['purchase_id' => $purchaseReturn->id, 'type' => 'purchase-return', 'print' => 1]) }}', {{ \Illuminate\Support\Js::from($purchaseReturn->invoice_theme) }}); return false;" class="icon-action" title="Print"><i class="fa-solid fa-print"></i></a>
+                    <a href="#" onclick="openPurchaseReturnPreview('{{ route('invoice', ['purchase_id' => $purchaseReturn->id, 'type' => 'purchase-return']) }}', {{ \Illuminate\Support\Js::from($purchaseReturn->invoice_theme) }}); return false;" class="icon-action" title="Preview"><i class="fa-solid fa-share-nodes"></i></a>
                   </td>
                   <td class="text-center action-menu-cell">
                     <div class="dropdown">
@@ -183,9 +183,9 @@
                       </button>
                       <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                         <li><a class="dropdown-item" href="#" onclick="return transactionPasscodeNavigate('{{ route('purchase-return.edit', $purchaseReturn->id) }}');"><i class="fas fa-edit me-2"></i>View/Edit</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPdf('{{ route('purchase-return.pdf', $purchaseReturn->id) }}'); return false;"><i class="fas fa-file-pdf me-2"></i>Open PDF</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPreview('{{ route('invoice', ['purchase_id' => $purchaseReturn->id, 'type' => 'purchase-return']) }}'); return false;"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPrint('{{ route('invoice', ['purchase_id' => $purchaseReturn->id, 'type' => 'purchase-return', 'print' => 1]) }}'); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPdf('{{ route('purchase-return.pdf', $purchaseReturn->id) }}', {{ \Illuminate\Support\Js::from($purchaseReturn->invoice_theme) }}); return false;"><i class="fas fa-file-pdf me-2"></i>Open PDF</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPreview('{{ route('invoice', ['purchase_id' => $purchaseReturn->id, 'type' => 'purchase-return']) }}', {{ \Illuminate\Support\Js::from($purchaseReturn->invoice_theme) }}); return false;"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPrint('{{ route('invoice', ['purchase_id' => $purchaseReturn->id, 'type' => 'purchase-return', 'print' => 1]) }}', {{ \Illuminate\Support\Js::from($purchaseReturn->invoice_theme) }}); return false;"><i class="fas fa-print me-2"></i>Print</a></li>
                         <li><a class="dropdown-item" href="#" onclick="duplicatePurchaseReturn('{{ route('purchase-return.duplicate', $purchaseReturn->id) }}'); return false;"><i class="fas fa-copy me-2"></i>Duplicate</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger" href="#" onclick="return transactionPasscodeExecute('deletePurchaseReturn','{{ route('purchase-return.destroy', $purchaseReturn->id) }}');"><i class="fas fa-trash me-2"></i>Delete</a></li>
@@ -211,7 +211,31 @@
   <script src="{{ asset('js/components.js') }}?v={{ filemtime(public_path('js/components.js')) }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
   <script>
-    function buildPurchaseReturnThemedUrl(url) {
+    function applyPurchaseReturnThemeToUrl(resolvedUrl, savedTheme) {
+      if (!savedTheme) {
+        return;
+      }
+
+      resolvedUrl.searchParams.set('mode', savedTheme.mode || 'regular');
+      if (savedTheme.theme) {
+        resolvedUrl.searchParams.set('theme', savedTheme.theme);
+      }
+      if (savedTheme.mode === 'thermal' && savedTheme.thermalThemeId) {
+        resolvedUrl.searchParams.set('theme_id', savedTheme.thermalThemeId);
+      } else if (savedTheme.regularThemeId) {
+        resolvedUrl.searchParams.set('theme_id', savedTheme.regularThemeId);
+      }
+      if (savedTheme.accent) {
+        resolvedUrl.searchParams.set('accent', savedTheme.accent);
+        resolvedUrl.searchParams.set('color', savedTheme.accent);
+      }
+      if (savedTheme.accent2) {
+        resolvedUrl.searchParams.set('accent2', savedTheme.accent2);
+        resolvedUrl.searchParams.set('color2', savedTheme.accent2);
+      }
+    }
+
+    function buildPurchaseReturnThemedUrl(url, rowTheme) {
       var resolvedUrl = new URL(url, window.location.origin);
       var purchaseId = resolvedUrl.searchParams.get('purchase_id');
 
@@ -225,39 +249,26 @@
       }
 
       try {
-        var savedTheme = JSON.parse(
+        var savedTheme = rowTheme || JSON.parse(
           window.localStorage.getItem('purchaseInvoiceTheme:' + purchaseId)
           || 'null'
         );
-        if (savedTheme) {
-          resolvedUrl.searchParams.set('mode', savedTheme.mode || 'regular');
-          if (savedTheme.mode === 'thermal' && savedTheme.thermalThemeId) {
-            resolvedUrl.searchParams.set('theme_id', savedTheme.thermalThemeId);
-          } else if (savedTheme.regularThemeId) {
-            resolvedUrl.searchParams.set('theme_id', savedTheme.regularThemeId);
-          }
-          if (savedTheme.accent) {
-            resolvedUrl.searchParams.set('accent', savedTheme.accent);
-          }
-          if (savedTheme.accent2) {
-            resolvedUrl.searchParams.set('accent2', savedTheme.accent2);
-          }
-        }
+        applyPurchaseReturnThemeToUrl(resolvedUrl, savedTheme);
       } catch (error) {}
 
       return resolvedUrl.toString();
     }
 
-    function openPurchaseReturnPdf(url) {
-      window.open(buildPurchaseReturnThemedUrl(url), '_blank');
+    function openPurchaseReturnPdf(url, rowTheme) {
+      window.open(buildPurchaseReturnThemedUrl(url, rowTheme), '_blank');
     }
 
-    function openPurchaseReturnPreview(url) {
-      window.open(buildPurchaseReturnThemedUrl(url), '_blank');
+    function openPurchaseReturnPreview(url, rowTheme) {
+      window.open(buildPurchaseReturnThemedUrl(url, rowTheme), '_blank');
     }
 
-    function openPurchaseReturnPrint(url) {
-      window.open(buildPurchaseReturnThemedUrl(url), '_blank');
+    function openPurchaseReturnPrint(url, rowTheme) {
+      window.open(buildPurchaseReturnThemedUrl(url, rowTheme), '_blank');
     }
 
     function duplicatePurchaseReturn(url) {
