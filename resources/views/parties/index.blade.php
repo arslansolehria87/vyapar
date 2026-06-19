@@ -2442,17 +2442,59 @@
     display: none !important;
   }
 
-  .party-txn-action-menu .dropdown-menu {
-    position: absolute !important;
-    top: calc(100% + 6px) !important;
-    right: 0 !important;
-    left: auto !important;
-    min-width: 210px;
+  .party-txn-action-menu .dropdown-menu,
+  .party-txn-action-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    left: auto;
+    min-width: 220px;
     width: max-content;
-    z-index: 4000;
+    z-index: 10550;
     box-shadow: 0 14px 34px rgba(15, 23, 42, 0.16);
-    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 6px;
+    background: #fff;
     display: none;
+  }
+
+  .party-txn-action-menu .dropdown-menu li,
+  .party-txn-action-dropdown li {
+    list-style: none;
+  }
+
+  .party-txn-action-menu .dropdown-item,
+  .party-txn-action-dropdown .dropdown-item {
+    display: flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    color: #111827;
+    font-size: 13px;
+    line-height: 1.2;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .party-txn-action-menu .dropdown-item:hover,
+  .party-txn-action-menu .dropdown-item:focus,
+  .party-txn-action-dropdown .dropdown-item:hover,
+  .party-txn-action-dropdown .dropdown-item:focus {
+    background: #f3f4f6;
+    color: #111827;
+  }
+
+  .party-txn-action-menu .dropdown-item.is-disabled,
+  .party-txn-action-menu .dropdown-item.is-disabled:hover,
+  .party-txn-action-menu .dropdown-item.is-disabled:focus,
+  .party-txn-action-dropdown .dropdown-item.is-disabled,
+  .party-txn-action-dropdown .dropdown-item.is-disabled:hover,
+  .party-txn-action-dropdown .dropdown-item.is-disabled:focus {
+    background: transparent;
+    color: #9ca3af;
+    cursor: not-allowed;
   }
 
   .party-txn-action-menu.show .dropdown-menu {
@@ -2463,6 +2505,21 @@
     border: none;
     background: transparent;
     color: #64748b;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    padding: 0;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .party-txn-action-btn:hover,
+  .party-txn-action-btn:focus,
+  .party-txn-action-menu.show .party-txn-action-btn {
+    background: #eef2f7;
+    color: #334155;
   }
 
   .party-txn-action-menu {
@@ -2673,7 +2730,9 @@ function closePartyTxnActionMenus(exceptMenu = null) {
     document.querySelectorAll('.party-txn-action-menu.show').forEach((menu) => {
         if (exceptMenu && menu === exceptMenu) return;
         menu.classList.remove('show');
-        const dropdown = menu.querySelector('.dropdown-menu');
+        const toggle = menu.querySelector('.party-txn-action-btn');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+        const dropdown = menu.__openDropdown || menu.querySelector('.dropdown-menu');
         if (dropdown) {
             dropdown.style.position = '';
             dropdown.style.top = '';
@@ -2684,17 +2743,61 @@ function closePartyTxnActionMenus(exceptMenu = null) {
             dropdown.style.minWidth = '';
             dropdown.style.visibility = '';
             dropdown.style.zIndex = '';
+            dropdown.style.display = 'none';
         }
-        if (menu.__anchorParent && menu.parentNode === document.body) {
-            if (menu.__anchorNext && menu.__anchorNext.parentNode === menu.__anchorParent) {
-                menu.__anchorParent.insertBefore(menu, menu.__anchorNext);
+        if (dropdown?.__anchorParent && dropdown.parentNode === document.body) {
+            if (dropdown.__anchorNext && dropdown.__anchorNext.parentNode === dropdown.__anchorParent) {
+                dropdown.__anchorParent.insertBefore(dropdown, dropdown.__anchorNext);
             } else {
-                menu.__anchorParent.appendChild(menu);
+                dropdown.__anchorParent.appendChild(dropdown);
             }
         }
-        menu.__anchorParent = null;
-        menu.__anchorNext = null;
+        if (dropdown) {
+            dropdown.__anchorParent = null;
+            dropdown.__anchorNext = null;
+            dropdown.__anchorMenu = null;
+        }
+        menu.__openDropdown = null;
     });
+}
+
+function positionPartyTxnActionDropdown(button, dropdown) {
+    const menu = button.closest('.party-txn-action-menu');
+    if (!menu) return;
+
+    if (!dropdown.__anchorParent) {
+        dropdown.__anchorParent = dropdown.parentNode;
+        dropdown.__anchorNext = dropdown.nextSibling;
+        dropdown.__anchorMenu = menu;
+    }
+    menu.__openDropdown = dropdown;
+    if (dropdown.parentNode !== document.body) {
+        document.body.appendChild(dropdown);
+    }
+
+    const rect = button.getBoundingClientRect();
+    dropdown.style.display = 'block';
+    dropdown.style.visibility = 'hidden';
+    dropdown.style.position = 'fixed';
+    dropdown.style.right = 'auto';
+    dropdown.style.bottom = 'auto';
+    dropdown.style.transform = 'none';
+    dropdown.style.minWidth = '220px';
+    dropdown.style.zIndex = '10550';
+
+    const gap = 6;
+    const viewportPadding = 8;
+    const dropdownRect = dropdown.getBoundingClientRect();
+    const dropdownWidth = dropdownRect.width || 220;
+    const dropdownHeight = dropdownRect.height || 320;
+    const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
+    const openAbove = spaceBelow < dropdownHeight && rect.top > dropdownHeight + gap;
+    const top = openAbove ? rect.top - dropdownHeight - gap : rect.bottom + gap;
+    const left = Math.max(viewportPadding, Math.min(rect.right - dropdownWidth, window.innerWidth - dropdownWidth - viewportPadding));
+
+    dropdown.style.top = `${Math.max(viewportPadding, top)}px`;
+    dropdown.style.left = `${left}px`;
+    dropdown.style.visibility = 'visible';
 }
 
 function togglePartyTxnActionMenu(event, button) {
@@ -2706,11 +2809,17 @@ function togglePartyTxnActionMenu(event, button) {
 
     const dropdown = menu.querySelector('.dropdown-menu');
     const willOpen = !menu.classList.contains('show');
+    if (!willOpen) {
+        closePartyTxnActionMenus();
+        return;
+    }
+
     closePartyTxnActionMenus(menu);
-    menu.classList.toggle('show', willOpen);
+    menu.classList.add('show');
+    button.setAttribute('aria-expanded', 'true');
 
     if (!dropdown) return;
-    dropdown.style.display = willOpen ? 'block' : 'none';
+    positionPartyTxnActionDropdown(button, dropdown);
 }
 
 document.addEventListener('click', function(e){
@@ -3750,41 +3859,42 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     function getPartyTxnActionsHtml(txn) {
-        const hasActions = txn.actions && Object.values(txn.actions).some(value => Boolean(value));
-
-        if (!hasActions) {
-            return `<span style="color:#94a3b8;font-size:13px;">-</span>`;
-        }
+        const actions = txn.actions || {};
+        const actionItem = (action, label, url) => {
+            const className = url ? 'dropdown-item' : 'dropdown-item is-disabled';
+            const disabledAttrs = url ? '' : ' aria-disabled="true" tabindex="-1"';
+            return `<li><a class="${className}" href="#" data-action="${action}"${disabledAttrs}>${label}</a></li>`;
+        };
 
         return `
             <div class="dropdown party-txn-action-menu"
                  data-id="${escapeHtml(txn.id)}"
                  data-type="${escapeHtml(txn.raw_type || '')}"
                  data-number="${escapeHtml(txn.number || '-')}"
-                 data-view-url="${escapeHtml(txn.actions?.view || '')}"
-                 data-delete-url="${escapeHtml(txn.actions?.delete || '')}"
-                 data-cancel-url="${escapeHtml(txn.actions?.cancel || '')}"
-                 data-duplicate-url="${escapeHtml(txn.actions?.duplicate || '')}"
-                 data-pdf-url="${escapeHtml(txn.actions?.pdf || '')}"
-                 data-preview-url="${escapeHtml(txn.actions?.preview || '')}"
-                 data-print-url="${escapeHtml(txn.actions?.print || '')}"
-                 data-preview-delivery-url="${escapeHtml(txn.actions?.preview_delivery || '')}"
-                 data-convert-return-url="${escapeHtml(txn.actions?.convert_return || '')}"
-                 data-history-url="${escapeHtml(txn.actions?.history || '')}">
+                 data-view-url="${escapeHtml(actions.view || '')}"
+                 data-delete-url="${escapeHtml(actions.delete || '')}"
+                 data-cancel-url="${escapeHtml(actions.cancel || '')}"
+                 data-duplicate-url="${escapeHtml(actions.duplicate || '')}"
+                 data-pdf-url="${escapeHtml(actions.pdf || '')}"
+                 data-preview-url="${escapeHtml(actions.preview || '')}"
+                 data-print-url="${escapeHtml(actions.print || '')}"
+                 data-preview-delivery-url="${escapeHtml(actions.preview_delivery || '')}"
+                 data-convert-return-url="${escapeHtml(actions.convert_return || '')}"
+                 data-history-url="${escapeHtml(actions.history || '')}">
               <button class="btn btn-sm party-txn-action-btn" type="button" onclick="togglePartyTxnActionMenu(event, this)" aria-expanded="false">
                 <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>
-              <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="#" data-action="view">View / Edit</a></li>
-                <li><a class="dropdown-item" href="#" data-action="delete">Delete</a></li>
-                <li><a class="dropdown-item" href="#" data-action="cancel">Cancel</a></li>
-                <li><a class="dropdown-item" href="#" data-action="duplicate">Duplicate</a></li>
-                <li><a class="dropdown-item" href="#" data-action="pdf">Open PDF</a></li>
-                <li><a class="dropdown-item" href="#" data-action="preview">Preview</a></li>
-                <li><a class="dropdown-item" href="#" data-action="print">Print</a></li>
-                <li><a class="dropdown-item" href="#" data-action="preview-delivery">Preview Delivery Challan</a></li>
-                <li><a class="dropdown-item" href="#" data-action="convert-return">Convert to Return</a></li>
-                <li><a class="dropdown-item" href="#" data-action="history">View History</a></li>
+              <ul class="dropdown-menu dropdown-menu-end party-txn-action-dropdown">
+                ${actionItem('view', 'View / Edit', actions.view)}
+                ${actionItem('delete', 'Delete', actions.delete)}
+                ${actionItem('cancel', 'Cancel', actions.cancel)}
+                ${actionItem('duplicate', 'Duplicate', actions.duplicate)}
+                ${actionItem('pdf', 'Open PDF', actions.pdf)}
+                ${actionItem('preview', 'Preview', actions.preview)}
+                ${actionItem('print', 'Print', actions.print)}
+                ${actionItem('preview-delivery', 'Preview Delivery Challan', actions.preview_delivery)}
+                ${actionItem('convert-return', 'Convert to Return', actions.convert_return)}
+                ${actionItem('history', 'View History', actions.history)}
               </ul>
             </div>
         `;
@@ -6505,13 +6615,17 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
     document.addEventListener('click', async function (e) {
-        const actionItem = e.target.closest('.party-txn-action-menu .dropdown-item');
+        const actionItem = e.target.closest('.party-txn-action-dropdown .dropdown-item');
         if (!actionItem) return;
 
         e.preventDefault();
 
-        const menu = actionItem.closest('.party-txn-action-menu');
+        const dropdown = actionItem.closest('.dropdown-menu');
+        const menu = actionItem.closest('.party-txn-action-menu') || dropdown?.__anchorMenu;
         closePartyTxnActionMenus();
+        if (actionItem.classList.contains('is-disabled')) return;
+        if (!menu) return;
+
         const action = actionItem.dataset.action;
         const txnNumber = menu.dataset.number || 'Transaction';
         const viewUrl = menu.dataset.viewUrl;

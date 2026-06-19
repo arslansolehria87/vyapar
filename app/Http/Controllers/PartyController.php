@@ -1149,7 +1149,7 @@ private function buildPartyStatementData(Party $party, ?string $from = null, ?st
                 'due_date' => optional($purchase->due_date),
                 'status' => (string) ($purchase->balance > 0 ? 'unpaid' : 'paid'),
                 'sort_order' => 30,
-                'actions' => [],
+                'actions' => $this->purchaseActionUrls($purchase),
             ];
         });
 
@@ -1398,10 +1398,10 @@ private function buildLedgerSourceKey(string $type, string $number): string
     private function saleActionUrls(Sale $sale): array
     {
     $modalPreviewUrl = route('sale.invoice-preview', $sale);
-    $modalPdfUrl = route('sale.invoice-pdf', $sale);
+    $modalPdfUrl = route('sale.invoice-pdf', ['sale' => $sale->id, 'inline' => 1]);
     $modalPrintUrl = route('sale.invoice-preview', ['sale' => $sale->id, 'print' => 1]);
     $modalDeliveryPreviewUrl = route('sale.invoice-preview', ['sale' => $sale->id, 'doc' => 'delivery_challan']);
-    $modalDeliveryPdfUrl = route('sale.invoice-pdf', ['sale' => $sale->id, 'doc' => 'delivery_challan']);
+    $modalDeliveryPdfUrl = route('sale.invoice-pdf', ['sale' => $sale->id, 'doc' => 'delivery_challan', 'inline' => 1]);
     $modalDeliveryPrintUrl = route('sale.invoice-preview', ['sale' => $sale->id, 'doc' => 'delivery_challan', 'print' => 1]);
 
     return match ($sale->type) {
@@ -1485,6 +1485,48 @@ private function buildLedgerSourceKey(string $type, string $number): string
             'pdf' => null,
             'preview' => null,
             'print' => null,
+            'preview_delivery' => null,
+            'convert_return' => null,
+            'history' => null,
+        ],
+    };
+}
+
+private function purchaseActionUrls(Purchase $purchase): array
+{
+    return match ((string) $purchase->type) {
+        'purchase_return' => [
+            'view' => route('purchase-return.edit', $purchase),
+            'delete' => route('purchase-return.destroy', $purchase),
+            'cancel' => null,
+            'duplicate' => route('purchase-return.duplicate', $purchase),
+            'pdf' => route('purchase-return.pdf', $purchase),
+            'preview' => route('purchase-return.preview', $purchase),
+            'print' => route('purchase-return.print', $purchase),
+            'preview_delivery' => null,
+            'convert_return' => null,
+            'history' => null,
+        ],
+        'purchase_order' => [
+            'view' => route('purchase-orders.edit', $purchase),
+            'delete' => route('purchase-orders.destroy', $purchase),
+            'cancel' => null,
+            'duplicate' => null,
+            'pdf' => route('purchase-orders.pdf', $purchase),
+            'preview' => route('purchase-orders.preview', $purchase),
+            'print' => route('purchase-orders.print', $purchase),
+            'preview_delivery' => null,
+            'convert_return' => null,
+            'history' => route('purchase-orders.history', $purchase),
+        ],
+        default => [
+            'view' => route('purchase-bills.edit', $purchase),
+            'delete' => route('purchase-bills.destroy', $purchase),
+            'cancel' => null,
+            'duplicate' => null,
+            'pdf' => route('purchase-bills.pdf', $purchase),
+            'preview' => route('purchase-bills.preview', $purchase),
+            'print' => route('purchase-bills.print', $purchase),
             'preview_delivery' => null,
             'convert_return' => null,
             'history' => null,

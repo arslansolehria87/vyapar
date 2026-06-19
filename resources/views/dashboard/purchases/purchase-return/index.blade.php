@@ -84,21 +84,25 @@
       overflow: visible !important;
       position: relative;
     }
-    .purchase-return-table .dropdown-menu {
+    .purchase-return-table .dropdown-menu,
+    .purchase-return-action-dropdown {
       min-width: 188px;
       padding: 0.45rem 0;
       border: 1px solid #e5e7eb;
       border-radius: 8px;
       box-shadow: 0 14px 30px rgba(15, 23, 42, 0.16);
-      z-index: 1090;
+      background: #fff;
+      z-index: 10550;
     }
-    .purchase-return-table .dropdown-item {
+    .purchase-return-table .dropdown-item,
+    .purchase-return-action-dropdown .dropdown-item {
       padding: 0.6rem 1rem;
       font-size: 14px;
       color: #1f2937;
       text-decoration: none;
     }
-    .purchase-return-table .dropdown-item:hover {
+    .purchase-return-table .dropdown-item:hover,
+    .purchase-return-action-dropdown .dropdown-item:hover {
       background: #e0f2fe;
       color: #0f172a;
     }
@@ -181,7 +185,7 @@
                       <button class="btn btn-sm action-menu-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
                         <i class="fas fa-ellipsis-v"></i>
                       </button>
-                      <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                      <ul class="dropdown-menu dropdown-menu-end shadow-sm purchase-return-action-dropdown">
                         <li><a class="dropdown-item" href="#" onclick="return transactionPasscodeNavigate('{{ route('purchase-return.edit', $purchaseReturn->id) }}');"><i class="fas fa-edit me-2"></i>View/Edit</a></li>
                         <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPdf('{{ route('purchase-return.pdf', $purchaseReturn->id) }}', {{ \Illuminate\Support\Js::from($purchaseReturn->invoice_theme) }}); return false;"><i class="fas fa-file-pdf me-2"></i>Open PDF</a></li>
                         <li><a class="dropdown-item" href="#" onclick="openPurchaseReturnPreview('{{ route('purchase-return.preview', $purchaseReturn->id) }}', '{{ route('purchase-return.pdf', $purchaseReturn->id) }}', '{{ route('purchase-return.print', $purchaseReturn->id) }}', '{{ route('purchase-return.email', $purchaseReturn->id) }}', {{ \Illuminate\Support\Js::from($purchaseReturn->invoice_theme) }}, {{ \Illuminate\Support\Js::from($purchaseReturn->bill_number ?? $purchaseReturn->id) }}, {{ \Illuminate\Support\Js::from($purchaseReturn->party?->email ?? '') }}, {{ \Illuminate\Support\Js::from($purchaseReturn->party_name ?: ($purchaseReturn->party?->name ?? '')) }}); return false;"><i class="fas fa-file-alt me-2"></i>Preview</a></li>
@@ -476,6 +480,106 @@
         emailPdfBtn?.removeAttribute('data-document-label');
       });
     });
+
+    (function () {
+      function getActionDropdown(toggle) {
+        return toggle?.__purchaseReturnMenu || toggle?.closest('.dropdown')?.querySelector('.purchase-return-action-dropdown');
+      }
+
+      function restoreActionDropdown(menu) {
+        if (!menu) return;
+
+        menu.style.position = '';
+        menu.style.top = '';
+        menu.style.left = '';
+        menu.style.right = '';
+        menu.style.bottom = '';
+        menu.style.transform = '';
+        menu.style.minWidth = '';
+        menu.style.visibility = '';
+        menu.style.zIndex = '';
+        menu.style.display = '';
+
+        if (menu.__anchorParent && menu.parentNode === document.body) {
+          if (menu.__anchorNext && menu.__anchorNext.parentNode === menu.__anchorParent) {
+            menu.__anchorParent.insertBefore(menu, menu.__anchorNext);
+          } else {
+            menu.__anchorParent.appendChild(menu);
+          }
+        }
+
+        if (menu.__toggle) {
+          menu.__toggle.__purchaseReturnMenu = null;
+        }
+        menu.__anchorParent = null;
+        menu.__anchorNext = null;
+        menu.__toggle = null;
+      }
+
+      function positionActionDropdown(toggle, menu) {
+        if (!toggle || !menu) return;
+
+        if (!menu.__anchorParent) {
+          menu.__anchorParent = menu.parentNode;
+          menu.__anchorNext = menu.nextSibling;
+        }
+        menu.__toggle = toggle;
+        toggle.__purchaseReturnMenu = menu;
+
+        if (menu.parentNode !== document.body) {
+          document.body.appendChild(menu);
+        }
+
+        var rect = toggle.getBoundingClientRect();
+        menu.style.display = 'block';
+        menu.style.visibility = 'hidden';
+        menu.style.position = 'fixed';
+        menu.style.right = 'auto';
+        menu.style.bottom = 'auto';
+        menu.style.transform = 'none';
+        menu.style.minWidth = '220px';
+        menu.style.zIndex = '10550';
+
+        var gap = 6;
+        var padding = 8;
+        var menuRect = menu.getBoundingClientRect();
+        var menuWidth = menuRect.width || 220;
+        var menuHeight = menuRect.height || 260;
+        var spaceBelow = window.innerHeight - rect.bottom - padding;
+        var openAbove = spaceBelow < menuHeight && rect.top > menuHeight + gap;
+        var top = openAbove ? rect.top - menuHeight - gap : rect.bottom + gap;
+        var left = Math.max(padding, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - padding));
+
+        menu.style.top = Math.max(padding, top) + 'px';
+        menu.style.left = left + 'px';
+        menu.style.visibility = 'visible';
+      }
+
+      function closePurchaseReturnActionDropdowns() {
+        document.querySelectorAll('.action-menu-btn[aria-expanded="true"]').forEach(function (toggle) {
+          var instance = window.bootstrap?.Dropdown?.getInstance(toggle);
+          if (instance) {
+            instance.hide();
+          } else {
+            restoreActionDropdown(getActionDropdown(toggle));
+            toggle.setAttribute('aria-expanded', 'false');
+          }
+        });
+      }
+
+      document.addEventListener('shown.bs.dropdown', function (event) {
+        if (!event.target.classList?.contains('action-menu-btn')) return;
+        positionActionDropdown(event.target, getActionDropdown(event.target));
+      });
+
+      document.addEventListener('hidden.bs.dropdown', function (event) {
+        if (!event.target.classList?.contains('action-menu-btn')) return;
+        restoreActionDropdown(getActionDropdown(event.target));
+      });
+
+      window.addEventListener('scroll', closePurchaseReturnActionDropdowns, true);
+      window.addEventListener('resize', closePurchaseReturnActionDropdowns);
+    })();
   </script>
   <script>
   (function () {

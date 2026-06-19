@@ -1368,7 +1368,7 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
             $themeDefaults[$themeDefaults['mode'] === 'thermal' ? 'thermalThemeId' : 'regularThemeId']
         );
 
-        if ($request->boolean('download')) {
+        if ($request->boolean('download') || $request->boolean('inline')) {
             $pdf = Pdf::loadView('themes.sales_invoice_pdf_document', [
                 'invoicePreviewData' => $this->mapSaleToThemePreviewData($sale),
                 'themeConfig' => $themeConfig,
@@ -1382,7 +1382,11 @@ $bank = $isCash ? $cashAccount : BankAccount::find($bankId);
                 $pdf->setPaper('a4', 'portrait');
             }
 
-            return $pdf->download('invoice-' . ($sale->bill_number ?: $sale->id) . '.pdf');
+            $fileName = 'invoice-' . ($sale->bill_number ?: $sale->id) . '.pdf';
+
+            return $request->boolean('inline')
+                ? $pdf->stream($fileName)
+                : $pdf->download($fileName);
         }
 
         return view('themes.sales_invoice_pdf_document', [
