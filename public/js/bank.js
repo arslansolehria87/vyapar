@@ -6,6 +6,46 @@ document.addEventListener("DOMContentLoaded", () => {
     const list = document.getElementById("bankList");
     const sidebarSearch = document.getElementById("bankSearchInput");
     const tableSearch = document.getElementById("tableSearchInput");
+    const bulkSearch = document.getElementById("bankBulkSearch");
+
+    function hardResetSearchInput(input) {
+        if (!input) return;
+        input.setAttribute("autocomplete", "new-password");
+        input.setAttribute("autocapitalize", "off");
+        input.setAttribute("spellcheck", "false");
+        input.setAttribute("data-form-type", "other");
+        input.setAttribute("readonly", "readonly");
+        input.setAttribute("inputmode", "search");
+        if (!input.dataset.userTyped) {
+            input.value = "";
+        }
+        input.addEventListener("focus", () => {
+            input.removeAttribute("readonly");
+        });
+        input.addEventListener("blur", () => {
+            if (!input.value) {
+                input.setAttribute("readonly", "readonly");
+            }
+        });
+        input.addEventListener("input", () => {
+            input.dataset.userTyped = "1";
+        });
+    }
+
+    hardResetSearchInput(sidebarSearch);
+    hardResetSearchInput(tableSearch);
+    hardResetSearchInput(bulkSearch);
+
+    const clearAutoFilledValues = () => {
+        [sidebarSearch, tableSearch, bulkSearch].forEach((input) => {
+            if (!input || input.dataset.userTyped === "1") return;
+            if (input.value) input.value = "";
+        });
+    };
+
+    clearAutoFilledValues();
+    requestAnimationFrame(() => requestAnimationFrame(clearAutoFilledValues));
+    window.addEventListener("pageshow", clearAutoFilledValues);
 
     const detailName = document.getElementById("bankDetailName");
     const detailAccountNumber = document.getElementById(
@@ -25,7 +65,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const bulkOverlay = document.getElementById("bankBulkOverlay");
     const bulkModalTitle = document.getElementById("bankBulkModalTitle");
     const bulkModalInfo = document.getElementById("bankBulkModalInfo");
-    const bulkSearch = document.getElementById("bankBulkSearch");
     const bulkTbody = document.getElementById("bankBulkTbody");
     const bulkCheckAll = document.getElementById("bankBulkCheckAll");
     const bulkApplyBtn = document.getElementById("bankBulkApplyBtn");
@@ -1488,7 +1527,24 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!menu) return;
 
         const isVisible = menu.style.display === "block";
-        menu.style.display = isVisible ? "none" : "block";
+        if (isVisible) {
+            menu.style.display = "none";
+            menu.style.left = "";
+            menu.style.right = "";
+            menu.style.transform = "";
+            return;
+        }
+
+        menu.style.display = "block";
+        menu.style.left = "";
+        menu.style.right = "0";
+        menu.style.transform = "none";
+        const rect = menu.getBoundingClientRect();
+        if (rect.right > window.innerWidth - 10) {
+            menu.style.left = "auto";
+            menu.style.right = "0";
+            menu.style.transform = "translateX(-8px)";
+        }
     });
 
     // Handle action item clicks (view/edit/delete)

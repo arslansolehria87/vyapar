@@ -8,6 +8,9 @@ class PaymentIn extends Model
 {
     protected $fillable = [
         'party_id',
+        'entity_type',
+        'entity_id',
+        'entity_name',
         'bank_account_id',
         'amount',
         'payment_type',
@@ -15,6 +18,11 @@ class PaymentIn extends Model
         'receipt_no',
         'date',
         'description',
+        'attachments',
+    ];
+
+    protected $casts = [
+        'attachments' => 'array',
     ];
 
     public function party() {

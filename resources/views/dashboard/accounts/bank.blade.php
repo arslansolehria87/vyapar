@@ -973,7 +973,14 @@ font-size:12px;
 /* Actions dropdown in table */
 .action-dropdown {
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.action-dropdown .action-toggle {
+  position: relative;
+  z-index: 2;
 }
 
 .action-toggle {
@@ -993,29 +1000,34 @@ font-size:12px;
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
+  left: auto;
   background: white;
   border: 1px solid #edf0f5;
   border-radius: 14px;
   box-shadow: 0 16px 34px rgba(15, 23, 42, 0.16);
-  min-width: 220px;
+  min-width: 170px;
+  max-width: 200px;
   display: none;
   z-index: 2000;
   padding: 10px 0;
+  width: 180px;
 }
 
-.action-item {
+.action-dropdown .action-item {
   width: 100%;
-  text-align: left;
+  text-align: left !important;
   background: transparent;
   border: none;
-  padding: 12px 22px;
+  padding: 10px 14px;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 500;
   color: #1f2937;
+  white-space: nowrap;
+  display: block;
 }
 
-.action-item:hover {
+.action-dropdown .action-item:hover {
   background: #f3f8ff;
 }
 
@@ -1613,7 +1625,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
       <div class="list-panel-header">
       <div class="search-box">
   <i class="fa fa-search"></i>
-  <input type="text" class="form-control search-input" placeholder="Search Bank Account" id="bankSearchInput">
+  <input type="text" class="form-control search-input" placeholder="Search Bank Account" id="bankSearchInput" autocomplete="new-password" autocapitalize="off" spellcheck="false" name="bank_account_search_{{ uniqid() }}" data-form-type="other" readonly>
       </div>
 
       </div>
@@ -1707,7 +1719,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
     <h6 class="fw-600 mb-3" style="font-size: 14px !important;">Bank Transactions</h6>
     <div class="header-icons">
       <div class="table-search-box">
-        <input type="text" class="form-control form-control-sm" id="tableSearchInput" placeholder="Search table">
+        <input type="text" class="form-control form-control-sm" id="tableSearchInput" placeholder="Search table" autocomplete="new-password" autocapitalize="off" spellcheck="false" name="bank_txn_search_{{ uniqid() }}" data-form-type="other" readonly>
       </div>
       <button type="button" class="btn btn-sm btn-light" id="focusSearchBtn" title="Search">
         <i class="fa fa-search"></i>
@@ -1961,7 +1973,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
       <div class="bulk-modal-info" id="bankBulkModalInfo">Select bank accounts to update.</div>
     </div>
     <div class="bulk-modal-body">
-      <input type="text" id="bankBulkSearch" class="bulk-search" placeholder="Search bank account">
+      <input type="text" id="bankBulkSearch" class="bulk-search" placeholder="Search bank account" autocomplete="new-password" autocapitalize="off" spellcheck="false" name="bank_bulk_search_{{ uniqid() }}" data-form-type="other" readonly>
       <table class="bulk-table">
         <thead>
           <tr>

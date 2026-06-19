@@ -348,6 +348,7 @@ class PurchaseExpenseController extends Controller
                         'item_id' => $item?->id,
                         'payment_type' => $paymentType,
                         'reference' => $data['reference'] ?? null,
+                        'linked_rows' => $linkedRows->values()->all(),
                     ],
                 ]);
             }
@@ -380,6 +381,103 @@ class PurchaseExpenseController extends Controller
         }
 
         return redirect()->route('payment-out')->with('success', 'Payment out saved successfully.');
+    }
+
+    public function editPaymentOut(Transaction $paymentOut)
+    {
+        return redirect()->route('payment-out', [
+            'edit_payment_out' => $paymentOut->id,
+        ]);
+    }
+
+    public function destroyPaymentOut(Transaction $paymentOut)
+    {
+        $bankTxn = BankTransaction::query()
+            ->where('reference_type', 'payment_out')
+            ->where('reference_id', $paymentOut->id)
+            ->latest('id')
+            ->first();
+
+        DB::transaction(function () use ($paymentOut, $bankTxn) {
+            if ($bankTxn) {
+                $bankAccount = $bankTxn->fromBankAccount ?: $bankTxn->toBankAccount;
+                if ($bankAccount) {
+                    $bankAccount->opening_balance = (float) ($bankAccount->opening_balance ?? 0) + (float) ($bankTxn->amount ?? 0);
+                    $bankAccount->save();
+                }
+
+                $meta = is_array($bankTxn->meta ?? null) ? $bankTxn->meta : [];
+                $linkedRows = collect($meta['linked_rows'] ?? []);
+
+                foreach ($linkedRows as $linkedRow) {
+                    $linkedAmount = round((float) ($linkedRow['amount'] ?? 0), 2);
+
+                    if (!empty($linkedRow['purchase_id'])) {
+                        $purchase = Purchase::query()->lockForUpdate()->find($linkedRow['purchase_id']);
+                        if ($purchase) {
+                            $purchasePaid = (float) ($purchase->paid_amount ?? 0);
+                            $purchaseGrandTotal = (float) ($purchase->grand_total ?? $purchase->total_amount ?? 0);
+                            $newPaid = max(0, round($purchasePaid - $linkedAmount, 2));
+                            $newBalance = max(0, round($purchaseGrandTotal - $newPaid, 2));
+                            $purchase->update([
+                                'paid_amount' => $newPaid,
+                                'balance' => $newBalance,
+                                'status' => $newBalance <= 0 ? 'Paid' : ($newPaid > 0 ? 'Unpaid' : 'Unpaid'),
+                            ]);
+                        }
+
+                        PurchasePayment::query()
+                            ->where('reference', 'payment_out:' . $paymentOut->id)
+                            ->where('purchase_id', $linkedRow['purchase_id'])
+                            ->delete();
+                    }
+
+                    if (!empty($linkedRow['sale_id'])) {
+                        $sale = DB::table('sales')->lockForUpdate()->find($linkedRow['sale_id']);
+                        if ($sale) {
+                            $saleReceived = (float) ($sale->received_amount ?? 0);
+                            $saleGrandTotal = (float) ($sale->grand_total ?? $sale->total_amount ?? 0);
+                            $newReceived = max(0, round($saleReceived - $linkedAmount, 2));
+                            $newBalance = max(0, round($saleGrandTotal - $newReceived, 2));
+                            DB::table('sales')->where('id', $sale->id)->update([
+                                'received_amount' => $newReceived,
+                                'balance' => $newBalance,
+                                'status' => $newBalance <= 0 ? 'paid' : ($newReceived > 0 ? 'partial' : 'unpaid'),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    }
+
+                    if (!empty($linkedRow['transaction_id'])) {
+                        $linkedTxn = Transaction::query()->lockForUpdate()->find($linkedRow['transaction_id']);
+                        if ($linkedTxn) {
+                            $txnPaid = (float) ($linkedTxn->paid_amount ?? 0);
+                            $txnTotal = (float) ($linkedTxn->total ?? 0);
+                            $newPaid = max(0, round($txnPaid - $linkedAmount, 2));
+                            $newBalance = max(0, round($txnTotal - $newPaid, 2));
+                            $linkedTxn->update([
+                                'paid_amount' => $newPaid,
+                                'balance' => $newBalance,
+                                'status' => $newBalance <= 0 ? 'paid' : ($newPaid > 0 ? 'partial' : 'unpaid'),
+                            ]);
+                        }
+                    }
+                }
+
+                $bankTxn->delete();
+            }
+
+            $paymentOut->delete();
+        });
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment out deleted successfully.',
+            ]);
+        }
+
+        return redirect()->route('payment-out')->with('success', 'Payment out deleted successfully.');
     }
 
 

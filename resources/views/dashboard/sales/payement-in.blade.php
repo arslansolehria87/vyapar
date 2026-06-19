@@ -278,9 +278,9 @@
     }
 
     .payment-in-modal .modal-dialog {
-      width: calc(100vw - 28px);
-      max-width: 1280px;
-      margin: 14px auto;
+      width: calc(100vw - 96px);
+      max-width: 1120px;
+      margin: 18px auto;
     }
 
     .payment-in-modal .modal-content {
@@ -288,7 +288,8 @@
       border-radius: 18px;
       overflow: hidden;
       box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
-      min-height: calc(100vh - 28px);
+      min-height: auto;
+      max-height: calc(100vh - 36px);
       display: flex;
       flex-direction: column;
     }
@@ -300,7 +301,7 @@
     }
 
     .payment-in-modal .modal-body {
-      padding: 6px 22px 14px;
+      padding: 6px 22px 8px;
       flex: 1 1 auto;
       overflow: auto;
     }
@@ -429,6 +430,11 @@
       max-width: 404px;
     }
 
+    .payment-extra-item {
+      width: 100%;
+      max-width: 404px;
+    }
+
     .payment-extra-stack .btn-outline-light-like {
       border: 1px solid #d8dee7;
       background: #fff;
@@ -545,7 +551,7 @@
     }
 
     .payment-in-modal .modal-footer {
-      padding: 14px 22px 16px;
+      padding: 12px 22px 12px;
       border-top: 1px solid #eef2f7;
     }
 
@@ -599,7 +605,7 @@
     <span class="text-light">+ Add Payment-in</span>
 </button>
    <div class="modal fade payment-in-modal" id="addPaymentInModal" tabindex="-1" aria-labelledby="addPaymentInModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl"> <!-- Expanded modal width -->
+  <div class="modal-dialog modal-dialog-centered modal-xl"> <!-- Keep centered, but smaller width is handled in CSS -->
     <div class="modal-content">
 
       <!-- Modal Header -->
@@ -629,6 +635,9 @@
            @csrf
           <input type="hidden" id="paymentInId" value="">
           <input type="hidden" id="linkedRowsJson" value="[]">
+          <input type="hidden" id="selectedEntityType" value="party">
+          <input type="hidden" id="selectedEntityId" value="">
+          <input type="hidden" id="selectedEntityName" value="">
 
           <div class="payment-in-sheet">
             <div class="row g-4 align-items-start">
@@ -637,8 +646,31 @@
                   <div class="dropdown party-dropdown-wrapper" data-bs-auto-close="outside">
                     <input type="text" class="form-control party-search-input w-100" placeholder="Search by Name/Phone *" id="partyDropdownBtn" data-bs-toggle="dropdown" autocomplete="off">
                     <ul class="dropdown-menu w-100" aria-labelledby="partyDropdownBtn" id="partyDropdownMenu" style="max-height: 300px; overflow-y: auto;">
+                      @foreach($brokers ?? [] as $broker)
+                      <li class="entity-option dropdown-item d-flex justify-content-between align-items-center" style="cursor: default; opacity:.95;"
+                          data-entity-type="broker"
+                          data-id="{{ $broker->id }}"
+                          data-name="{{ strtolower($broker->name ?? '') }}"
+                          data-phone="{{ strtolower($broker->phone ?? '') }}"
+                          data-billing="{{ strtolower(addslashes($broker->address ?? '')) }}">
+                        <span class="party-name cursor-pointer">{{ $broker->name }}</span>
+                        <span class="badge bg-secondary">Broker</span>
+                      </li>
+                      @endforeach
+                      @foreach($items ?? [] as $item)
+                      <li class="entity-option dropdown-item d-flex justify-content-between align-items-center" style="cursor: default; opacity:.95;"
+                          data-entity-type="item"
+                          data-id="{{ $item->id }}"
+                          data-name="{{ strtolower($item->name ?? '') }}"
+                          data-phone="{{ strtolower($item->item_code ?? '') }}"
+                          data-billing="{{ strtolower(addslashes($item->description ?? '')) }}">
+                        <span class="party-name cursor-pointer">{{ $item->name }}</span>
+                        <span class="badge bg-info text-dark">Item</span>
+                      </li>
+                      @endforeach
                       @foreach($parties as $party)
-                      <li class="party-option dropdown-item d-flex justify-content-between align-items-center" style="cursor: pointer;"
+                      <li class="entity-option party-option dropdown-item d-flex justify-content-between align-items-center" style="cursor: pointer;"
+                          data-entity-type="party"
                           data-id="{{ $party->id }}"
                           data-current-balance="{{ $party->current_balance ?? $party->opening_balance ?? 0 }}"
                           data-phone="{{ strtolower($party->phone ?? '') }}"
@@ -654,7 +686,7 @@
                         </span>
                       </li>
                       @endforeach
-                      <li class="dropdown-item text-muted small d-none" id="partySearchNoResults">No matching parties found.</li>
+                      <li class="dropdown-item text-muted small d-none" id="partySearchNoResults">No matching records found.</li>
                       <li class="dropdown-item text-primary" id="addNewPartyBtn">+ Add New Party</li>
                     </ul>
                   </div>
@@ -712,27 +744,32 @@
                 </div>
 
                 <div class="payment-extra-stack">
-                  <button type="button" id="toggleDescriptionBtn" class="btn-outline-light-like">
-                    <i class="fa-solid fa-file text-secondary" style="font-size:18px;"></i>
-                    <span>Add Description</span>
-                  </button>
+                  <div class="payment-extra-item">
+                    <button type="button" id="toggleDescriptionBtn" class="btn-outline-light-like">
+                      <i class="fa-solid fa-file text-secondary" style="font-size:18px;"></i>
+                      <span>Add Description</span>
+                    </button>
 
-                  <div id="descriptionBox" class="d-none mt-1 w-100">
-                    <label class="form-label text-secondary">Description</label>
-                    <textarea class="form-control" id="paymentDescription" name="description" rows="4" placeholder="Enter description"></textarea>
+                    <div id="descriptionBox" class="d-none mt-1 w-100">
+                      <label class="form-label text-secondary">Description</label>
+                      <textarea class="form-control" id="paymentDescription" name="description" rows="4" placeholder="Enter description"></textarea>
+                    </div>
                   </div>
 
-                  <button type="button" id="toggleImageBtn" class="btn-outline-light-like">
-                    <i class="fa-solid fa-camera text-secondary" style="font-size:18px;"></i>
-                    <span>Upload Image</span>
-                  </button>
+                  <div class="payment-extra-item">
+                    <button type="button" id="toggleImageBtn" class="btn-outline-light-like">
+                      <i class="fa-solid fa-camera text-secondary" style="font-size:18px;"></i>
+                      <span>Upload Image</span>
+                    </button>
 
-                  <input type="file" id="paymentImageInput" class="d-none" accept="image/*">
-                  <div id="imageUploadBox" class="d-none mt-1 w-100">
-                    <div class="border rounded p-3 text-center text-secondary" id="imagePlaceholder" style="cursor:pointer;">
-                      Click to select an image
+                    <input type="file" id="paymentImageInput" name="attachments[]" class="d-none" accept="image/*" multiple>
+                    <div id="imageUploadBox" class="d-none mt-1 w-100">
+                      <div class="border rounded p-3 text-center text-secondary" id="imagePlaceholder" style="cursor:pointer;">
+                        Click to select an image
+                      </div>
+                      <div id="imagePreviewWrap" class="d-none mt-2 d-flex flex-wrap gap-2"></div>
+                      <div id="imageSelectedName" class="small text-muted mt-2 d-none"></div>
                     </div>
-                    <div id="imageSelectedName" class="small text-muted mt-2 d-none"></div>
                   </div>
                 </div>
               </div>
@@ -786,9 +823,9 @@
     Share
   </button>
   <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="shareDropdownBtn" data-bs-display="static" style="margin-top:0;">
-    <li><a class="dropdown-item" href="#">Share via Email</a></li>
-    <li><a class="dropdown-item" href="#">Share via WhatsApp</a></li>
-    <li><a class="dropdown-item" href="#">Share via Link</a></li>
+    <li><a class="dropdown-item" href="#" id="paymentInShareEmail">Share via Email</a></li>
+    <li><a class="dropdown-item" href="#" id="paymentInShareWhatsApp">Share via WhatsApp</a></li>
+    <li><a class="dropdown-item" href="#" id="paymentInShareLink">Share via Link</a></li>
   </ul>
 </div>
 
@@ -966,7 +1003,7 @@
         <div class="filter-pill small-pill">
           <select id="paymentInFirmSelect" class="filter-select text-center">
             <option value="" selected>All Firms</option>
-            @foreach($paymentIns->map(fn($paymentIn) => $paymentIn->party?->name)->filter()->unique()->values() as $firm)
+            @foreach($paymentIns->map(fn($paymentIn) => $paymentIn->entity_name ?: $paymentIn->party?->name)->filter()->unique()->values() as $firm)
               <option value="{{ $firm }}">{{ $firm }}</option>
             @endforeach
           </select>
@@ -1124,7 +1161,7 @@
                 <tr class="payment-in-row" data-edit-url="{{ route('payments-in.edit', $paymentIn) }}">
                   <td>{{ $paymentIn->date ? \Carbon\Carbon::parse($paymentIn->date)->format('d-m-Y') : '-' }}</td>
                   <td><span class="badge bg-light text-dark">{{ $paymentIn->reference_no ?: '-' }}</span></td>
-                  <td><strong>{{ $paymentIn->party?->name ?: '-' }}</strong></td>
+                  <td><strong>{{ $paymentIn->entity_name ?: $paymentIn->party?->name ?: '-' }}</strong></td>
                   <td><span class="text-success fw-bold">Rs {{ number_format((float) $paymentIn->amount, 2) }}</span></td>
                   <td><small>{{ $paymentIn->bankAccount?->display_name ?: '-' }}</small></td>
                   <td><span class="badge bg-info text-white">{{ ucfirst($paymentIn->payment_type) }}</span></td>
@@ -2143,11 +2180,16 @@
     // Elements
     const dropdownBtn = document.getElementById("partyDropdownBtn");
     const dropdownMenu = document.getElementById("partyDropdownMenu");
+    const RAW_BROKERS = @json(($brokers ?? collect())->values());
+    const RAW_ITEMS = @json(($items ?? collect())->values());
 
     const partyIdInput = document.querySelector(".party-id");
     const phoneInput = document.querySelector(".phone-input");
     const billingInput = document.querySelector(".billing-address");
     const balanceDisplay = document.getElementById("partyBalanceDisplay");
+    const selectedEntityTypeInput = document.getElementById("selectedEntityType");
+    const selectedEntityIdInput = document.getElementById("selectedEntityId");
+    const selectedEntityNameInput = document.getElementById("selectedEntityName");
     const partySearchInput = dropdownBtn;
     const partySearchNoResults = document.getElementById("partySearchNoResults");
     const partyDropdown = dropdownBtn?.closest('.dropdown');
@@ -2162,8 +2204,8 @@
         const normalizedQuery = String(query || '').trim().toLowerCase();
         let visibleCount = 0;
 
-        document.querySelectorAll('#partyDropdownMenu .party-option').forEach(function(option) {
-            const name = option.querySelector('.party-name')?.textContent.trim().toLowerCase() || '';
+        document.querySelectorAll('#partyDropdownMenu .entity-option').forEach(function(option) {
+            const name = String(option.dataset.name || option.querySelector('.party-name')?.textContent || '').trim().toLowerCase();
             const phone = String(option.dataset.phone || '').toLowerCase();
             const billing = String(option.dataset.billing || '').toLowerCase();
             const matches = !normalizedQuery || name.includes(normalizedQuery) || phone.includes(normalizedQuery) || billing.includes(normalizedQuery);
@@ -2189,6 +2231,12 @@
         if (!dropdownBtn || !dropdownMenu) return;
         dropdownMenu.classList.remove('show');
         dropdownBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    function setSelectedEntity(entityType, entityId, entityName) {
+        if (selectedEntityTypeInput) selectedEntityTypeInput.value = entityType || 'party';
+        if (selectedEntityIdInput) selectedEntityIdInput.value = entityId || '';
+        if (selectedEntityNameInput) selectedEntityNameInput.value = entityName || '';
     }
 
     partySearchInput?.addEventListener('focus', function() {
@@ -2220,9 +2268,9 @@
         const searchTerm = String(this.value || '').trim();
         if (!searchTerm) return;
 
-        const options = Array.from(dropdownMenu.querySelectorAll('.party-option'));
+        const options = Array.from(dropdownMenu.querySelectorAll('.entity-option'));
         const exactOption = options.find((opt) => {
-            const name = String(opt.querySelector('.party-name')?.textContent || '').trim().toLowerCase();
+            const name = String(opt.dataset.name || opt.querySelector('.party-name')?.textContent || '').trim().toLowerCase();
             return name === searchTerm.toLowerCase();
         });
 
@@ -2252,24 +2300,30 @@
     });
 
     document.addEventListener('click', function(e) {
-        const option = e.target.closest('.party-option');
+        const option = e.target.closest('.entity-option');
         const addNew = e.target.closest('#addNewPartyBtn');
         if (!option && !addNew) return;
 
         if (option) {
-            const partyName = option.querySelector('.party-name')?.innerText || '';
+            const entityType = String(option.dataset.entityType || 'party').toLowerCase();
+            const entityName = option.querySelector('.party-name')?.innerText || '';
             const partyId = option.dataset.id || '';
             const phone = option.dataset.phone || '';
             const billing = option.dataset.billing || '';
             const currentBalance = parseFloat(option.dataset.currentBalance || 0) || 0;
 
-            dropdownBtn.value = partyName;
-            partyIdInput.value = partyId;
+            dropdownBtn.value = entityName;
+            partyIdInput.value = entityType === 'party' ? partyId : '';
             phoneInput.value = phone;
             billingInput.value = billing;
+            setSelectedEntity(entityType, partyId, entityName);
             resetLinkPaymentState();
+            $('#linkPaymentBtn').toggle(entityType === 'party');
 
             if (balanceDisplay) {
+                if (entityType !== 'party') {
+                    balanceDisplay.classList.add('d-none');
+                } else {
                 balanceDisplay.classList.remove('d-none', 'balance-positive', 'balance-negative', 'balance-zero');
                 balanceDisplay.classList.add(
                     currentBalance > 0 ? 'balance-positive' : currentBalance < 0 ? 'balance-negative' : 'balance-zero'
@@ -2277,6 +2331,7 @@
                 const valueNode = balanceDisplay.querySelector('.balance-value');
                 if (valueNode) {
                     valueNode.textContent = `Rs ${Math.abs(currentBalance).toFixed(2)}`;
+                }
                 }
             }
 
@@ -2321,13 +2376,15 @@
                 // Add the new party to the dropdown
                 const party = res.party;
                 const newOption = document.createElement('li');
-                newOption.className = 'party-option dropdown-item d-flex justify-content-between align-items-center';
+                newOption.className = 'entity-option party-option dropdown-item d-flex justify-content-between align-items-center';
                 newOption.style.cursor = 'pointer';
                 newOption.dataset.id = party.id;
+                newOption.dataset.entityType = 'party';
                 newOption.dataset.currentBalance = party.current_balance ?? party.opening_balance ?? 0;
                 newOption.dataset.type = party.transaction_type || '';
                 newOption.dataset.phone = party.phone || '';
                 newOption.dataset.billing = party.billing_address || '';
+                newOption.dataset.name = String(party.name || '').trim().toLowerCase();
                 newOption.innerHTML = `
                     <span class="party-name cursor-pointer">${party.name}</span>
                     <span class="party-balance small text-muted">Rs ${parseFloat(party.current_balance ?? party.opening_balance ?? 0).toFixed(2)}</span>
@@ -2343,6 +2400,7 @@
                 partyIdInput.value = party.id;
                 phoneInput.value = party.phone || '';
                 billingInput.value = party.billing_address || '';
+                setSelectedEntity('party', party.id, partyName || '');
                 if (balanceDisplay) {
                     const newBalance = parseFloat(party.current_balance ?? party.opening_balance ?? 0) || 0;
                     balanceDisplay.classList.remove('d-none', 'balance-positive', 'balance-negative', 'balance-zero');
@@ -2568,11 +2626,15 @@ document.addEventListener('input', function(e) {
 });
 
 document.getElementById('toggleDescriptionBtn')?.addEventListener('click', function() {
-    document.getElementById('descriptionBox')?.classList.toggle('d-none');
+    this.classList.add('d-none');
+    const box = document.getElementById('descriptionBox');
+    box?.classList.remove('d-none');
+    box?.querySelector('textarea')?.focus();
 });
 
 document.getElementById('toggleImageBtn')?.addEventListener('click', function() {
     const box = document.getElementById('imageUploadBox');
+    this.classList.add('d-none');
     box?.classList.remove('d-none');
     document.getElementById('paymentImageInput')?.click();
 });
@@ -2582,12 +2644,63 @@ document.getElementById('imagePlaceholder')?.addEventListener('click', function(
 });
 
 document.getElementById('paymentImageInput')?.addEventListener('change', function(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
     const selectedName = document.getElementById('imageSelectedName');
+    const previewWrap = document.getElementById('imagePreviewWrap');
+    const placeholder = document.getElementById('imagePlaceholder');
     if (selectedName) {
-        selectedName.textContent = `Selected: ${file.name}`;
-        selectedName.classList.remove('d-none');
+      selectedName.textContent = `Selected: ${files.map((file) => file.name).join(', ')}`;
+      selectedName.classList.remove('d-none');
+    }
+    if (previewWrap) {
+      previewWrap.innerHTML = '';
+      files.forEach((file) => {
+        const img = document.createElement('img');
+        img.alt = file.name;
+        img.src = URL.createObjectURL(file);
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '120px';
+        img.style.borderRadius = '8px';
+        img.style.border = '1px solid #e5e7eb';
+        img.style.objectFit = 'cover';
+        previewWrap.appendChild(img);
+      });
+      previewWrap.classList.remove('d-none');
+    }
+    if (placeholder) {
+      placeholder.classList.add('d-none');
+    }
+});
+
+function buildPaymentInShareText() {
+    const receiptNo = document.getElementById('receiptNo')?.value || '';
+    const partyName = document.querySelector('.party-dropdown-input')?.value || document.getElementById('selectedEntityName')?.value || '';
+    const amount = document.getElementById('receivedAmount')?.value || '0';
+    const date = document.querySelector('input[name="date"]')?.value || '';
+    return `Payment In${receiptNo ? ' #' + receiptNo : ''}\nParty: ${partyName}\nDate: ${date}\nAmount: ${amount}`;
+}
+
+document.getElementById('paymentInShareEmail')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    const subject = encodeURIComponent('Payment In');
+    const body = encodeURIComponent(buildPaymentInShareText() + '\n\nOpen: ' + window.location.href);
+    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank', 'noopener');
+});
+
+document.getElementById('paymentInShareWhatsApp')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    const text = encodeURIComponent(buildPaymentInShareText() + '\n' + window.location.href);
+    window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener');
+});
+
+document.getElementById('paymentInShareLink')?.addEventListener('click', async function(e) {
+    e.preventDefault();
+    try {
+        await navigator.clipboard.writeText(window.location.href);
+        alert('Link copied to clipboard');
+    } catch (error) {
+        window.prompt('Copy this link:', window.location.href);
     }
 });
 
@@ -2811,7 +2924,10 @@ function populateEditPaymentIn(paymentIn) {
 
     $('#paymentInId').val(paymentIn.id || '');
     $('.party-id').val(paymentIn.party_id || '');
-    $('#partyDropdownBtn').val(paymentIn.party?.name || '');
+    $('#selectedEntityType').val(paymentIn.entity_type || (paymentIn.party_id ? 'party' : 'party'));
+    $('#selectedEntityId').val(paymentIn.entity_id || paymentIn.party_id || '');
+    $('#selectedEntityName').val(paymentIn.entity_name || paymentIn.party?.name || '');
+    $('#partyDropdownBtn').val(paymentIn.entity_name || paymentIn.party?.name || '');
     $('#receiptNo').val(paymentIn.receipt_no || '');
     $('input[name="date"]').val(paymentIn.date || '');
     $('#paymentDescription').val(paymentIn.description || '');
@@ -2828,18 +2944,27 @@ function populateEditPaymentIn(paymentIn) {
     firstRow.find('.payment-reference').val(paymentIn.reference_no || '');
     firstRow.find('.payment-type-select').val((paymentIn.payment_type || 'bank').toLowerCase());
     togglePaymentBankRow(firstRow);
+    if ((paymentIn.entity_type || 'party') !== 'party') {
+        $('#partyBalanceDisplay').addClass('d-none');
+        $('#linkPaymentBtn').hide();
+    } else {
+        $('#linkPaymentBtn').show();
+    }
 
     updateReceivedTotal();
     modal?.show();
 }
 
 function populateDuplicatePaymentIn(paymentIn) {
-    if (!paymentIn) return;
+  if (!paymentIn) return;
 
-    populateEditPaymentIn(paymentIn);
-    $('#paymentInId').val('');
-    $('#receiptNo').val(paymentInDefaultReceiptNo);
-    $('#addPaymentInModalLabel').text('Duplicate Payment-in');
+  populateEditPaymentIn(paymentIn);
+  $('#paymentInId').val('');
+  $('#receiptNo').val(paymentInDefaultReceiptNo);
+  $('#addPaymentInModalLabel').text('Duplicate Payment-in');
+  $('#selectedEntityType').val(paymentIn.entity_type || 'party');
+  $('#selectedEntityId').val(paymentIn.entity_id || paymentIn.party_id || '');
+  $('#selectedEntityName').val(paymentIn.entity_name || paymentIn.party?.name || '');
 }
 
 if (editPaymentIn) {
@@ -2953,27 +3078,45 @@ $('#paymentInForm').on('submit', function(e) {
     const paymentInId = $('#paymentInId').val();
     const requestUrl = paymentInId ? `/dashboard/payments-in/${paymentInId}` : '/dashboard/payments-in';
     const spoofMethod = paymentInId ? 'PUT' : 'POST';
+    const formData = new FormData();
+
+    formData.append('party_id', $('.party-id').val() || '');
+    formData.append('entity_type', $('#selectedEntityType').val() || 'party');
+    formData.append('entity_id', $('#selectedEntityId').val() || '');
+    formData.append('entity_name', $('#selectedEntityName').val() || $('#partyDropdownBtn').val().trim() || '');
+    formData.append('reference_no', $('#referenceNo').val() || '');
+    formData.append('receipt_no', $('#receiptNo').val() || '');
+    formData.append('date', $('input[name="date"]').val() || '');
+    formData.append('received', $('#receivedAmount').val() || '');
+    formData.append('description', $('#paymentDescription').val() || '');
+    formData.append('_method', spoofMethod);
+
+    payments.forEach((payment, index) => {
+        formData.append(`payments[${index}][type]`, payment.type);
+        formData.append(`payments[${index}][amount]`, payment.amount);
+        formData.append(`payments[${index}][bank_account_id]`, payment.bank_account_id || '');
+        formData.append(`payments[${index}][reference]`, payment.reference || '');
+    });
+
+    linkedRows.forEach((row, index) => {
+        formData.append(`linked_rows[${index}][sale_id]`, row.sale_id);
+        formData.append(`linked_rows[${index}][amount]`, row.amount);
+    });
+
+    Array.from(document.getElementById('paymentImageInput')?.files || []).forEach((file) => {
+        formData.append('attachments[]', file);
+    });
 
     $.ajax({
         url: requestUrl,
         method: 'POST',
-        contentType: 'application/json',
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
             'Accept': 'application/json'
         },
-        data: JSON.stringify({
-            party_id: $('.party-id').val(),
-            reference_no: $('#referenceNo').val(),
-            payments: payments,
-            receipt_no: $('#receiptNo').val(),
-            date: $('input[name="date"]').val(),
-            received: $('#receivedAmount').val(),
-            description: $('#paymentDescription').val(),
-            linked_rows: linkedRows,
-            _method: spoofMethod,
-            _token: $('meta[name="csrf-token"]').attr('content')
-        }),
+        data: formData,
+        processData: false,
+        contentType: false,
         success: function(res) {
             if (res.redirect_url) {
                 window.location.href = res.redirect_url;

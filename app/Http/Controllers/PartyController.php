@@ -1162,12 +1162,14 @@ private function buildPartyStatementData(Party $party, ?string $from = null, ?st
                 'sale_return',
                 'purchase',
                 'purchase_return',
-                'payment_in',
             ], true);
         })
         ->map(function ($txn) {
         $effect = $txn->ledgerEffectValue();
         $rawType = strtolower((string) $txn->type);
+        $txnNumber = strtoupper(trim((string) ($txn->number ?? '')));
+        $isOpeningBalance = in_array($rawType, ['receive', 'pay'], true)
+            && str_starts_with($txnNumber, 'TXN');
         $isExpensePayment = $rawType === 'payment_out'
             && str_starts_with(strtolower(trim((string) ($txn->description ?? ''))), 'expense:');
         $isSaleAdjustmentTransfer = in_array($rawType, ['party to party[received]', 'party to party[paid]'], true)
@@ -1177,7 +1179,15 @@ private function buildPartyStatementData(Party $party, ?string $from = null, ?st
             'id' => 'txn-' . $txn->id,
             'type' => $isSaleAdjustmentTransfer
                 ? ''
-                : ($isExpensePayment ? 'Expense' : $this->formatLedgerTypeLabel((string) $txn->type)),
+                : ($isExpensePayment
+                    ? 'Expense'
+                    : ($isOpeningBalance
+                        ? $this->formatLedgerTypeLabel((string) $txn->type)
+                        : match ($rawType) {
+                            'receive' => 'Payment In',
+                            'pay' => 'Payment Out',
+                            default => $this->formatLedgerTypeLabel((string) $txn->type),
+                        })),
             'raw_type' => (string) $txn->type,
             'source' => !empty($txn->transfer_group) ? 'transfer' : 'ledger',
             'number' => $txn->number ?: '-',
@@ -1198,7 +1208,28 @@ private function buildPartyStatementData(Party $party, ?string $from = null, ?st
             'sort_order' => in_array(strtolower((string) $txn->type), ['receive', 'pay'], true) ? 10 : 40,
             'actions' => [],
         ];
-    });
+    })
+    ->values();
+
+    $seenOpeningBalanceRow = false;
+    $manualLedgerTransactions = $manualLedgerTransactions->filter(function (array $entry) use (&$seenOpeningBalanceRow) {
+        $rawType = strtolower((string) ($entry['raw_type'] ?? ''));
+        $number = strtoupper(trim((string) ($entry['number'] ?? '')));
+        $isOpeningBalance = in_array($rawType, ['receive', 'pay'], true)
+            && str_starts_with($number, 'TXN')
+            && (($entry['source'] ?? '') === 'ledger');
+
+        if (!$isOpeningBalance) {
+            return true;
+        }
+
+        if ($seenOpeningBalanceRow) {
+            return false;
+        }
+
+        $seenOpeningBalanceRow = true;
+        return true;
+    })->values();
 
     $transactions = $salesTransactions
         ->concat($purchaseTransactions)
@@ -1212,6 +1243,26 @@ private function buildPartyStatementData(Party $party, ?string $from = null, ?st
             );
         })
         ->values();
+
+    $openingBalanceSeen = false;
+    $transactions = $transactions->filter(function (array $entry) use (&$openingBalanceSeen) {
+        $rawType = strtolower((string) ($entry['raw_type'] ?? ''));
+        $typeLabel = (string) ($entry['type'] ?? '');
+        $number = strtoupper(trim((string) ($entry['number'] ?? '')));
+        $isOpeningBalance = in_array($rawType, ['receive', 'pay'], true)
+            && str_starts_with($number, 'TXN');
+
+        if (!$isOpeningBalance) {
+            return true;
+        }
+
+        if ($openingBalanceSeen) {
+            return false;
+        }
+
+        $openingBalanceSeen = true;
+        return true;
+    })->values();
 
     $runningBalance = 0.0;
     $transactions = $transactions->map(function ($entry) use (&$runningBalance, $fromDate, $toDate) {

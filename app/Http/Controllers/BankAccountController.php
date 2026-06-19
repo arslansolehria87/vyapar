@@ -6,8 +6,10 @@ use App\Models\BankAccount;
 use App\Models\AppSetting;
 use App\Models\BankTransaction;
 use App\Models\Expense;
+use App\Models\PaymentIn;
 use App\Models\PurchasePayment;
 use App\Models\SalePayment;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -108,6 +110,58 @@ class BankAccountController extends Controller
                 ];
             });
 
+        $paymentInTransactions = PaymentIn::with(['party', 'bankAccount', 'links.sale'])
+            ->whereNotNull('bank_account_id')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($paymentIn) {
+                $sale = $paymentIn->links->first()?->sale;
+
+                return (object) [
+                    'bank_account_id' => $paymentIn->bank_account_id,
+                    'source_id' => $paymentIn->id,
+                    'source_type' => 'payment_in',
+                    'source_url' => $paymentIn ? route('payments-in.edit', $paymentIn) : null,
+                    'delete_url' => $paymentIn ? route('payments-in.destroy', $paymentIn) : null,
+                    'history_url' => $paymentIn ? route('payments-in.history', $paymentIn) : null,
+                    'type_label' => 'Payment In',
+                    'invoice_no' => $paymentIn->receipt_no ?? ('PIN-' . $paymentIn->id),
+                    'party_name' => $paymentIn->entity_name
+                        ?? $paymentIn->party?->name
+                        ?? $sale?->display_party_name
+                        ?? '-',
+                    'bank_name' => $paymentIn->bankAccount?->display_name ?? $paymentIn->bankAccount?->bank_name ?? '-',
+                    'payment_type' => $paymentIn->payment_type ?? '-',
+                    'created_at' => $paymentIn->created_at,
+                    'amount' => (float) ($paymentIn->amount ?? 0),
+                    'direction' => 'in',
+                ];
+            });
+
+        $paymentOutTransactions = Transaction::with(['party', 'bankAccount', 'broker', 'item'])
+            ->where('type', 'payment_out')
+            ->orderByDesc('date')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function (Transaction $txn) {
+                return (object) [
+                    'bank_account_id' => $txn->bank_account_id,
+                    'source_id' => $txn->id,
+                    'source_type' => 'payment_out',
+                    'source_url' => route('payment-out.edit', $txn),
+                    'delete_url' => route('payment-out.destroy', $txn),
+                    'history_url' => route('payment-out.edit', ['paymentOut' => $txn->id, 'history' => 1]),
+                    'type_label' => 'Payment Out',
+                    'invoice_no' => $txn->number ?? ('PO-' . $txn->id),
+                    'party_name' => $txn->party?->name ?? $txn->broker?->name ?? $txn->item?->name ?? '-',
+                    'bank_name' => $txn->bankAccount?->display_name ?? $txn->bankAccount?->bank_name ?? '-',
+                    'payment_type' => $txn->payment_type ?? '-',
+                    'created_at' => $txn->date ?? $txn->created_at,
+                    'amount' => (float) ($txn->paid_amount ?? $txn->credit ?? $txn->total ?? 0),
+                    'direction' => 'out',
+                ];
+            });
+
         $transferTransactions = BankTransaction::with(['fromBankAccount', 'toBankAccount'])
             ->whereIn('type', [
                 'bank_to_bank',
@@ -191,6 +245,8 @@ class BankAccountController extends Controller
         $bankTransactions = $saleTransactions
             ->concat($purchaseTransactions)
             ->concat($expenseTransactions)
+            ->concat($paymentInTransactions)
+            ->concat($paymentOutTransactions)
             ->concat($transferTransactions)
             ->sortByDesc(fn ($transaction) => $transaction->created_at?->timestamp ?? 0)
             ->values();

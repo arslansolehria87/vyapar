@@ -2421,6 +2421,15 @@
       applyFilters();
       resetLinkPaymentState();
 
+      const urlParams = new URLSearchParams(window.location.search);
+      const editPaymentOutId = urlParams.get('edit_payment_out') || urlParams.get('payment_out_id');
+      if (editPaymentOutId) {
+        const openTarget = payments.find((p) => String(p.id) === String(editPaymentOutId));
+        if (openTarget) {
+          setTimeout(() => openModal(openTarget), 50);
+        }
+      }
+
       document.getElementById('paymentOutImageInput')?.addEventListener('change', function() {
         handlePaymentOutImageSelection(this);
       });

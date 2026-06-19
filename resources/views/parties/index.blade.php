@@ -2443,13 +2443,82 @@
   }
 
   .party-txn-action-menu .dropdown-menu {
+    position: absolute !important;
+    top: calc(100% + 6px) !important;
+    right: 0 !important;
+    left: auto !important;
     min-width: 210px;
+    width: max-content;
+    z-index: 4000;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.16);
+    border-radius: 12px;
+    display: none;
+  }
+
+  .party-txn-action-menu.show .dropdown-menu {
+    display: block;
   }
 
   .party-txn-action-btn {
     border: none;
     background: transparent;
     color: #64748b;
+  }
+
+  .party-txn-action-menu {
+    position: relative;
+    display: inline-flex;
+    justify-content: flex-end;
+  }
+
+  .party-txn-actions-cell {
+    position: relative;
+    overflow: visible;
+    z-index: 5;
+  }
+
+  .party-txn-action-menu.show {
+    z-index: 4001;
+  }
+
+  .party-transactions-panel .table-responsive {
+    overflow: visible;
+  }
+
+  #partyTxnTable thead th {
+    position: relative;
+    overflow: visible;
+  }
+
+  #partyTxnTable thead .table-main {
+    position: relative;
+    overflow: visible;
+  }
+
+  #partyTxnTable thead .filter-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    min-width: 220px;
+    background: #fff;
+    border: 1px solid #dbe3ea;
+    border-radius: 12px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.15);
+    z-index: 3000;
+    display: none;
+    padding: 12px;
+  }
+
+  #partyTxnTable thead .filter-dropdown .dropdown-options {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    top: calc(100% + 6px);
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+    z-index: 3001;
   }
 </style>
 @endpush
@@ -2600,12 +2669,60 @@ function toggleFilterDropdown(icon){
     dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
 }
 
+function closePartyTxnActionMenus(exceptMenu = null) {
+    document.querySelectorAll('.party-txn-action-menu.show').forEach((menu) => {
+        if (exceptMenu && menu === exceptMenu) return;
+        menu.classList.remove('show');
+        const dropdown = menu.querySelector('.dropdown-menu');
+        if (dropdown) {
+            dropdown.style.position = '';
+            dropdown.style.top = '';
+            dropdown.style.left = '';
+            dropdown.style.right = '';
+            dropdown.style.bottom = '';
+            dropdown.style.transform = '';
+            dropdown.style.minWidth = '';
+            dropdown.style.visibility = '';
+            dropdown.style.zIndex = '';
+        }
+        if (menu.__anchorParent && menu.parentNode === document.body) {
+            if (menu.__anchorNext && menu.__anchorNext.parentNode === menu.__anchorParent) {
+                menu.__anchorParent.insertBefore(menu, menu.__anchorNext);
+            } else {
+                menu.__anchorParent.appendChild(menu);
+            }
+        }
+        menu.__anchorParent = null;
+        menu.__anchorNext = null;
+    });
+}
+
+function togglePartyTxnActionMenu(event, button) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const menu = button.closest('.party-txn-action-menu');
+    if (!menu) return;
+
+    const dropdown = menu.querySelector('.dropdown-menu');
+    const willOpen = !menu.classList.contains('show');
+    closePartyTxnActionMenus(menu);
+    menu.classList.toggle('show', willOpen);
+
+    if (!dropdown) return;
+    dropdown.style.display = willOpen ? 'block' : 'none';
+}
+
 document.addEventListener('click', function(e){
     document.querySelectorAll('.filter-dropdown').forEach(dd=>{
         if(!dd.contains(e.target) && !dd.previousElementSibling?.contains(e.target)){
             dd.style.display = 'none';
         }
     });
+
+    if (!e.target.closest('.party-txn-action-menu')) {
+        closePartyTxnActionMenus();
+    }
 
     if (!e.target.closest('.header-dropdown')) {
         closeHeaderDropdown();
@@ -3654,7 +3771,7 @@ document.addEventListener("DOMContentLoaded", function () {
                  data-preview-delivery-url="${escapeHtml(txn.actions?.preview_delivery || '')}"
                  data-convert-return-url="${escapeHtml(txn.actions?.convert_return || '')}"
                  data-history-url="${escapeHtml(txn.actions?.history || '')}">
-              <button class="btn btn-sm party-txn-action-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <button class="btn btn-sm party-txn-action-btn" type="button" onclick="togglePartyTxnActionMenu(event, this)" aria-expanded="false">
                 <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>
               <ul class="dropdown-menu dropdown-menu-end">
@@ -4246,9 +4363,27 @@ document.addEventListener("DOMContentLoaded", function () {
         const tbody = getPartyTxnTableBody();
         if (!tbody) return;
         const sortedTransactions = sortTransactions(transactions);
-        filteredTransactionsState = [...sortedTransactions];
+        const openingBalanceSeen = new Set();
+        const dedupedTransactions = sortedTransactions.filter((txn) => {
+            const rawType = String(txn?.raw_type || txn?.type || '').toLowerCase();
+            const number = String(txn?.number || '').trim().toUpperCase();
+            const isOpeningBalance = ['receive', 'pay'].includes(rawType) && number.startsWith('TXN');
 
-        if (!sortedTransactions.length) {
+            if (!isOpeningBalance) {
+                return true;
+            }
+
+            const openingKey = `${rawType}|${number || 'txn'}`;
+            if (openingBalanceSeen.has(openingKey)) {
+                return false;
+            }
+
+            openingBalanceSeen.add(openingKey);
+            return true;
+        });
+        filteredTransactionsState = [...dedupedTransactions];
+
+        if (!dedupedTransactions.length) {
             const hasSearch = txnSearchInput && txnSearchInput.value.trim() !== '';
             const hasFilters = hasActiveTransactionFilters();
             showTxnMessage(
@@ -4261,7 +4396,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         tbody.innerHTML = '';
 
-        sortedTransactions.forEach(txn => {
+        dedupedTransactions.forEach(txn => {
             const row = document.createElement('tr');
             const viewUrl = txn.actions?.view || '';
             const typeText = txn.type ? formatTxnType(txn.type) : '';
@@ -4291,7 +4426,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 <td style="background:#fff;color:#475569;font-size:14px;padding:14px 16px;border-bottom:1px solid #eef2f7;font-weight:500;text-align:right;">${parseTxnNumber(txn.debit || 0) > 0 ? `Rs ${txn.debit}` : '-'}</td>
                 <td style="background:#fff;color:#475569;font-size:14px;padding:14px 16px;border-bottom:1px solid #eef2f7;font-weight:500;text-align:right;">${parseTxnNumber(txn.credit || 0) > 0 ? `Rs ${txn.credit}` : '-'}</td>
                 <td style="background:#fff;color:${cleanBalanceColor};font-size:14px;padding:14px 16px;border-bottom:1px solid #eef2f7;font-weight:600;text-align:right;">Rs ${txn.running_balance}</td>
-                <td style="background:#fff;padding:14px 16px;border-bottom:1px solid #eef2f7;">${getPartyTxnActionsHtml(txn)}</td>
+        <td class="party-txn-actions-cell" style="background:#fff;position:relative;overflow:visible;padding:14px 16px;border-bottom:1px solid #eef2f7;">${getPartyTxnActionsHtml(txn)}</td>
             `;
 
             if (viewUrl) {
@@ -6376,6 +6511,7 @@ document.addEventListener("DOMContentLoaded", function () {
         e.preventDefault();
 
         const menu = actionItem.closest('.party-txn-action-menu');
+        closePartyTxnActionMenus();
         const action = actionItem.dataset.action;
         const txnNumber = menu.dataset.number || 'Transaction';
         const viewUrl = menu.dataset.viewUrl;
