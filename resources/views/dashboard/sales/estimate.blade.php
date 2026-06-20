@@ -162,55 +162,55 @@
   <table id="estimatesTable" class="table align-middle custom-table mb-0">
               <thead>
                 <tr class="text-uppercase small text-secondary">
-                  <th class="py-3 estimate-header-cell">
+                  <th class="py-3 estimate-header-cell" data-column-key="date">
                     <div class="estimate-header-label">
                       <span>Date</span>
-                      <button type="button" class="estimate-filter-trigger" data-column="0" aria-label="Filter Date" onmousedown="event.stopPropagation();" onclick="openEstimateFilter(event, 0)">
+                      <button type="button" class="estimate-filter-trigger" data-column="date" aria-label="Filter Date" onmousedown="event.stopPropagation();" onclick="openEstimateFilter(event, 'date')">
                         <i class="fa-solid fa-filter"></i>
                       </button>
                     </div>
                   </th>
-                  <th class="py-3 estimate-header-cell">
+                  <th class="py-3 estimate-header-cell" data-column-key="reference">
                     <div class="estimate-header-label">
                       <span>Reference No.</span>
-                      <button type="button" class="estimate-filter-trigger" data-column="1" aria-label="Filter Reference No." onmousedown="event.stopPropagation();" onclick="openEstimateFilter(event, 1)">
+                      <button type="button" class="estimate-filter-trigger" data-column="reference" aria-label="Filter Reference No." onmousedown="event.stopPropagation();" onclick="openEstimateFilter(event, 'reference')">
                         <i class="fa-solid fa-filter"></i>
                       </button>
                     </div>
                   </th>
-                  <th class="py-3 estimate-header-cell">
+                  <th class="py-3 estimate-header-cell" data-column-key="party">
                     <div class="estimate-header-label">
                       <span>Party Name</span>
-                      <button type="button" class="estimate-filter-trigger" data-column="2" aria-label="Filter Party Name" onmousedown="event.stopPropagation();" onclick="openEstimateFilter(event, 2)">
+                      <button type="button" class="estimate-filter-trigger" data-column="party" aria-label="Filter Party Name" onmousedown="event.stopPropagation();" onclick="openEstimateFilter(event, 'party')">
                         <i class="fa-solid fa-filter"></i>
                       </button>
                     </div>
                   </th>
-                  <th class="py-3 estimate-header-cell text-end">
+                  <th class="py-3 estimate-header-cell text-end" data-column-key="amount">
                     <div class="estimate-header-label">
                       <span>Amount</span>
-                      <button type="button" class="estimate-filter-trigger" data-column="3" aria-label="Filter Amount" onmousedown="event.stopPropagation();" onclick="openEstimateFilter(event, 3)">
+                      <button type="button" class="estimate-filter-trigger" data-column="amount" aria-label="Filter Amount" onmousedown="event.stopPropagation();" onclick="openEstimateFilter(event, 'amount')">
                         <i class="fa-solid fa-filter"></i>
                       </button>
                     </div>
                   </th>
-                  <th class="py-3 estimate-header-cell text-end">
+                  <th class="py-3 estimate-header-cell text-end" data-column-key="balance">
                     <div class="estimate-header-label">
                       <span>Balance</span>
-                      <button type="button" class="estimate-filter-trigger" data-column="4" aria-label="Filter Balance" onmousedown="event.stopPropagation();" onclick="openEstimateFilter(event, 4)">
+                      <button type="button" class="estimate-filter-trigger" data-column="balance" aria-label="Filter Balance" onmousedown="event.stopPropagation();" onclick="openEstimateFilter(event, 'balance')">
                         <i class="fa-solid fa-filter"></i>
                       </button>
                     </div>
                   </th>
-                  <th class="py-3 estimate-header-cell">
+                  <th class="py-3 estimate-header-cell" data-column-key="status">
                     <div class="estimate-header-label">
                       <span>Status</span>
-                      <button type="button" class="estimate-filter-trigger" data-column="5" aria-label="Filter Status" onmousedown="event.stopPropagation();" onclick="openEstimateFilter(event, 5)">
+                      <button type="button" class="estimate-filter-trigger" data-column="status" aria-label="Filter Status" onmousedown="event.stopPropagation();" onclick="openEstimateFilter(event, 'status')">
                         <i class="fa-solid fa-filter"></i>
                       </button>
                     </div>
                   </th>
-                  <th class="py-3">Actions</th>
+                  <th class="py-3" data-column-key="actions">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -464,10 +464,12 @@
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/colreorder/1.7.0/css/colReorder.bootstrap5.min.css">
 
 <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/colreorder/1.7.0/js/dataTables.colReorder.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
 <script src="{{ asset('js/document-email-preview.js') }}"></script>
@@ -483,7 +485,14 @@
     activeFilterColumn: null,
   };
 
-  const estimateColumnFilters = { 0: '', 1: '', 2: '', 3: '', 4: '', 5: '' };
+  const estimateColumnFilters = {
+    date: '',
+    reference: '',
+    party: '',
+    amount: '',
+    balance: '',
+    status: '',
+  };
   const estimateFilterFlyout = document.getElementById('estimateFilterFlyout');
   const estimateFilterInput = document.getElementById('estimateFilterInput');
   const estimateFilterClear = document.getElementById('estimateFilterClear');
@@ -586,7 +595,7 @@
     const rect = trigger.getBoundingClientRect();
     closeEstimateFlyout();
 
-    estimateState.activeFilterColumn = Number(columnIndex);
+    estimateState.activeFilterColumn = String(columnIndex);
     estimateFilterInput.value = estimateColumnFilters[estimateState.activeFilterColumn] || '';
     estimateFilterFlyout.style.left = `${Math.max(12, Math.min(rect.left, window.innerWidth - 234))}px`;
     estimateFilterFlyout.style.top = `${rect.bottom + 8}px`;
@@ -700,17 +709,26 @@
     }
   };
 
-  $.fn.dataTable.ext.search.push(function(settings, data) {
+  $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
     if (!settings.nTable || settings.nTable.id !== 'estimatesTable') {
       return true;
     }
 
-    const rowDate = parseDateDMY(data[0] || '');
-    const partyName = String(data[2] || '').trim().toLowerCase();
-    const matchesColumns = Object.entries(estimateColumnFilters).every(([index, value]) => {
+    const row = settings.aoData?.[dataIndex]?.nTr;
+    const rowValues = {
+      date: row?.dataset.date || '',
+      reference: row?.dataset.ref || '',
+      party: row?.dataset.party || '',
+      amount: row?.dataset.amount || '',
+      balance: row?.dataset.balance || '',
+      status: row?.dataset.status || '',
+    };
+    const rowDate = parseDateDMY(rowValues.date);
+    const partyName = String(rowValues.party).trim().toLowerCase();
+    const matchesColumns = Object.entries(estimateColumnFilters).every(([columnKey, value]) => {
       const normalized = String(value || '').trim().toLowerCase();
       if (!normalized) return true;
-      return String(data[Number(index)] || '').trim().toLowerCase().includes(normalized);
+      return String(rowValues[columnKey] || '').trim().toLowerCase().includes(normalized);
     });
 
     if (!matchesColumns) {
@@ -784,6 +802,9 @@
       autoWidth: false,
       scrollX: true,
       responsive: false,
+      colReorder: true,
+      stateSave: true,
+      stateDuration: -1,
       columnDefs: [
         { orderable: false, searchable: false, targets: [6] },
       ],
@@ -963,11 +984,12 @@
     document.addEventListener('mousedown', function (e) {
       if (!e.target.classList.contains('col-rh')) return;
       e.preventDefault();
+      e.stopPropagation();
       thEl = e.target.closest('th'); isResizing = true;
       startX = e.clientX; startW = thEl.getBoundingClientRect().width;
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
-    });
+    }, true);
     document.addEventListener('mousemove', function (e) {
       if (!isResizing || !thEl) return;
       var w = Math.max(60, startW + (e.clientX - startX));

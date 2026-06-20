@@ -11,6 +11,7 @@
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/colreorder/1.7.0/css/colReorder.bootstrap5.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <!-- Font Awesome 6 -->
@@ -324,56 +325,56 @@
   <table id="challanTable" class="table align-middle custom-table mb-0">
             <thead>
               <tr class="text-uppercase small text-secondary">
-                <th class="py-3 challan-header-cell">
+                <th class="py-3 challan-header-cell" data-column-key="date">
                   <div class="challan-header-label">
                     <span>Date</span>
-                    <button type="button" class="challan-filter-trigger" data-column="0" aria-label="Filter Date" onmousedown="event.stopPropagation();" onclick="openChallanFilter(event, 0)">
+                    <button type="button" class="challan-filter-trigger" data-column="date" aria-label="Filter Date" onmousedown="event.stopPropagation();" onclick="openChallanFilter(event, 'date')">
                       <i class="fa-solid fa-filter"></i>
                     </button>
                   </div>
                 </th>
-                <th class="py-3 challan-header-cell">
+                <th class="py-3 challan-header-cell" data-column-key="party_name">
                   <div class="challan-header-label">
                     <span>Party</span>
-                    <button type="button" class="challan-filter-trigger" data-column="1" aria-label="Filter Party" onmousedown="event.stopPropagation();" onclick="openChallanFilter(event, 1)">
+                    <button type="button" class="challan-filter-trigger" data-column="party_name" aria-label="Filter Party" onmousedown="event.stopPropagation();" onclick="openChallanFilter(event, 'party_name')">
                       <i class="fa-solid fa-filter"></i>
                     </button>
                   </div>
                 </th>
-                <th class="py-3 challan-header-cell">
+                <th class="py-3 challan-header-cell" data-column-key="challan_no">
                   <div class="challan-header-label">
                     <span>Challan No.</span>
-                    <button type="button" class="challan-filter-trigger" data-column="2" aria-label="Filter Challan No." onmousedown="event.stopPropagation();" onclick="openChallanFilter(event, 2)">
+                    <button type="button" class="challan-filter-trigger" data-column="challan_no" aria-label="Filter Challan No." onmousedown="event.stopPropagation();" onclick="openChallanFilter(event, 'challan_no')">
                       <i class="fa-solid fa-filter"></i>
                     </button>
                   </div>
                 </th>
-                <th class="py-3 challan-header-cell">
+                <th class="py-3 challan-header-cell" data-column-key="due_date">
                   <div class="challan-header-label">
                     <span>Due Date</span>
-                    <button type="button" class="challan-filter-trigger" data-column="3" aria-label="Filter Due Date" onmousedown="event.stopPropagation();" onclick="openChallanFilter(event, 3)">
+                    <button type="button" class="challan-filter-trigger" data-column="due_date" aria-label="Filter Due Date" onmousedown="event.stopPropagation();" onclick="openChallanFilter(event, 'due_date')">
                       <i class="fa-solid fa-filter"></i>
                     </button>
                   </div>
                 </th>
-                <th class="py-3 text-end challan-header-cell">
+                <th class="py-3 text-end challan-header-cell" data-column-key="total">
                   <div class="challan-header-label">
                     <span>Total Amount</span>
-                    <button type="button" class="challan-filter-trigger" data-column="4" aria-label="Filter Total Amount" onmousedown="event.stopPropagation();" onclick="openChallanFilter(event, 4)">
+                    <button type="button" class="challan-filter-trigger" data-column="total" aria-label="Filter Total Amount" onmousedown="event.stopPropagation();" onclick="openChallanFilter(event, 'total')">
                       <i class="fa-solid fa-filter"></i>
                     </button>
                   </div>
                 </th>
-                <th class="py-3 challan-header-cell">
+                <th class="py-3 challan-header-cell" data-column-key="status">
                   <div class="challan-header-label">
                     <span>Status</span>
-                    <button type="button" class="challan-filter-trigger" data-column="5" aria-label="Filter Status" onmousedown="event.stopPropagation();" onclick="openChallanFilter(event, 5)">
+                    <button type="button" class="challan-filter-trigger" data-column="status" aria-label="Filter Status" onmousedown="event.stopPropagation();" onclick="openChallanFilter(event, 'status')">
                       <i class="fa-solid fa-filter"></i>
                     </button>
                   </div>
                 </th>
-                <th class="py-3">Action</th>
-                <th class="py-3 text-center" style="width:56px;"></th>
+                <th class="py-3" data-column-key="action">Action</th>
+                <th class="py-3 text-center" style="width:56px;" data-column-key="menu"></th>
               </tr>
             </thead>
             <tbody>
@@ -532,6 +533,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://cdn.datatables.net/colreorder/1.7.0/js/dataTables.colReorder.min.js"></script>
   <script src="{{ asset('js/components.js') }}?v={{ filemtime(public_path('js/components.js')) }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
   <script>
@@ -561,7 +563,14 @@
     const challanOptionDescription = document.getElementById('challanOptionDescription');
     const deliveryCompanyName = window.App?.user?.name || 'My Company';
     let challanPreviewObjectUrl = null;
-    const challanColumnFilters = { 0: '', 1: '', 2: '', 3: '', 4: '', 5: '' };
+    const challanColumnFilters = {
+      date: '',
+      party_name: '',
+      challan_no: '',
+      due_date: '',
+      total: '',
+      status: '',
+    };
     const challanFilterFlyout = document.getElementById('challanFilterFlyout');
     const challanFilterInput = document.getElementById('challanFilterInput');
     const challanFilterClear = document.getElementById('challanFilterClear');
@@ -1085,7 +1094,7 @@
       const rect = trigger.getBoundingClientRect();
       closeChallanFilterPopovers();
       trigger.classList.add('active');
-      challanActiveFilterColumn = Number(columnIndex);
+      challanActiveFilterColumn = String(columnIndex);
       challanFilterInput.value = challanColumnFilters[challanActiveFilterColumn] || '';
       challanFilterFlyout.style.left = `${Math.max(12, Math.min(rect.left, window.innerWidth - 234))}px`;
       challanFilterFlyout.style.top = `${rect.bottom + 8}px`;
@@ -1162,10 +1171,10 @@
         const row = challanState.challans[dataIndex];
         if (!row) return true;
 
-        const columnMatches = Object.entries(challanColumnFilters).every(([index, value]) => {
+        const columnMatches = Object.entries(challanColumnFilters).every(([columnKey, value]) => {
           const normalized = String(value || '').trim().toLowerCase();
           if (!normalized) return true;
-          return String(data[Number(index)] || '').trim().toLowerCase().includes(normalized);
+          return String(row[columnKey] || '').trim().toLowerCase().includes(normalized);
         });
 
         if (!columnMatches) {
@@ -1210,6 +1219,9 @@
         autoWidth: false,
         scrollX: true,
         responsive: false,
+        colReorder: true,
+        stateSave: true,
+        stateDuration: -1,
         columnDefs: [
           { orderable: false, searchable: false, targets: [6, 7] },
         ],
@@ -1420,11 +1432,12 @@
     document.addEventListener('mousedown', function (e) {
       if (!e.target.classList.contains('col-rh')) return;
       e.preventDefault();
+      e.stopPropagation();
       thEl = e.target.closest('th'); isResizing = true;
       startX = e.clientX; startW = thEl.getBoundingClientRect().width;
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
-    });
+    }, true);
     document.addEventListener('mousemove', function (e) {
       if (!isResizing || !thEl) return;
       var w = Math.max(60, startW + (e.clientX - startX));
@@ -1441,4 +1454,3 @@
 </body>
 
 </html>
-

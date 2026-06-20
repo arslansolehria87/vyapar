@@ -327,17 +327,20 @@
         </div>
 
         <div class="table-wrapper">
-  <table class="table align-middle custom-table mb-0">
+  <table class="table align-middle custom-table mb-0"
+         id="purchaseBillTransactionsTable"
+         data-column-drag="native"
+         data-column-drag-storage="vyapar.purchase-bill.transactions.column-order.v1">
                 <thead>
                     <tr>
-                        <th>Date</th>
-                        <th>Invoice No.</th>
-                        <th>Party Name</th>
-                        <th>Payment Type</th>
-                        <th class="text-end">Amount</th>
-                        <th class="text-end">Balance Due</th>
-                        <th>Status</th>
-                        <th class="text-center">Actions</th>
+                        <th data-column-key="date">Date</th>
+                        <th data-column-key="invoice">Invoice No.</th>
+                        <th data-column-key="party">Party Name</th>
+                        <th data-column-key="payment_type">Payment Type</th>
+                        <th class="text-end" data-column-key="amount">Amount</th>
+                        <th class="text-end" data-column-key="balance">Balance Due</th>
+                        <th data-column-key="status">Status</th>
+                        <th class="text-center" data-column-key="actions">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -353,7 +356,11 @@
                                 ?? '-';
                             $status = (float) ($purchase->balance ?? 0) <= 0 ? 'Paid' : 'Unpaid';
                         @endphp
-                        <tr class="purchase-bill-row" data-grand-total="{{ (float) ($purchase->grand_total ?? 0) }}" data-balance-due="{{ (float) ($purchase->balance ?? 0) }}">
+                        <tr class="purchase-bill-row"
+                            data-grand-total="{{ (float) ($purchase->grand_total ?? 0) }}"
+                            data-balance-due="{{ (float) ($purchase->balance ?? 0) }}"
+                            data-date="{{ optional($purchase->bill_date)->format('d/m/Y') ?? '-' }}"
+                            data-party="{{ $purchase->party_name ?: ($purchase->party?->name ?? '-') }}">
                             <td>{{ optional($purchase->bill_date)->format('d/m/Y') ?? '-' }}</td>
                             <td>{{ $purchase->bill_number ?? '-' }}</td>
                             <td>{{ $purchase->party_name ?: ($purchase->party?->name ?? '-') }}</td>
@@ -487,18 +494,23 @@
         }
 
         function getVisiblePurchaseRows() {
+            const getCellText = (row, columnKey, fallback = '-') => {
+                const header = document.querySelector(`#purchaseBillTransactionsTable thead th[data-column-key="${columnKey}"]`);
+                const index = header?.cellIndex ?? -1;
+                return index >= 0 ? (row.cells[index]?.textContent.trim() || fallback) : fallback;
+            };
+
             return Array.from(document.querySelectorAll('.purchase-bill-row'))
                 .filter((row) => row.style.display !== 'none')
                 .map((row) => {
-                    const cells = row.querySelectorAll('td');
                     return {
-                        date: cells[0]?.textContent.trim() || '-',
-                        invoice: cells[1]?.textContent.trim() || '-',
-                        party: cells[2]?.textContent.trim() || '-',
-                        paymentType: cells[3]?.textContent.trim() || '-',
-                        amount: cells[4]?.textContent.trim() || '0.00',
-                        balance: cells[5]?.textContent.trim() || '0.00',
-                        status: cells[6]?.textContent.trim() || '-',
+                        date: getCellText(row, 'date'),
+                        invoice: getCellText(row, 'invoice'),
+                        party: getCellText(row, 'party'),
+                        paymentType: getCellText(row, 'payment_type'),
+                        amount: getCellText(row, 'amount', '0.00'),
+                        balance: getCellText(row, 'balance', '0.00'),
+                        status: getCellText(row, 'status'),
                     };
                 });
         }
@@ -703,10 +715,9 @@
 
         function applyPurchaseBillFilters() {
             document.querySelectorAll('.purchase-bill-row').forEach((row) => {
-                const cells = row.querySelectorAll('td');
                 const rowText = (row.textContent || '').toLowerCase().replace(/\s+/g, ' ').trim();
-                const rowDate = parseRowDate(cells[0]?.textContent || '');
-                const rowFirm = (cells[2]?.textContent || '').trim().toLowerCase();
+                const rowDate = parseRowDate(row.dataset.date || '');
+                const rowFirm = (row.dataset.party || '').trim().toLowerCase();
                 let visible = true;
 
                 if (globalSearch && !rowText.includes(globalSearch)) {
@@ -877,11 +888,12 @@
     document.addEventListener('mousedown', function (e) {
       if (!e.target.classList.contains('col-rh')) return;
       e.preventDefault();
+      e.stopPropagation();
       thEl = e.target.closest('th'); isResizing = true;
       startX = e.clientX; startW = thEl.getBoundingClientRect().width;
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
-    });
+    }, true);
     document.addEventListener('mousemove', function (e) {
       if (!isResizing || !thEl) return;
       var w = Math.max(60, startW + (e.clientX - startX));
@@ -895,6 +907,6 @@
     document.addEventListener('DOMContentLoaded', init);
   })();
 </script>
+<script src="{{ asset('js/transaction-column-drag.js') }}"></script>
 </body>
 </html>
-

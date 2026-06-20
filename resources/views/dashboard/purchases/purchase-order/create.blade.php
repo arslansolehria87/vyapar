@@ -82,7 +82,13 @@
 
                 <div class="window-controls d-flex align-items-center px-2 gap-3">
                     <i id="calc-icon" class="fa-solid fa-calculator" title="Calculator"></i>
-                    <i class="fa-solid fa-gear" title="Settings"></i>
+                    <i id="purchaseOrderSettingsBtn"
+                       class="fa-solid fa-gear"
+                       title="Settings"
+                       role="button"
+                       tabindex="0"
+                       aria-controls="purchaseOrderTableSettingsModal"
+                       aria-haspopup="dialog"></i>
                     <i class="fa-solid fa-xmark close-app-icon" title="Close Window"></i>
                 </div>
             </div>
@@ -717,6 +723,22 @@
 @endsection
     @yield('modals')
 <script>document.addEventListener("DOMContentLoaded", function () {
+    const settingsButton = document.getElementById('purchaseOrderSettingsBtn');
+
+    function openPurchaseOrderSettings() {
+        const settingsModalElement = document.getElementById('purchaseOrderTableSettingsModal');
+        if (!settingsModalElement || typeof bootstrap === 'undefined') return;
+        bootstrap.Modal.getOrCreateInstance(settingsModalElement).show();
+    }
+
+    settingsButton?.addEventListener('click', openPurchaseOrderSettings);
+    settingsButton?.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openPurchaseOrderSettings();
+        }
+    });
+
     const partySelect = document.querySelector(".party-select");
     const addModalEl = document.getElementById('addPartyModal');
     const addModal = new bootstrap.Modal(addModalEl);

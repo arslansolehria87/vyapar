@@ -548,11 +548,16 @@ $(document).ready(function () {
       }
 
       if (visible) {
-        for (const colIndex in columnFilters) {
-          const filterVal = (columnFilters[colIndex] || '').toString().toLowerCase().trim();
+        for (const columnKey in columnFilters) {
+          const filterVal = (columnFilters[columnKey] || '').toString().toLowerCase().trim();
           if (!filterVal) continue;
 
-          const cellText = $row.find('td').eq(parseInt(colIndex, 10)).text().toLowerCase();
+          const colIndex = $('table.txn-table thead th').filter(function () {
+            return String($(this).data('column-key') || '') === String(columnKey);
+          }).index();
+          const cellText = colIndex >= 0
+            ? $row.find('td').eq(colIndex).text().toLowerCase()
+            : '';
           if (cellText.indexOf(filterVal) === -1) {
             visible = false;
             break;
@@ -702,7 +707,11 @@ $(document).ready(function () {
 
   // Action buttons
   $('#exportExcel').on('click', function () {
-    const headers = $('table.txn-table thead th').not(':last').map(function () {
+    const $exportHeaders = $('table.txn-table thead th').not('[data-column-key="actions"]');
+    const exportColumnIndexes = $exportHeaders.map(function () {
+      return $(this).index();
+    }).get();
+    const headers = $exportHeaders.map(function () {
       const $th = $(this);
       const headerText = $th.find('.column-filter-header span').first().text().trim()
         || $th.clone().children().remove().end().text().trim();
@@ -713,11 +722,13 @@ $(document).ready(function () {
     rows.push(headers.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','));
 
     $('table.txn-table tbody tr:visible').each(function () {
-      const cols = $(this).find('td').not(':last').map(function () {
-        return $(this).text().replace(/\s+/g, ' ').trim();
-      }).get();
-      if (!cols.length) return;
-      const normalized = headers.map((_, idx) => cols[idx] ?? '');
+      const $row = $(this);
+      if ($row.find('td[colspan]').length) return;
+
+      const $cells = $row.children('td');
+      const normalized = exportColumnIndexes.map((columnIndex) => {
+        return $cells.eq(columnIndex).text().replace(/\s+/g, ' ').trim();
+      });
       rows.push(normalized.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','));
     });
     const csvContent = rows.join('\n');
@@ -740,11 +751,14 @@ $(document).ready(function () {
   function buildReportQueryFromRows($rows) {
     const saleIds = [];
     const dates = [];
+    const dateColumnIndex = $('table.txn-table thead th[data-column-key="date"]').index();
     $rows.each(function () {
       const $row = $(this);
       const saleId = $row.find('.sale-action-menu').data('sale-id');
       if (saleId) saleIds.push(saleId);
-      const dateText = ($row.children().eq(0).text() || '').trim();
+      const dateText = dateColumnIndex >= 0
+        ? ($row.children().eq(dateColumnIndex).text() || '').trim()
+        : '';
       if (dateText) dates.push(dateText);
     });
     return {
@@ -1015,14 +1029,16 @@ $(document).ready(function () {
     e.stopPropagation();
 
     const $btn = $(this);
-    const colIndex = $btn.data('column-index');
+    const columnKey = String($btn.closest('th').data('column-key') || '');
     const $dropdown = $btn.closest('.column-filter-dropdown');
     const filterValue = $dropdown.find('.column-filter-input').val() || '';
 
+    if (!columnKey) return;
+
     if (filterValue.trim() === '') {
-      delete columnFilters[colIndex];
+      delete columnFilters[columnKey];
     } else {
-      columnFilters[colIndex] = filterValue;
+      columnFilters[columnKey] = filterValue;
     }
 
     applyFilters();
@@ -1034,10 +1050,12 @@ $(document).ready(function () {
     e.stopPropagation();
 
     const $btn = $(this);
-    const colIndex = $btn.data('column-index');
+    const columnKey = String($btn.closest('th').data('column-key') || '');
     const $dropdown = $btn.closest('.column-filter-dropdown');
 
-    delete columnFilters[colIndex];
+    if (columnKey) {
+      delete columnFilters[columnKey];
+    }
     $dropdown.find('.column-filter-input').val('');
 
     applyFilters();

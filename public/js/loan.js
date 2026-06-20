@@ -74,14 +74,6 @@
         applyLoanTableFilters();
     }
 
-    const loanTableColumns = {
-        type: 0,
-        date: 1,
-        principal: 2,
-        charges: 3,
-        total_amount: 4,
-        loan_received_in: 5,
-    };
     const loanTableFilterState = {};
 
     function getActiveLoanId() {
@@ -101,8 +93,11 @@
     }
 
     function getLoanCellText(row, col) {
-        const index = loanTableColumns[col];
-        return index === undefined
+        const loanTable = getLoanTable();
+        const index = Array.from(
+            loanTable?.tHead?.rows?.[0]?.cells || [],
+        ).findIndex((header) => header.dataset.columnKey === col);
+        return index < 0
             ? ""
             : row.cells[index]?.textContent.trim() || "";
     }
@@ -160,7 +155,7 @@
         }
 
         const rowText = Array.from(row.cells)
-            .slice(0, -1)
+            .filter((cell) => cell.dataset.columnKey !== "actions")
             .map((cell) => cell.textContent.trim().toLowerCase())
             .join(" ");
 
@@ -730,13 +725,13 @@
         const total = Number(transaction.total_amount || 0);
         return `
             <tr data-loan-id="${escapeHtml(transaction.loan_id)}" data-transaction-id="${escapeHtml(transaction.id)}" data-entry-type="${escapeHtml(transaction.type)}" data-date="${escapeHtml(transaction.date_value)}" data-amount="${escapeHtml(transaction.total_amount)}" data-principal="${escapeHtml(transaction.principal || 0)}" data-interest="${escapeHtml(transaction.charges || 0)}" data-bank-account-id="${escapeHtml(transaction.bank_account_id || "")}" data-details="${escapeHtml(transaction.details || "")}">
-                <td>${escapeHtml(transaction.label)}</td>
-                <td>${escapeHtml(transaction.date || "-")}</td>
-                <td>${formatCurrency(principal)}</td>
-                <td>${formatCurrency(charges)}</td>
-                <td>${formatCurrency(total)}</td>
-                <td>${escapeHtml(transaction.bank_name || "-")}</td>
-                <td>
+                <td data-column-key="type">${escapeHtml(transaction.label)}</td>
+                <td data-column-key="date">${escapeHtml(transaction.date || "-")}</td>
+                <td data-column-key="principal">${formatCurrency(principal)}</td>
+                <td data-column-key="charges">${formatCurrency(charges)}</td>
+                <td data-column-key="total_amount">${formatCurrency(total)}</td>
+                <td data-column-key="loan_received_in">${escapeHtml(transaction.bank_name || "-")}</td>
+                <td data-column-key="actions">
                     <div class="action-dropdown">
                         <button type="button" class="action-toggle" aria-label="Actions">
                             <i class="fa-solid fa-ellipsis-vertical"></i>
@@ -765,8 +760,10 @@
             tbody.insertAdjacentHTML("afterbegin", renderLoanTransactionRow(transaction));
         }
 
-        populateLoanCheckboxFilters();
-        applyLoanTableFilters();
+        requestAnimationFrame(() => {
+            populateLoanCheckboxFilters();
+            applyLoanTableFilters();
+        });
     }
 
     function submitLoanTransaction(form, entryType) {
@@ -851,6 +848,7 @@
         const exportExcelBtn = qs("#exportExcelBtn");
         const printTableBtn = qs("#printTableBtn");
         const addLoanBtn = qs("#addLoanBtn");
+        const loanSettingsBtn = qs("#loanSettingsBtn");
         const loanDetailEditBtn = qs("#loanDetailEditBtn");
         const loanTransactionMenuBtn = qs("#loanTransactionMenuBtn");
         const loanTransactionMenu = qs("#loanTransactionMenu");
@@ -897,6 +895,13 @@
             printTableBtn.addEventListener("click", () => window.print());
         }
 
+        if (loanSettingsBtn) {
+            loanSettingsBtn.addEventListener("click", () => {
+                const settingsUrl = loanSettingsBtn.dataset.settingsUrl;
+                if (settingsUrl) window.location.href = settingsUrl;
+            });
+        }
+
         // Sidebar list click
         qsa("#loanList li[data-loan]").forEach((li) => {
             li.addEventListener("click", () => {
@@ -906,11 +911,14 @@
 
         // Detail edit button
         if (loanDetailEditBtn) {
-            loanDetailEditBtn.addEventListener("click", () => {
-                const active = qs("#loanList li.active");
-                if (active) {
-                    openLoanModal("edit", active.dataset.loan);
-                }
+            loanDetailEditBtn.addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const active = qs("#loanList li.active[data-loan]");
+                openLoanModal(
+                    active ? "edit" : "add",
+                    active?.dataset.loan || null,
+                );
             });
         }
 

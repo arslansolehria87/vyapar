@@ -383,12 +383,15 @@
         </div>
 
         <div class="table-responsive small-table table-wrapper sale-order-main-wrapper">
-          <table class="table sale-order-table align-middle mb-0 txn-table">
+          <table class="table sale-order-table align-middle mb-0 txn-table"
+                 id="saleOrderTransactionsTable"
+                 data-column-drag="native"
+                 data-column-drag-storage="vyapar.sale-order.transactions.column-order.v1">
             <thead>
               <tr>
-                <th class="col-checkbox" style="vertical-align: middle;"><input type="checkbox" id="selectAllOrders"></th>
+                <th class="col-checkbox" style="vertical-align: middle;" data-column-key="select"><input type="checkbox" id="selectAllOrders"></th>
                 
-                <th class="col-party">
+                <th class="col-party" data-column-key="party">
                   <div class="column-filter-header">
                     <span>PARTY</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -402,7 +405,7 @@
                   </div>
                 </th>
 
-                <th class="col-number">
+                <th class="col-number" data-column-key="number">
                   <div class="column-filter-header">
                     <span>NO.</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -416,7 +419,7 @@
                   </div>
                 </th>
 
-                <th class="col-date">
+                <th class="col-date" data-column-key="date">
                   <div class="column-filter-header">
                     <span>DATE</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -437,7 +440,7 @@
                   </div>
                 </th>
 
-                <th class="col-due">
+                <th class="col-due" data-column-key="due_date">
                   <div class="column-filter-header">
                     <span>DUE DATE</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -458,7 +461,7 @@
                   </div>
                 </th>
 
-                <th class="text-end col-total">
+                <th class="text-end col-total" data-column-key="amount">
                   <div class="column-filter-header justify-content-end">
                     <span class="me-3">AMOUNT</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -472,7 +475,7 @@
                   </div>
                 </th>
 
-                <th class="text-end col-balance">
+                <th class="text-end col-balance" data-column-key="balance">
                   <div class="column-filter-header justify-content-end">
                     <span class="me-2">BALANCE</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -486,7 +489,7 @@
                   </div>
                 </th>
 
-                <th class="col-type">
+                <th class="col-type" data-column-key="type">
                   <div class="column-filter-header">
                     <span>TYPE</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -500,7 +503,7 @@
                   </div>
                 </th>
 
-                <th class="col-status">
+                <th class="col-status" data-column-key="status">
                   <div class="column-filter-header">
                     <span>STATUS</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -514,8 +517,8 @@
                   </div>
                 </th>
 
-                <th class="col-action">ACTION</th>
-                <th class="col-menu"></th>
+                <th class="col-action" data-column-key="action">ACTION</th>
+                <th class="col-menu" data-column-key="menu"></th>
               </tr>
             </thead>
             <tbody>
@@ -1032,7 +1035,7 @@
     document.addEventListener('DOMContentLoaded', function () {
       const searchInput = document.querySelector('.sale-order-search input');
       const columnFilters = {};
-      const dateFilterColumns = new Set(['3', '4']);
+      const dateFilterColumns = new Set(['date', 'due_date']);
 
       function normalizeText(text) {
         return text.toString().toLowerCase().trim().replace(/\s+/g, ' ');
@@ -1076,28 +1079,19 @@
         rows.forEach((row) => {
           if (row.cells.length === 1) return;
 
-          let matchesUniversal = !universalSearchQuery;
-          let matchesColumnFilters = true;
-          const cells = row.querySelectorAll('td');
-          
-          cells.forEach((cell, index) => {
+          const matchesUniversal = !universalSearchQuery
+            || normalizeText(row.textContent || '').includes(universalSearchQuery);
+          const matchesColumnFilters = Object.entries(columnFilters).every(([columnKey, filterValue]) => {
+            const header = document.querySelector(`.sale-order-table thead th[data-column-key="${columnKey}"]`);
+            const cell = header ? row.cells[header.cellIndex] : null;
+            if (!cell) return true;
+
             const cellText = normalizeText(cell.textContent || cell.innerText);
-
-            if (universalSearchQuery && cellText.includes(universalSearchQuery)) {
-              matchesUniversal = true;
+            if (dateFilterColumns.has(columnKey)) {
+              return matchesDateFilter(cell.textContent || cell.innerText, filterValue);
             }
 
-            if (columnFilters[index] !== undefined) {
-              const filterValue = columnFilters[index];
-
-              if (dateFilterColumns.has(String(index))) {
-                if (!matchesDateFilter(cell.textContent || cell.innerText, filterValue)) {
-                  matchesColumnFilters = false;
-                }
-              } else if (!cellText.includes(filterValue)) {
-                matchesColumnFilters = false;
-              }
-            }
+            return cellText.includes(filterValue);
           });
 
           row.style.display = (matchesUniversal && matchesColumnFilters) ? '' : 'none';
@@ -1142,23 +1136,25 @@
       document.querySelectorAll('.column-filter-apply').forEach((button) => {
         button.addEventListener('click', function (event) {
           event.preventDefault();
-          const columnIndex = this.dataset.columnIndex;
+          const columnKey = this.closest('th')?.dataset.columnKey;
           const dropdown = this.closest('.column-filter-dropdown');
           const input = dropdown?.querySelector('.column-filter-input');
           const operator = dropdown?.querySelector('.column-filter-operator')?.value || 'eq';
           const normalizedValue = normalizeText(input?.value || '');
 
-          if (dateFilterColumns.has(String(columnIndex))) {
+          if (!columnKey) return;
+
+          if (dateFilterColumns.has(columnKey)) {
             if (normalizedValue) {
-              columnFilters[columnIndex] = { type: 'date', operator, value: normalizedValue };
+              columnFilters[columnKey] = { type: 'date', operator, value: normalizedValue };
             } else {
-              delete columnFilters[columnIndex];
+              delete columnFilters[columnKey];
             }
           } else {
             if (normalizedValue) {
-              columnFilters[columnIndex] = normalizedValue;
+              columnFilters[columnKey] = normalizedValue;
             } else {
-              delete columnFilters[columnIndex];
+              delete columnFilters[columnKey];
             }
           }
           dropdown?.classList.remove('show');
@@ -1171,23 +1167,23 @@
         input.addEventListener('input', function () {
           const dropdown = this.closest('.column-filter-dropdown');
           const applyButton = dropdown?.querySelector('.column-filter-apply');
-          const columnIndex = applyButton?.dataset.columnIndex;
+          const columnKey = applyButton?.closest('th')?.dataset.columnKey;
           const operator = dropdown?.querySelector('.column-filter-operator')?.value || 'eq';
 
-          if (columnIndex === undefined) return;
+          if (!columnKey) return;
           const normalizedValue = normalizeText(this.value || '');
 
-          if (dateFilterColumns.has(String(columnIndex))) {
+          if (dateFilterColumns.has(columnKey)) {
             if (normalizedValue) {
-              columnFilters[columnIndex] = { type: 'date', operator, value: normalizedValue };
+              columnFilters[columnKey] = { type: 'date', operator, value: normalizedValue };
             } else {
-              delete columnFilters[columnIndex];
+              delete columnFilters[columnKey];
             }
           } else {
             if (normalizedValue) {
-              columnFilters[columnIndex] = normalizedValue;
+              columnFilters[columnKey] = normalizedValue;
             } else {
-              delete columnFilters[columnIndex];
+              delete columnFilters[columnKey];
             }
           }
           applySalesTableFilters();
@@ -1198,16 +1194,16 @@
         select.addEventListener('change', function () {
           const dropdown = this.closest('.column-filter-dropdown');
           const applyButton = dropdown?.querySelector('.column-filter-apply');
-          const columnIndex = applyButton?.dataset.columnIndex;
+          const columnKey = applyButton?.closest('th')?.dataset.columnKey;
           const input = dropdown?.querySelector('.column-filter-input');
 
-          if (!dateFilterColumns.has(String(columnIndex))) return;
+          if (!dateFilterColumns.has(columnKey)) return;
 
           const normalizedValue = normalizeText(input?.value || '');
           if (normalizedValue) {
-            columnFilters[columnIndex] = { type: 'date', operator: this.value || 'eq', value: normalizedValue };
+            columnFilters[columnKey] = { type: 'date', operator: this.value || 'eq', value: normalizedValue };
           } else {
-            delete columnFilters[columnIndex];
+            delete columnFilters[columnKey];
           }
           applySalesTableFilters();
         });
@@ -1217,14 +1213,14 @@
       document.querySelectorAll('.column-filter-clear').forEach((button) => {
         button.addEventListener('click', function (event) {
           event.preventDefault();
-          const columnIndex = this.dataset.columnIndex;
+          const columnKey = this.closest('th')?.dataset.columnKey;
           const dropdown = this.closest('.column-filter-dropdown');
           const input = dropdown?.querySelector('.column-filter-input');
           const operator = dropdown?.querySelector('.column-filter-operator');
 
           if (input) input.value = '';
           if (operator) operator.value = 'eq';
-          delete columnFilters[columnIndex];
+          if (columnKey) delete columnFilters[columnKey];
           dropdown?.classList.remove('show');
           applySalesTableFilters();
         });
@@ -1303,7 +1299,7 @@
       initResizeHandles();
     });
   </script>
+  <script src="{{ asset('js/transaction-column-drag.js') }}"></script>
 </body>
 
 </html>
-

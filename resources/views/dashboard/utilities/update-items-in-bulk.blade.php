@@ -120,6 +120,74 @@
       font-size: 1rem;
       font-weight: 700;
       box-shadow: 0 12px 22px rgba(243, 18, 78, 0.24);
+      cursor: pointer;
+    }
+
+    .tax-action {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .tax-button i {
+      margin-left: 5px;
+      transition: transform 0.18s ease;
+    }
+
+    .tax-action.is-open .tax-button i {
+      transform: rotate(180deg);
+    }
+
+    .tax-slab-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      z-index: 1100;
+      display: none;
+      width: 270px;
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 8px;
+      border: 1px solid #dce3ee;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 16px 34px rgba(36, 52, 86, 0.2);
+    }
+
+    .tax-action.is-open .tax-slab-menu {
+      display: block;
+    }
+
+    .tax-slab-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+      border: 0;
+      border-radius: 9px;
+      padding: 10px 12px;
+      background: transparent;
+      color: #29344a;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .tax-slab-option:hover,
+    .tax-slab-option:focus {
+      background: #eef6ff;
+      outline: none;
+    }
+
+    .tax-slab-rate {
+      color: #718096;
+      font-size: 0.86rem;
+      white-space: nowrap;
+    }
+
+    .tax-slab-empty {
+      padding: 14px 12px;
+      color: #7a8497;
+      text-align: center;
     }
 
     .bulk-table-wrap {
@@ -314,6 +382,16 @@
       .watch-button {
         width: 100%;
       }
+
+      .tax-action {
+        width: 100%;
+      }
+
+      .tax-slab-menu {
+        left: 0;
+        right: auto;
+        width: 100%;
+      }
     }
 
     @media (max-width: 767.98px) {
@@ -359,7 +437,13 @@
 
       <div class="bulk-selected-bar is-hidden" id="bulkSelectedBar">
         <div class="bulk-selected-text" id="bulkSelectedText">0 items selected</div>
-        <button class="tax-button" type="button">Update Tax Slab <i class="bi bi-chevron-down"></i></button>
+        <div class="tax-action" id="taxSlabAction">
+          <button class="tax-button" id="updateTaxSlabButton" type="button"
+            aria-expanded="false" aria-controls="taxSlabMenu">
+            Update Tax Slab <i class="bi bi-chevron-down"></i>
+          </button>
+          <div class="tax-slab-menu" id="taxSlabMenu" role="menu"></div>
+        </div>
       </div>
 
       <div class="bulk-table-wrap">
@@ -399,6 +483,9 @@
       const selectedText = document.getElementById('bulkSelectedText');
       const summaryText = document.getElementById('bulkSummaryText');
       const updateButton = document.getElementById('bulkUpdateButton');
+      const taxSlabAction = document.getElementById('taxSlabAction');
+      const taxSlabButton = document.getElementById('updateTaxSlabButton');
+      const taxSlabMenu = document.getElementById('taxSlabMenu');
       const toast = document.getElementById('bulkToast');
       const dataUrl = "{{ route('utilities.update-items-in-bulk.data') }}";
       const categoriesUrl = "{{ route('items.category.list') }}";
@@ -406,6 +493,7 @@
       const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
       let items = [];
       let categories = [];
+      let taxRates = [];
       let selectedIds = [];
       let mode = 'pricing';
       let search = '';
@@ -464,6 +552,73 @@
           options.push(`<option value="${category.id}" ${selected}>${category.name}</option>`);
         });
         return options.join('');
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      function renderTaxSlabMenu() {
+        const options = [
+          '<button class="tax-slab-option" type="button" role="menuitem" data-tax-rate-id="" data-tax-rate-name="" data-tax-rate-value="0"><span>No Tax</span><span class="tax-slab-rate">0%</span></button>'
+        ];
+
+        taxRates.forEach(function (taxRate) {
+          options.push(
+            `<button class="tax-slab-option" type="button" role="menuitem" data-tax-rate-id="${taxRate.id}" data-tax-rate-name="${escapeHtml(taxRate.name)}" data-tax-rate-value="${taxRate.rate}">` +
+              `<span>${escapeHtml(taxRate.name)}</span>` +
+              `<span class="tax-slab-rate">${Number(taxRate.rate || 0).toFixed(2)}%</span>` +
+            '</button>'
+          );
+        });
+
+        taxSlabMenu.innerHTML = options.join('');
+
+        taxSlabMenu.querySelectorAll('.tax-slab-option').forEach(function (option) {
+          option.addEventListener('click', function () {
+            applyTaxSlabToSelection({
+              id: option.dataset.taxRateId,
+              name: option.dataset.taxRateName,
+              rate: option.dataset.taxRateValue
+            });
+          });
+        });
+      }
+
+      function closeTaxSlabMenu() {
+        taxSlabAction.classList.remove('is-open');
+        taxSlabButton.setAttribute('aria-expanded', 'false');
+      }
+
+      function applyTaxSlabToSelection(taxRate) {
+        if (!selectedIds.length) {
+          closeTaxSlabMenu();
+          showToast('Please select at least one item.', true);
+          return;
+        }
+
+        selectedIds.forEach(function (itemId) {
+          if (!pendingUpdates[itemId]) {
+            pendingUpdates[itemId] = {};
+          }
+
+          pendingUpdates[itemId].tax_rate_id = taxRate.id || null;
+          pendingUpdates[itemId].tax_rate_name = taxRate.name || null;
+          pendingUpdates[itemId].tax_rate_value = Number(taxRate.rate || 0);
+        });
+
+        closeTaxSlabMenu();
+        renderSummary();
+        showToast(
+          (taxRate.name ? taxRate.name + ' tax slab' : 'No Tax') +
+          ' applied to ' + selectedIds.length + ' selected item(s). Click Update to save.',
+          false
+        );
       }
 
       function renderHead() {
@@ -574,8 +729,20 @@
 
       function renderSummary() {
         const selectedCount = selectedIds.length;
-        selectedText.textContent = selectedCount + ' items selected ( No Tax : ' + selectedCount + ' )';
+        const noTaxCount = selectedIds.filter(function (itemId) {
+          const item = items.find(function (row) { return row.id === itemId; }) || {};
+          const taxRateId = pendingUpdates[itemId]
+            && Object.prototype.hasOwnProperty.call(pendingUpdates[itemId], 'tax_rate_id')
+              ? pendingUpdates[itemId].tax_rate_id
+              : item.tax_rate_id;
+          return taxRateId === null || taxRateId === '' || taxRateId === undefined;
+        }).length;
+
+        selectedText.textContent = selectedCount + ' items selected ( No Tax : ' + noTaxCount + ' )';
         selectedBar.classList.toggle('is-hidden', selectedCount === 0);
+        if (selectedCount === 0) {
+          closeTaxSlabMenu();
+        }
 
         summaryText.textContent = 'Pricing - ' + countUpdatesFor('pricing') + ' Updates, Stock - ' + countUpdatesFor('stock') + ' Updates, Item Information - ' + countUpdatesFor('information') + ' Updates';
         updateButton.classList.toggle('is-ready', Object.keys(pendingUpdates).length > 0);
@@ -602,7 +769,9 @@
           }
 
           items = itemsJson.items || [];
+          taxRates = itemsJson.tax_rates || [];
           categories = Array.isArray(categoriesJson) ? categoriesJson : [];
+          renderTaxSlabMenu();
           renderAll();
         } catch (error) {
           showToast(error.message, true);
@@ -619,6 +788,24 @@
           mode = radio.value;
           renderAll();
         });
+      });
+
+      taxSlabButton.addEventListener('click', function (event) {
+        event.stopPropagation();
+        const willOpen = !taxSlabAction.classList.contains('is-open');
+        taxSlabAction.classList.toggle('is-open', willOpen);
+        taxSlabButton.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      });
+
+      taxSlabMenu.addEventListener('click', function (event) {
+        event.stopPropagation();
+      });
+
+      document.addEventListener('click', closeTaxSlabMenu);
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+          closeTaxSlabMenu();
+        }
       });
 
       updateButton.addEventListener('click', async function () {

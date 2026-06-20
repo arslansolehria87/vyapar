@@ -17,6 +17,7 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
   <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
   <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/colreorder/1.7.0/css/colReorder.bootstrap5.min.css" rel="stylesheet">
   <!-- Custom Styles -->
   <link href="{{ asset('css/styles.css') }}" rel="stylesheet">
   <style>
@@ -1063,7 +1064,7 @@
           <table class="table table-hover mb-0 align-middle custom-table" id="paymentInTable">
             <thead class="table-light">
               <tr>
-                <th style="width: 12%;">
+                <th style="width: 12%;" data-column-key="date">
                   <div class="d-flex align-items-center justify-content-between">
                     <span>Date</span>
                     <div class="dropdown">
@@ -1078,7 +1079,7 @@
                     </div>
                   </div>
                 </th>
-                <th style="width: 14%;">
+                <th style="width: 14%;" data-column-key="reference">
                   <div class="d-flex align-items-center justify-content-between">
                     <span>Reference No.</span>
                     <div class="dropdown">
@@ -1093,7 +1094,7 @@
                     </div>
                   </div>
                 </th>
-                <th style="width: 18%;">
+                <th style="width: 18%;" data-column-key="party">
                   <div class="d-flex align-items-center justify-content-between">
                     <span>Party Name</span>
                     <div class="dropdown">
@@ -1108,7 +1109,7 @@
                     </div>
                   </div>
                 </th>
-                <th style="width: 14%;">
+                <th style="width: 14%;" data-column-key="amount">
                   <div class="d-flex align-items-center justify-content-between">
                     <span>Total Amount</span>
                     <div class="dropdown">
@@ -1123,7 +1124,7 @@
                     </div>
                   </div>
                 </th>
-                <th style="width: 14%;">
+                <th style="width: 14%;" data-column-key="bank">
                   <div class="d-flex align-items-center justify-content-between">
                     <span>Bank Account</span>
                     <div class="dropdown">
@@ -1138,7 +1139,7 @@
                     </div>
                   </div>
                 </th>
-                <th style="width: 14%;">
+                <th style="width: 14%;" data-column-key="payment_type">
                   <div class="d-flex align-items-center justify-content-between">
                     <span>Payment Type</span>
                     <div class="dropdown">
@@ -1153,12 +1154,19 @@
                     </div>
                   </div>
                 </th>
-                <th style="width: 14%; text-align: center;">Actions</th>
+                <th style="width: 14%; text-align: center;" data-column-key="actions">Actions</th>
               </tr>
             </thead>
             <tbody>
               @forelse($paymentIns as $paymentIn)
-                <tr class="payment-in-row" data-edit-url="{{ route('payments-in.edit', $paymentIn) }}">
+                <tr class="payment-in-row"
+                    data-edit-url="{{ route('payments-in.edit', $paymentIn) }}"
+                    data-date="{{ $paymentIn->date ? \Carbon\Carbon::parse($paymentIn->date)->format('d-m-Y') : '-' }}"
+                    data-reference="{{ $paymentIn->reference_no ?: '-' }}"
+                    data-party="{{ $paymentIn->entity_name ?: $paymentIn->party?->name ?: '-' }}"
+                    data-amount="{{ number_format((float) $paymentIn->amount, 2, '.', '') }}"
+                    data-bank="{{ $paymentIn->bankAccount?->display_name ?: '-' }}"
+                    data-payment-type="{{ ucfirst($paymentIn->payment_type) }}">
                   <td>{{ $paymentIn->date ? \Carbon\Carbon::parse($paymentIn->date)->format('d-m-Y') : '-' }}</td>
                   <td><span class="badge bg-light text-dark">{{ $paymentIn->reference_no ?: '-' }}</span></td>
                   <td><strong>{{ $paymentIn->entity_name ?: $paymentIn->party?->name ?: '-' }}</strong></td>
@@ -1494,6 +1502,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://cdn.datatables.net/colreorder/1.7.0/js/dataTables.colReorder.min.js"></script>
   <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
   <script>
     window.bankAccounts = @json($bankAccounts ?? []);
@@ -1596,14 +1605,30 @@
 
         const $row = $(rowNode);
         const rowText = $row.text().toLowerCase().replace(/\s+/g, " ").trim();
-        const partyName = $row.find("td").eq(2).text().trim().toLowerCase();
-        const rowDateText = $row.find("td").eq(0).text().trim();
+        const partyName = String(rowNode.dataset.party || "").trim().toLowerCase();
+        const rowDateText = rowNode.dataset.date || "";
         const rowDate = parseRowDate(rowDateText);
+        const rowValues = {
+          date: rowNode.dataset.date || "",
+          reference: rowNode.dataset.reference || "",
+          party: rowNode.dataset.party || "",
+          amount: rowNode.dataset.amount || "",
+          bank: rowNode.dataset.bank || "",
+          payment_type: rowNode.dataset.paymentType || "",
+        };
 
         let visible = true;
 
         if (paymentInFilterState.globalSearch && !rowText.includes(paymentInFilterState.globalSearch)) {
           visible = false;
+        }
+
+        if (visible) {
+          visible = Object.entries(paymentInColumnFilters).every(([columnKey, filterValue]) => {
+            const normalizedFilter = String(filterValue || "").trim().toLowerCase();
+            if (!normalizedFilter) return true;
+            return String(rowValues[columnKey] || "").trim().toLowerCase().includes(normalizedFilter);
+          });
         }
 
         if (visible && paymentInFilterState.firmFilter && partyName !== paymentInFilterState.firmFilter.toLowerCase()) {
@@ -1686,6 +1711,9 @@
           ordering: true,
           autoWidth: false,
           order: [[0, "desc"]],
+          colReorder: true,
+          stateSave: true,
+          stateDuration: -1,
           columnDefs: [
             { targets: 6, orderable: false, searchable: false },
           ],
@@ -1764,8 +1792,16 @@
 
       $(document).on("input", ".payment-column-filter", function() {
         if (!paymentInTable) return;
-        const columnIndex = parseInt(this.dataset.column || "0", 10);
-        paymentInTable.column(columnIndex).search(this.value || "").draw();
+        const columnKey = this.closest("th")?.dataset.columnKey || "";
+        if (!columnKey) return;
+
+        const value = String(this.value || "");
+        if (value.trim()) {
+          paymentInColumnFilters[columnKey] = value;
+        } else {
+          delete paymentInColumnFilters[columnKey];
+        }
+        applyPaymentInFilters();
       });
 
       function downloadPaymentInExcel(selectedColumns) {
@@ -1780,12 +1816,11 @@
         `;
 
         visibleRows.forEach((row) => {
-          const cells = row.querySelectorAll("td");
           const rowHtml = selectedColumns.map((key) => {
             const config = paymentPrintColumns[key];
             const value = typeof config.getValue === "function"
-              ? config.getValue(row, cells)
-              : (cells[config.index]?.textContent.trim() || "-");
+              ? config.getValue(row)
+              : getPaymentInCellText(row, config.columnKey);
             return `<td>${value}</td>`;
           }).join("");
           excelHtml += `<tr>${rowHtml}</tr>`;
@@ -1811,15 +1846,23 @@
       const paymentPrintModalEl = document.getElementById("paymentInPrintOptionsModal");
       const paymentPrintModal = paymentPrintModalEl ? new bootstrap.Modal(paymentPrintModalEl) : null;
       const paymentPrintColumns = {
-        date: { label: "DATE", index: 0 },
-        reference: { label: "Ref No.", index: 1 },
-        party: { label: "Party Name", index: 2 },
-        amount: { label: "TOTAL", index: 3 },
-        bank: { label: "BANK ACCOUNT", index: 4 },
-        payment_type: { label: "PAYMENT TYPE", index: 5 },
-        description: { label: "DESCRIPTION", index: null, getValue: () => "-" },
-        status: { label: "PAYMENT STATUS", index: null, getValue: () => "Used" },
+        date: { label: "DATE", columnKey: "date" },
+        reference: { label: "Ref No.", columnKey: "reference" },
+        party: { label: "Party Name", columnKey: "party" },
+        amount: { label: "TOTAL", columnKey: "amount" },
+        bank: { label: "BANK ACCOUNT", columnKey: "bank" },
+        payment_type: { label: "PAYMENT TYPE", columnKey: "payment_type" },
+        description: { label: "DESCRIPTION", getValue: () => "-" },
+        status: { label: "PAYMENT STATUS", getValue: () => "Used" },
       };
+
+      function getPaymentInCellText(row, columnKey) {
+        const header = document.querySelector(`#paymentInTable thead th[data-column-key="${columnKey}"]`);
+        const columnIndex = header?.cellIndex ?? -1;
+        return columnIndex >= 0
+          ? (row.cells[columnIndex]?.textContent.trim() || "-")
+          : "-";
+      }
 
       function getSelectedPaymentPrintColumns() {
         return Array.from(document.querySelectorAll(".payment-print-option:checked"))
@@ -1869,12 +1912,11 @@
           .join("");
 
         const previewRowsHtml = visibleRows.map((row) => {
-          const cells = row.querySelectorAll("td");
           const colsHtml = selectedColumns.map((key) => {
             const config = paymentPrintColumns[key];
             const value = typeof config.getValue === "function"
-              ? config.getValue(row, cells)
-              : (cells[config.index]?.textContent.trim() || "-");
+              ? config.getValue(row)
+              : getPaymentInCellText(row, config.columnKey);
             return `<td>${value}</td>`;
           }).join("");
 
@@ -1882,7 +1924,7 @@
         }).join("");
 
         const totalAmount = visibleRows.reduce((sum, row) => {
-          const amountText = row.querySelectorAll("td")[3]?.textContent || "0";
+          const amountText = getPaymentInCellText(row, "amount");
           const numeric = parseFloat(amountText.replace(/[^\d.-]/g, "")) || 0;
           return sum + numeric;
         }, 0);
@@ -2715,6 +2757,7 @@ let linkPaymentRows = [];
 let appliedLinkPaymentRows = [];
 let paymentInTable = null;
 let paymentInExportMode = 'print';
+const paymentInColumnFilters = {};
 const paymentInFilterState = {
     globalSearch: '',
     firmFilter: '',
@@ -3383,11 +3426,12 @@ function useCalculatorResult() {
     document.addEventListener('mousedown', function (e) {
       if (!e.target.classList.contains('col-rh')) return;
       e.preventDefault();
+      e.stopPropagation();
       thEl = e.target.closest('th'); isResizing = true;
       startX = e.clientX; startW = thEl.getBoundingClientRect().width;
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
-    });
+    }, true);
     document.addEventListener('mousemove', function (e) {
       if (!isResizing || !thEl) return;
       var w = Math.max(60, startW + (e.clientX - startX));

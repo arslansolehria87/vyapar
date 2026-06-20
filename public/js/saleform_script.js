@@ -925,10 +925,12 @@ function initializeForm(context) {
 
     const renderItemSettingsColumns = () => {
         const settings = itemFormSettings || defaultItemFormSettings;
+        const barcodeScannerEnabled = window.saleBarcodeScannerEnabled === true
+            || !!settings.barcode_scan_enabled
+            || !!settings.direct_barcode_scan_enabled;
         const showFreeQty = !!(settings.free_item_qty_enabled || saleFormSettings.items_table?.free_item_qty_enabled);
         const extraColumnsEnabled = !!(
-            settings.barcode_scan_enabled ||
-            settings.direct_barcode_scan_enabled ||
+            barcodeScannerEnabled ||
             settings.serial_tracking?.enabled ||
             settings.description_enabled ||
             settings.count_enabled ||
@@ -942,7 +944,7 @@ function initializeForm(context) {
             (settings.custom_fields || []).some(field => field && field.enabled)
         );
         const mappings = [
-            { selector: '.col-barcode-scan', enabled: !!(settings.barcode_scan_enabled || settings.direct_barcode_scan_enabled) },
+            { selector: '.col-barcode-scan', enabled: barcodeScannerEnabled },
             { selector: '.col-serial-no', enabled: !!settings.serial_tracking?.enabled, label: settings.serial_tracking?.label || 'Serial No.' },
             { selector: '.col-description', enabled: !!settings.description_enabled, label: settings.description_label || 'Description' },
             { selector: '.col-count', enabled: !!settings.count_enabled, label: settings.count_label || 'Count' },
@@ -2768,7 +2770,7 @@ if (!window.editSaleData) {
                     <div class="delete-row-icon"><i class="fa-solid fa-trash-can"></i></div>
                 </td>
                 <td class="col-barcode-scan d-none">
-                    <button type="button" class="btn btn-sm btn-outline-primary open-scan-serial-modal" title="Scan code/serial"><i class="fa-solid fa-qrcode"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-primary open-scan-serial-modal" title="Scan code/serial"><i class="fa-solid fa-barcode"></i></button>
                 </td>
                 <td class="col-item-name">
                     <div class="item-picker">
@@ -3612,30 +3614,208 @@ if (!window.editSaleData) {
     });
 
     let activeScanSerialRow = null;
-    $(document).on('click', '.open-scan-serial-modal', function(e) {
-        e.preventDefault();
-        activeScanSerialRow = $(this).closest('tr');
-        $('#scanSerialInput').val(activeScanSerialRow.find('.item-serial-input').val() || activeScanSerialRow.find('.item-code').val() || '');
-        $('.scan-serial-count').text(`${String($('#scanSerialInput').val() || '').trim() ? 1 : 0} Entered`);
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('scanSerialModal')).show();
-    });
+    let pendingScanSerialEntries = [];
 
-    $(document).on('input', '#scanSerialInput', function() {
-        $('.scan-serial-count').text(`${String($(this).val() || '').trim() ? 1 : 0} Entered`);
-    });
+    const normalizeScanValue = (value = '') => String(value || '').trim().toLowerCase();
 
-    $(document).on('click', '#confirmScanSerialBtn, #saveScanSerialBtn', function() {
-        if (!activeScanSerialRow) return;
-        const value = String($('#scanSerialInput').val() || '').trim();
-        if (activeScanSerialRow.find('.item-serial-input').length) {
-            activeScanSerialRow.find('.item-serial-input').val(value);
-        } else {
-            activeScanSerialRow.find('.item-code').val(value);
+    const escapeScanResultText = (value = '') => $('<div>').text(String(value || '')).html();
+
+    const findItemFromScan = (scanValue = '') => {
+        const normalizedValue = normalizeScanValue(scanValue);
+        if (!normalizedValue) return null;
+
+        const items = getSourceItems();
+        const directItem = items.find((item) => {
+            const candidateValues = [
+                item.item_code,
+                item.code,
+                item.barcode,
+                item.barcode_value,
+                ...(Array.isArray(item.barcodes)
+                    ? item.barcodes.flatMap((barcode) => [barcode?.barcode_value, barcode?.item_code])
+                    : [])
+            ];
+            return candidateValues.some((candidate) => normalizeScanValue(candidate) === normalizedValue);
+        });
+
+        if (directItem) {
+            return directItem;
         }
-        if (this.id === 'saveScanSerialBtn') {
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('scanSerialModal')).hide();
+
+        const barcode = (Array.isArray(window.saleBarcodes) ? window.saleBarcodes : []).find((entry) => {
+            return normalizeScanValue(entry?.barcode_value) === normalizedValue
+                || normalizeScanValue(entry?.item_code) === normalizedValue;
+        });
+
+        if (!barcode) return null;
+
+        return items.find((item) => String(item.id) === String(barcode.item_id || ''))
+            || items.find((item) => normalizeScanValue(item.item_code) === normalizeScanValue(barcode.item_code))
+            || items.find((item) => normalizeScanValue(item.name) === normalizeScanValue(barcode.item_name))
+            || null;
+    };
+
+    const setScanSerialFeedback = (message = '', type = 'error') => {
+        const $feedback = $('#scanSerialModal .scan-serial-feedback');
+        $feedback
+            .text(message)
+            .toggleClass('text-success', type === 'success')
+            .toggleClass('text-danger', type !== 'success');
+    };
+
+    const renderPendingScanSerialEntries = () => {
+        $('.scan-serial-count').text(`${pendingScanSerialEntries.length} Entered`);
+        const html = pendingScanSerialEntries.map((entry, index) => `
+            <div class="scan-serial-result">
+                <div>
+                    <div class="scan-serial-result-name">${escapeScanResultText(entry.item.name || 'Item')}</div>
+                    <div class="scan-serial-result-code">${escapeScanResultText(entry.code)}</div>
+                </div>
+                <button type="button" class="remove-scan-serial-entry" data-index="${index}" title="Remove">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        `).join('');
+        $('#scanSerialModal .scan-serial-results').html(html);
+    };
+
+    const queueScanSerialValue = () => {
+        const $input = $('#scanSerialInput');
+        const value = String($input.val() || '').trim();
+        if (!value) {
+            setScanSerialFeedback('Please enter or scan a code.');
+            $input.trigger('focus');
+            return false;
         }
-    });
+
+        const item = findItemFromScan(value);
+        if (!item) {
+            setScanSerialFeedback(`No item found for "${value}".`);
+            $input.trigger('focus').select();
+            return false;
+        }
+
+        pendingScanSerialEntries.push({
+            code: value,
+            item
+        });
+        renderPendingScanSerialEntries();
+        setScanSerialFeedback(`${item.name || 'Item'} added.`, 'success');
+        $input.val('').trigger('focus');
+        return true;
+    };
+
+    const populateRowFromScannedEntries = ($row, entries) => {
+        if (!$row?.length || !entries.length) return;
+
+        const item = entries[0].item;
+        const itemId = String(item.id || '');
+        const previousItemId = String($row.find('.item-name').val() || '');
+        const previousQty = parseFloat($row.find('.item-qty').val() || 0) || 0;
+
+        $row.find('.item-name').val(itemId).trigger('change');
+        $row.find('.item-qty')
+            .val(previousItemId === itemId ? Math.max(previousQty, entries.length) : entries.length)
+            .trigger('input')
+            .trigger('change');
+        $row.find('.item-serial-input')
+            .val(entries.map((entry) => entry.code).join(', '))
+            .trigger('change');
+        $row.attr('data-scanned-item', 'true');
+    };
+
+    const savePendingScanSerialEntries = () => {
+        const typedValue = String($('#scanSerialInput').val() || '').trim();
+        if (typedValue && !queueScanSerialValue()) {
+            return false;
+        }
+
+        if (!pendingScanSerialEntries.length) {
+            setScanSerialFeedback('Scan at least one item before saving.');
+            $('#scanSerialInput').trigger('focus');
+            return false;
+        }
+
+        const groupedEntries = [];
+        pendingScanSerialEntries.forEach((entry) => {
+            const itemId = String(entry.item.id || '');
+            let group = groupedEntries.find((candidate) => candidate.itemId === itemId);
+            if (!group) {
+                group = { itemId, entries: [] };
+                groupedEntries.push(group);
+            }
+            group.entries.push(entry);
+        });
+
+        groupedEntries.forEach((group, index) => {
+            let $targetRow = index === 0 ? activeScanSerialRow : null;
+            if (!$targetRow?.length) {
+                addRow();
+                $targetRow = $ctx.find('.item-row').last();
+            }
+            populateRowFromScannedEntries($targetRow, group.entries);
+        });
+
+        calculateTotals();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('scanSerialModal')).hide();
+        return true;
+    };
+
+    $(document)
+        .off('click.saleBarcodeScanner', '.open-scan-serial-modal')
+        .on('click.saleBarcodeScanner', '.open-scan-serial-modal', function(e) {
+            e.preventDefault();
+            const $clickedItemRow = $(this).closest('.item-row');
+            activeScanSerialRow = $clickedItemRow.length
+                ? $clickedItemRow
+                : $ctx.find('.item-row').filter(function() {
+                    return !String($(this).find('.item-name').val() || '').trim();
+                }).first();
+            if (!activeScanSerialRow.length) {
+                activeScanSerialRow = $ctx.find('.item-row').first();
+            }
+            pendingScanSerialEntries = [];
+            $('#scanSerialInput').val('');
+            setScanSerialFeedback('');
+            renderPendingScanSerialEntries();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('scanSerialModal')).show();
+        })
+        .off('keydown.saleBarcodeScanner', '#scanSerialInput')
+        .on('keydown.saleBarcodeScanner', '#scanSerialInput', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                queueScanSerialValue();
+            }
+        })
+        .off('input.saleBarcodeScanner', '#scanSerialInput')
+        .on('input.saleBarcodeScanner', '#scanSerialInput', function() {
+            setScanSerialFeedback('');
+        })
+        .off('click.saleBarcodeScanner', '#confirmScanSerialBtn')
+        .on('click.saleBarcodeScanner', '#confirmScanSerialBtn', queueScanSerialValue)
+        .off('click.saleBarcodeScanner', '#saveScanSerialBtn')
+        .on('click.saleBarcodeScanner', '#saveScanSerialBtn', savePendingScanSerialEntries)
+        .off('click.saleBarcodeScanner', '.remove-scan-serial-entry')
+        .on('click.saleBarcodeScanner', '.remove-scan-serial-entry', function() {
+            const index = Number($(this).data('index'));
+            if (Number.isInteger(index) && index >= 0) {
+                pendingScanSerialEntries.splice(index, 1);
+                renderPendingScanSerialEntries();
+                setScanSerialFeedback('');
+            }
+        })
+        .off('shown.bs.modal.saleBarcodeScanner', '#scanSerialModal')
+        .on('shown.bs.modal.saleBarcodeScanner', '#scanSerialModal', function() {
+            $('#scanSerialInput').trigger('focus');
+        })
+        .off('hidden.bs.modal.saleBarcodeScanner', '#scanSerialModal')
+        .on('hidden.bs.modal.saleBarcodeScanner', '#scanSerialModal', function() {
+            pendingScanSerialEntries = [];
+            activeScanSerialRow = null;
+            $('#scanSerialInput').val('');
+            setScanSerialFeedback('');
+            renderPendingScanSerialEntries();
+        });
 
     // Payment entry management
     $ctx.off('click', '.add-payment-entry').on('click', '.add-payment-entry', function(e) {

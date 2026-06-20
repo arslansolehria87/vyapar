@@ -271,8 +271,26 @@
   word-break: break-word;
 }
 
-.custom-table th:last-child,
-.custom-table td:last-child {
+.txn-table thead th[draggable="true"] {
+  cursor: grab;
+  user-select: none;
+}
+
+.txn-table thead th.is-column-dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+
+.txn-table thead th.column-drop-before {
+  box-shadow: inset 3px 0 0 #2563eb;
+}
+
+.txn-table thead th.column-drop-after {
+  box-shadow: inset -3px 0 0 #2563eb;
+}
+
+.custom-table th[data-column-key="actions"],
+.custom-table td[data-column-key="actions"] {
   width: 90px;
 }
 
@@ -484,7 +502,7 @@
       <table class="table align-middle custom-table mb-0 txn-table">
         <thead>
           <tr>
-            <th>
+            <th data-column-key="date">
               <div class="column-filter-header">
                 <span>Date</span>
                 <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -497,7 +515,7 @@
                 </div>
               </div>
             </th>
-            <th>
+            <th data-column-key="invoice">
               <div class="column-filter-header">
                 <span>Invoice no</span>
                 <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -510,7 +528,7 @@
                 </div>
               </div>
             </th>
-            <th>
+            <th data-column-key="party">
               <div class="column-filter-header">
                 <span>Party Name</span>
                 <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -523,7 +541,7 @@
                 </div>
               </div>
             </th>
-            <th>
+            <th data-column-key="transaction">
               <div class="column-filter-header">
                 <span>Transaction</span>
                 <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -536,7 +554,7 @@
                 </div>
               </div>
             </th>
-            <th>
+            <th data-column-key="payment_type">
               <div class="column-filter-header">
                 <span>Payment Type</span>
                 <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -549,7 +567,7 @@
                 </div>
               </div>
             </th>
-            <th>
+            <th data-column-key="amount">
               <div class="column-filter-header">
                 <span>Amount</span>
                 <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -562,7 +580,7 @@
                 </div>
               </div>
             </th>
-            <th>
+            <th data-column-key="received_amount">
               <div class="column-filter-header">
                 <span>Received Amount</span>
                 <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -575,7 +593,7 @@
                 </div>
               </div>
             </th>
-            <th>
+            <th data-column-key="balance">
               <div class="column-filter-header">
                 <span>Balance</span>
                 <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -588,7 +606,7 @@
                 </div>
               </div>
             </th>
-            <th>
+            <th data-column-key="due_date">
               <div class="column-filter-header">
                 <span>Due Date</span>
                 <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -601,7 +619,7 @@
                 </div>
               </div>
             </th>
-            <th>
+            <th data-column-key="status">
               <div class="column-filter-header">
                 <span>Status</span>
                 <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -614,7 +632,7 @@
                 </div>
               </div>
             </th>
-            <th>Actions</th>
+            <th data-column-key="actions">Actions</th>
           </tr>
         </thead>
 
@@ -658,7 +676,7 @@
               </span>
             </td>
 
-            <td class="text-muted">
+            <td class="text-muted" data-column-key="actions">
               <div class="d-flex align-items-center gap-2">
                 <i class="fa-solid fa-print row-action-print" title="Print" style="cursor:pointer;"></i>
                 <i class="fa-solid fa-share row-action-share" title="Share" style="cursor:pointer;"></i>
@@ -898,6 +916,7 @@
         }
 
         const keyword = normalizeText(searchInput?.value || '');
+        const headers = table ? Array.from(table.querySelectorAll('thead th')) : [];
         let visibleCount = 0;
 
         rows.forEach((row) => {
@@ -905,12 +924,13 @@
           const rowText = normalizeText(row.textContent);
 
           const matchesSearch = !keyword || rowText.includes(keyword);
-          const matchesColumns = Object.entries(columnFilters).every(([index, value]) => {
+          const matchesColumns = Object.entries(columnFilters).every(([columnKey, value]) => {
             if (!value) {
               return true;
             }
 
-            const cell = cells[Number(index)];
+            const currentIndex = headers.findIndex((header) => header.dataset.columnKey === columnKey);
+            const cell = currentIndex >= 0 ? cells[currentIndex] : null;
             return normalizeText(cell?.textContent || '').includes(value);
           });
 
@@ -958,11 +978,15 @@
       document.querySelectorAll('.column-filter-apply').forEach((button) => {
         button.addEventListener('click', function (event) {
           event.preventDefault();
-          const columnIndex = this.dataset.columnIndex;
+          const columnKey = this.closest('th')?.dataset.columnKey;
           const dropdown = this.closest('.column-filter-dropdown');
           const input = dropdown?.querySelector('.column-filter-input');
 
-          columnFilters[columnIndex] = normalizeText(input?.value || '');
+          if (!columnKey) {
+            return;
+          }
+
+          columnFilters[columnKey] = normalizeText(input?.value || '');
           dropdown?.classList.remove('show');
           applySalesTableFilters();
         });
@@ -971,19 +995,18 @@
       document.querySelectorAll('.column-filter-input').forEach((input) => {
         input.addEventListener('input', function () {
           const dropdown = this.closest('.column-filter-dropdown');
-          const applyButton = dropdown?.querySelector('.column-filter-apply');
-          const columnIndex = applyButton?.dataset.columnIndex;
+          const columnKey = this.closest('th')?.dataset.columnKey;
 
-          if (columnIndex === undefined) {
+          if (!columnKey) {
             return;
           }
 
           const normalizedValue = normalizeText(this.value || '');
 
           if (normalizedValue) {
-            columnFilters[columnIndex] = normalizedValue;
+            columnFilters[columnKey] = normalizedValue;
           } else {
-            delete columnFilters[columnIndex];
+            delete columnFilters[columnKey];
           }
 
           applySalesTableFilters();
@@ -993,7 +1016,7 @@
       document.querySelectorAll('.column-filter-clear').forEach((button) => {
         button.addEventListener('click', function (event) {
           event.preventDefault();
-          const columnIndex = this.dataset.columnIndex;
+          const columnKey = this.closest('th')?.dataset.columnKey;
           const dropdown = this.closest('.column-filter-dropdown');
           const input = dropdown?.querySelector('.column-filter-input');
 
@@ -1001,7 +1024,9 @@
             input.value = '';
           }
 
-          delete columnFilters[columnIndex];
+          if (columnKey) {
+            delete columnFilters[columnKey];
+          }
           dropdown?.classList.remove('show');
           applySalesTableFilters();
         });
@@ -1141,9 +1166,175 @@
   })();
 </script>
 
+<script>
+  /* Drag and drop column reordering — Sales Table */
+  (function () {
+    var storageKey = 'vyapar.sales.transactions.column-order.v1';
+    var draggedColumnKey = null;
+
+    function getTable() {
+      return document.querySelector('.txn-table');
+    }
+
+    function getHeaders(table) {
+      return Array.from(table.querySelectorAll('thead th[data-column-key]'));
+    }
+
+    function clearDropIndicators(table, clearDraggingState) {
+      getHeaders(table).forEach(function (header) {
+        header.classList.remove('column-drop-before', 'column-drop-after');
+        if (clearDraggingState) {
+          header.classList.remove('is-column-dragging');
+          header.setAttribute('aria-grabbed', 'false');
+        }
+      });
+    }
+
+    function moveColumn(table, sourceIndex, targetIndex, placeAfter) {
+      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return;
+
+      var columnCount = getHeaders(table).length;
+      var rows = table.querySelectorAll('thead tr, tbody tr');
+
+      rows.forEach(function (row) {
+        if (row.children.length !== columnCount) return;
+
+        var sourceCell = row.children[sourceIndex];
+        var targetCell = row.children[targetIndex];
+        if (!sourceCell || !targetCell || sourceCell === targetCell) return;
+
+        if (placeAfter) {
+          targetCell.after(sourceCell);
+        } else {
+          targetCell.before(sourceCell);
+        }
+      });
+    }
+
+    function saveColumnOrder(table) {
+      try {
+        var order = getHeaders(table).map(function (header) {
+          return header.dataset.columnKey;
+        });
+        localStorage.setItem(storageKey, JSON.stringify(order));
+      } catch (error) {
+        // Column dragging still works if browser storage is unavailable.
+      }
+    }
+
+    function restoreColumnOrder(table) {
+      var savedOrder;
+
+      try {
+        savedOrder = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      } catch (error) {
+        return;
+      }
+
+      var currentKeys = getHeaders(table).map(function (header) {
+        return header.dataset.columnKey;
+      });
+
+      var hasValidOrder = Array.isArray(savedOrder)
+        && savedOrder.length === currentKeys.length
+        && savedOrder.every(function (key) { return currentKeys.includes(key); });
+
+      if (!hasValidOrder) return;
+
+      savedOrder.forEach(function (columnKey, desiredIndex) {
+        var headers = getHeaders(table);
+        var currentIndex = headers.findIndex(function (header) {
+          return header.dataset.columnKey === columnKey;
+        });
+
+        if (currentIndex === desiredIndex || currentIndex < 0) return;
+        moveColumn(table, currentIndex, desiredIndex, false);
+      });
+    }
+
+    function isInteractiveDragTarget(target) {
+      return Boolean(target.closest(
+        'button, input, select, textarea, a, .column-filter-dropdown, .col-resize-handle-sales'
+      ));
+    }
+
+    function initColumnDragging() {
+      var table = getTable();
+      if (!table) return;
+
+      restoreColumnOrder(table);
+
+      getHeaders(table).forEach(function (header) {
+        header.draggable = true;
+        header.setAttribute('aria-grabbed', 'false');
+        header.title = 'Drag left or right to reorder this column';
+
+        header.addEventListener('dragstart', function (event) {
+          if (isInteractiveDragTarget(event.target)) {
+            event.preventDefault();
+            return;
+          }
+
+          draggedColumnKey = header.dataset.columnKey;
+          header.classList.add('is-column-dragging');
+          header.setAttribute('aria-grabbed', 'true');
+
+          if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', draggedColumnKey);
+          }
+        });
+
+        header.addEventListener('dragover', function (event) {
+          if (!draggedColumnKey || draggedColumnKey === header.dataset.columnKey) return;
+
+          event.preventDefault();
+          clearDropIndicators(table, false);
+
+          var rect = header.getBoundingClientRect();
+          var placeAfter = event.clientX > rect.left + (rect.width / 2);
+          header.classList.add(placeAfter ? 'column-drop-after' : 'column-drop-before');
+
+          if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = 'move';
+          }
+        });
+
+        header.addEventListener('drop', function (event) {
+          event.preventDefault();
+
+          var sourceKey = draggedColumnKey
+            || (event.dataTransfer ? event.dataTransfer.getData('text/plain') : '');
+          var targetKey = header.dataset.columnKey;
+          var headers = getHeaders(table);
+          var sourceIndex = headers.findIndex(function (item) {
+            return item.dataset.columnKey === sourceKey;
+          });
+          var targetIndex = headers.findIndex(function (item) {
+            return item.dataset.columnKey === targetKey;
+          });
+          var rect = header.getBoundingClientRect();
+          var placeAfter = event.clientX > rect.left + (rect.width / 2);
+
+          moveColumn(table, sourceIndex, targetIndex, placeAfter);
+          saveColumnOrder(table);
+          draggedColumnKey = null;
+          clearDropIndicators(table, true);
+        });
+
+        header.addEventListener('dragend', function () {
+          draggedColumnKey = null;
+          clearDropIndicators(table, true);
+        });
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', initColumnDragging);
+  })();
+</script>
+
 
 
 </body>
 
 </html>
-

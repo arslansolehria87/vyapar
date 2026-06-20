@@ -292,8 +292,14 @@ function saveAddBank() {
     .exp-tab-btn.active { color: #1a1f36; border-bottom-color: #1a1f36; }
     .split-layout { display: flex; flex: 1; overflow: hidden; }
     .split-left { width: 310px; min-width: 310px; background: #fff; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; height: 100%; }
-    .split-left-header { padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e8e8e8; flex-shrink: 0; }
-    .sl-search-icon { color: #555; font-size: 16px; cursor: pointer; background: none; border: none; }
+    .split-left-header { padding: 10px 14px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; justify-content: space-between; border-bottom: 1px solid #e8e8e8; flex-shrink: 0; }
+    .sl-search-icon { color: #555; font-size: 16px; cursor: pointer; background: none; border: none; position: relative; z-index: 2; }
+    .sl-search-icon i { pointer-events: none; }
+    .sl-search-wrap { flex: 0 0 100%; position: relative; display: none; }
+    .sl-search-wrap.open { display: block; }
+    .sl-search-wrap i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #9ca3af; pointer-events: none; }
+    .sl-search-input { width: 100%; height: 36px; border: 1px solid #d1d5db; border-radius: 6px; padding: 7px 10px 7px 32px; font-size: 13px; color: #374151; background: #fff; outline: none; }
+    .sl-search-input:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,.08); }
     .btn-add-expense-red { background: #D4112E; color: #fff; border: none; border-radius: 20px; padding: 7px 14px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; }
     .btn-add-expense-red:hover { background: #b30e26; }
     .btn-add-expense-red .plus-icon { font-size: 16px; font-weight: 300; }
@@ -1755,10 +1761,16 @@ function saveAddBank() {
       <div class="split-layout">
         <div class="split-left">
           <div class="split-left-header">
-            <button class="sl-search-icon"><i class="bi bi-search"></i></button>
+            <button type="button" class="sl-search-icon" id="splitSearchBtn" aria-controls="splitSearchWrap" aria-expanded="false" title="Search">
+              <i class="bi bi-search"></i>
+            </button>
             <button class="btn-add-expense-red" id="splitAddBtn">
               <span class="plus-icon">+</span> Add Expense
             </button>
+            <div class="sl-search-wrap" id="splitSearchWrap">
+              <i class="bi bi-search"></i>
+              <input type="search" class="sl-search-input" id="splitSearchInput" placeholder="Search categories..." autocomplete="off">
+            </div>
           </div>
           <div class="split-left-cols">
             <div class="slc-left">
@@ -1832,10 +1844,13 @@ function saveAddBank() {
             </div>
           </div>
           <div class="detail-table-wrap">
-            <table class="detail-table">
+            <table class="detail-table"
+                   id="expenseCategoryTransactionsTable"
+                   data-column-drag="native"
+                   data-column-drag-storage="vyapar.expense.category-transactions.column-order.v1">
               <thead><tr>
                 {{-- DATE --}}
-                <th>
+                <th data-column-key="date">
                   <span class="th-wrap">
                     DATE
                     <span class="th-sort" onclick="sortDetailTable('date')" id="sort_date">
@@ -1863,7 +1878,7 @@ function saveAddBank() {
                   </span>
                 </th>
                 {{-- EXP NO. --}}
-                <th>
+                <th data-column-key="expense_number">
                   <span class="th-wrap">
                     EXP NO.
                     <span class="th-sort" onclick="sortDetailTable('expNo')" id="sort_expNo">
@@ -1891,7 +1906,7 @@ function saveAddBank() {
                   </span>
                 </th>
                 {{-- PARTY --}}
-                <th>
+                <th data-column-key="party">
                   <span class="th-wrap">
                     PARTY
                     <span class="th-sort" onclick="sortDetailTable('party')" id="sort_party">
@@ -1919,7 +1934,7 @@ function saveAddBank() {
                   </span>
                 </th>
                 {{-- PAYMENT TYPE --}}
-                <th>
+                <th data-column-key="payment_type">
                   <span class="th-wrap">
                     PAYMENT TYPE
                     <span class="th-sort" onclick="sortDetailTable('paymentType')" id="sort_paymentType">
@@ -1946,7 +1961,7 @@ function saveAddBank() {
                   </span>
                 </th>
                 {{-- AMOUNT --}}
-                <th>
+                <th data-column-key="amount">
                   <span class="th-wrap">
                     AMOUNT
                     <span class="th-sort" onclick="sortDetailTable('amount')" id="sort_amount">
@@ -1973,7 +1988,7 @@ function saveAddBank() {
                   </span>
                 </th>
                 {{-- STATUS --}}
-                <th>
+                <th data-column-key="status">
                   <span class="th-wrap">
                     STATUS
                     <span class="th-sort" onclick="sortDetailTable('status')" id="sort_status">
@@ -1983,7 +1998,7 @@ function saveAddBank() {
                   </span>
                 </th>
                 {{-- DUE DATE --}}
-                <th>
+                <th data-column-key="due_date">
                   <span class="th-wrap">
                     DUE DATE
                     <span class="th-sort" onclick="sortDetailTable('dueDate')" id="sort_dueDate">
@@ -1993,7 +2008,7 @@ function saveAddBank() {
                   </span>
                 </th>
                 {{-- BALANCE --}}
-                <th>
+                <th data-column-key="balance">
                   <span class="th-wrap">
                     BALANCE
                     <span class="th-sort" onclick="sortDetailTable('balance')" id="sort_balance">
@@ -2019,7 +2034,7 @@ function saveAddBank() {
                     </div>
                   </span>
                 </th>
-                <th></th>
+                <th data-column-key="actions"></th>
               </tr></thead>
               <tbody id="detailTableBody"></tbody>
             </table>
@@ -2042,9 +2057,12 @@ function saveAddBank() {
             </div>
           </div>
           <div class="detail-table-wrap">
-            <table class="detail-table">
+            <table class="detail-table"
+                   id="expenseItemTransactionsTable"
+                   data-column-drag="native"
+                   data-column-drag-storage="vyapar.expense.item-transactions.column-order.v1">
               <thead><tr>
-                <th>
+                <th data-column-key="date">
                   <span class="th-wrap">
                     DATE
                     <span class="th-sort" onclick="sortItemsTable('date')" id="isort_date"><span class="sa-up" id="isort_date_up">&#9650;</span><span class="sa-dn" id="isort_date_dn">&#9660;</span></span>
@@ -2068,7 +2086,7 @@ function saveAddBank() {
                     </div>
                   </span>
                 </th>
-                <th>
+                <th data-column-key="expense_number">
                   <span class="th-wrap">
                     EXP NO.
                     <span class="th-sort" onclick="sortItemsTable('expNo')" id="isort_expNo"><span class="sa-up" id="isort_expNo_up">&#9650;</span><span class="sa-dn" id="isort_expNo_dn">&#9660;</span></span>
@@ -2092,7 +2110,7 @@ function saveAddBank() {
                     </div>
                   </span>
                 </th>
-                <th>
+                <th data-column-key="party">
                   <span class="th-wrap">
                     PARTY
                     <span class="th-sort" onclick="sortItemsTable('party')" id="isort_party"><span class="sa-up" id="isort_party_up">&#9650;</span><span class="sa-dn" id="isort_party_dn">&#9660;</span></span>
@@ -2116,7 +2134,7 @@ function saveAddBank() {
                     </div>
                   </span>
                 </th>
-                <th>
+                <th data-column-key="payment_type">
                   <span class="th-wrap">
                     PAYMENT TYPE
                     <span class="th-sort" onclick="sortItemsTable('paymentType')" id="isort_paymentType"><span class="sa-up" id="isort_paymentType_up">&#9650;</span><span class="sa-dn" id="isort_paymentType_dn">&#9660;</span></span>
@@ -2139,7 +2157,7 @@ function saveAddBank() {
                     </div>
                   </span>
                 </th>
-                <th>
+                <th data-column-key="amount">
                   <span class="th-wrap">
                     AMOUNT
                     <span class="th-sort" onclick="sortItemsTable('amount')" id="isort_amount"><span class="sa-up" id="isort_amount_up">&#9650;</span><span class="sa-dn" id="isort_amount_dn">&#9660;</span></span>
@@ -2162,19 +2180,19 @@ function saveAddBank() {
                     </div>
                   </span>
                 </th>
-                <th>
+                <th data-column-key="status">
                   <span class="th-wrap">
                     STATUS
                     <span class="th-sort" onclick="sortItemsTable('status')" id="isort_status"><span class="sa-up" id="isort_status_up">&#9650;</span><span class="sa-dn" id="isort_status_dn">&#9660;</span></span>
                   </span>
                 </th>
-                <th>
+                <th data-column-key="due_date">
                   <span class="th-wrap">
                     DUE DATE
                     <span class="th-sort" onclick="sortItemsTable('dueDate')" id="isort_dueDate"><span class="sa-up" id="isort_dueDate_up">&#9650;</span><span class="sa-dn" id="isort_dueDate_dn">&#9660;</span></span>
                   </span>
                 </th>
-                <th>
+                <th data-column-key="balance">
                   <span class="th-wrap">
                     BALANCE
                     <span class="th-sort" onclick="sortItemsTable('balance')" id="isort_balance"><span class="sa-up" id="isort_balance_up">&#9650;</span><span class="sa-dn" id="isort_balance_dn">&#9660;</span></span>
@@ -2197,7 +2215,7 @@ function saveAddBank() {
                     </div>
                   </span>
                 </th>
-                <th></th>
+                <th data-column-key="actions"></th>
               </tr></thead>
               <tbody id="itemsDetailTableBody">
                 <tr><td colspan="7" style="text-align:center;color:#aaa;padding:24px;">No transactions to show</td></tr>
@@ -3882,6 +3900,20 @@ function saveAddBank() {
   }
 
   document.getElementById('emptyAddBtn').addEventListener('click', openExpenseForm);
+  const splitSearchButton = document.getElementById('splitSearchBtn');
+  const splitSearchWrap = document.getElementById('splitSearchWrap');
+  const splitSearchInput = document.getElementById('splitSearchInput');
+
+  splitSearchButton?.addEventListener('click', function () {
+    const isOpen = splitSearchWrap?.classList.toggle('open') || false;
+    this.setAttribute('aria-expanded', String(isOpen));
+
+    if (isOpen) {
+      requestAnimationFrame(() => splitSearchInput?.focus());
+    }
+  });
+
+  splitSearchInput?.addEventListener('input', renderCategoryList);
   document.getElementById('expenseLinkPaymentAutoBtn')?.addEventListener('click', autoAllocateExpenseLinkPayments);
   document.getElementById('expenseLinkPaymentResetBtn')?.addEventListener('click', () => {
     expenseLinkPaymentRows = expenseLinkPaymentRows.map((row) => ({ ...row, selected_amount: 0 }));
@@ -3915,6 +3947,7 @@ function saveAddBank() {
       document.getElementById('fpop_left_name_title').textContent = 'CATEGORY FILTER';
       document.getElementById('fpop_left_name_val').placeholder = 'Search category';
       document.getElementById('fpop_left_amount_title').textContent = 'AMOUNT FILTER';
+      if (splitSearchInput) splitSearchInput.placeholder = 'Search categories...';
       document.getElementById('categoryDetailPanel').style.display = 'flex';
       document.getElementById('itemsDetailPanel').style.display    = 'none';
       renderCategoryList(); renderDetailPanel();
@@ -3924,6 +3957,7 @@ function saveAddBank() {
       document.getElementById('fpop_left_name_title').textContent = 'ITEM FILTER';
       document.getElementById('fpop_left_name_val').placeholder = 'Search item';
       document.getElementById('fpop_left_amount_title').textContent = 'PRICE FILTER';
+      if (splitSearchInput) splitSearchInput.placeholder = 'Search items...';
       document.getElementById('categoryDetailPanel').style.display = 'none';
       document.getElementById('itemsDetailPanel').style.display    = 'flex';
       renderItemsList();
@@ -4102,10 +4136,12 @@ function saveAddBank() {
     const ul = document.getElementById('categoryList');
     ul.innerHTML = '';
     const list = currentTab === 'category' ? categories : expenseItems;
+    const quickSearch = normalizeExpenseFilterText(splitSearchInput?.value || '');
     const filteredList = list.filter(row => {
       const nameValue = currentTab === 'category' ? row.name : row.name;
       const amountValue = currentTab === 'category' ? row.amount : row.price;
-      return matchesExpenseTextFilter(nameValue, 'fpop_left_name') &&
+      return (!quickSearch || normalizeExpenseFilterText(nameValue).includes(quickSearch)) &&
+             matchesExpenseTextFilter(nameValue, 'fpop_left_name') &&
              matchesExpenseNumberFilter(amountValue, 'fpop_left_amount');
     });
 
@@ -4194,7 +4230,7 @@ function saveAddBank() {
   // ═══════════════════════════════════════════════════════
   //  DETAIL PANEL — CATEGORY
   // ═══════════════════════════════════════════════════════
- 
+
   function renderDetailPanel() {
     const c = categories[selectedCatIdx];
     if (!c) {
@@ -4242,15 +4278,15 @@ function saveAddBank() {
         openViewEdit(e.id ?? e.entryId, selectedCatIdx);
       });
       tr.innerHTML = `
-          <td>${escHtml(e.date||'')}</td>
-          <td>${escHtml(e.expNo||'')}</td>
-          <td>${escHtml(e.party||'')}</td>
-          <td>${escHtml(e.paymentType||'')}</td>
-          <td style="font-weight:500;">${parseFloat(e.amount||0).toFixed(2)}</td>
-          <td>${escHtml(formatExpenseStatusLabel(e.status))}</td>
-          <td>${escHtml(formatExpenseDateDisplay(e.dueDate || e.due_date || ''))}</td>
-          <td>${parseFloat(e.balance||0).toFixed(2)}</td>
-          <td style="position:relative; width:40px; text-align:center;">
+          <td data-column-key="date">${escHtml(e.date||'')}</td>
+          <td data-column-key="expense_number">${escHtml(e.expNo||'')}</td>
+          <td data-column-key="party">${escHtml(e.party||'')}</td>
+          <td data-column-key="payment_type">${escHtml(e.paymentType||'')}</td>
+          <td data-column-key="amount" style="font-weight:500;">${parseFloat(e.amount||0).toFixed(2)}</td>
+          <td data-column-key="status">${escHtml(formatExpenseStatusLabel(e.status))}</td>
+          <td data-column-key="due_date">${escHtml(formatExpenseDateDisplay(e.dueDate || e.due_date || ''))}</td>
+          <td data-column-key="balance">${parseFloat(e.balance||0).toFixed(2)}</td>
+          <td data-column-key="actions" style="position:relative; width:40px; text-align:center;">
               <button type="button" class="td-action-btn" data-row-id="${rowKey}" data-entry-id="${e.entryId ?? e.id ?? ''}" onclick="toggleRowMenu(event, '${String(rowKey).replace(/'/g, "\\'")}', this)">
                   <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>
@@ -5109,15 +5145,15 @@ function saveAddBank() {
         openViewEdit(txId, e.catIdx);
       });
       tr.innerHTML = `
-          <td>${escHtml(e.date||'')}</td>
-          <td>${escHtml(e.expNo||'')}</td>
-          <td>${escHtml(e.party||'')}</td>
-          <td>${escHtml(e.paymentType||'')}</td>
-          <td style="font-weight:500;">${parseFloat(e.amount||0).toFixed(2)}</td>
-          <td>${escHtml(formatExpenseStatusLabel(e.status))}</td>
-          <td>${escHtml(formatExpenseDateDisplay(e.dueDate || e.due_date || ''))}</td>
-          <td>${parseFloat(e.balance||0).toFixed(2)}</td>
-          <td style="position:relative; width:40px; text-align:center;">
+          <td data-column-key="date">${escHtml(e.date||'')}</td>
+          <td data-column-key="expense_number">${escHtml(e.expNo||'')}</td>
+          <td data-column-key="party">${escHtml(e.party||'')}</td>
+          <td data-column-key="payment_type">${escHtml(e.paymentType||'')}</td>
+          <td data-column-key="amount" style="font-weight:500;">${parseFloat(e.amount||0).toFixed(2)}</td>
+          <td data-column-key="status">${escHtml(formatExpenseStatusLabel(e.status))}</td>
+          <td data-column-key="due_date">${escHtml(formatExpenseDateDisplay(e.dueDate || e.due_date || ''))}</td>
+          <td data-column-key="balance">${parseFloat(e.balance||0).toFixed(2)}</td>
+          <td data-column-key="actions" style="position:relative; width:40px; text-align:center;">
               <button type="button" class="td-action-btn" data-row-id="${rowKey}" data-entry-id="${e.entryId ?? e.id ?? ''}" onclick="toggleRowMenu(event, '${String(rowKey).replace(/'/g, "\\'")}', this)">
                   <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>
@@ -6096,8 +6132,9 @@ function saveAddBank() {
     }
     return convert(Math.floor(num)) + ' Rupees Only';
   }
-  
+
   </script>
+  <script src="{{ asset('js/transaction-column-drag.js') }}"></script>
 
 </body>
 </html>

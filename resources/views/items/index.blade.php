@@ -201,7 +201,7 @@
     display: flex; flex-direction: column; background: #fff;
 }
 .il-left-toolbar {
-    display: flex; align-items: center; gap: 8px;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
     padding: 12px 14px; border-bottom: 1px solid #f3f4f6; flex-shrink: 0;
 }
 .il-search-btn {
@@ -209,17 +209,23 @@
     border-radius: 6px; background: #fff;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; flex-shrink: 0; transition: border-color .15s;
+    position: relative; z-index: 2; order: 1;
 }
 .il-search-btn:hover { border-color: #93c5fd; }
-.il-search-wrap { flex: 1; position: relative; display: none; }
+.il-search-btn svg { pointer-events: none; }
+.il-search-wrap {
+    flex: 0 0 100%; min-width: 0; position: relative;
+    display: none; order: 4;
+}
 .il-search-wrap.open { display: block; }
 .il-search-input {
-    width: 100%; border: 1.5px solid #2563eb; border-radius: 6px;
+    width: 100%; min-width: 0; height: 36px; border: 1.5px solid #2563eb; border-radius: 6px;
     padding: 7px 10px 7px 30px; font-size: 13px; outline: none; color: #374151;
+    background: #fff; position: relative; z-index: 1;
 }
-.il-search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); }
+.il-search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); z-index: 2; pointer-events: none; }
 
-.il-add-group { display: flex; align-items: center; margin-left: auto; position: relative; }
+.il-add-group { display: flex; align-items: center; margin-left: auto; position: relative; order: 2; }
 .il-add-btn {
     display: inline-flex; align-items: center; gap: 6px;
     background: #f59e0b; color: #fff; border: none;
@@ -253,7 +259,7 @@
     border-radius: 6px; width: 32px; height: 32px;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; color: #6b7280; flex-shrink: 0;
-    transition: border-color .15s; position: relative;
+    transition: border-color .15s; position: relative; order: 3;
 }
 .il-more-btn:hover { border-color: #93c5fd; }
 .il-bulk-dd {
@@ -744,7 +750,7 @@ input:checked + .adj-slider:before { transform: translateX(20px); }
         {{-- LEFT PANEL --}}
         <div class="il-left">
             <div class="il-left-toolbar">
-                <button class="il-search-btn" onclick="toggleSearch()" title="Search">
+                <button type="button" class="il-search-btn" onclick="toggleSearch()" title="Search" aria-controls="search-wrap" aria-expanded="false">
                     <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#6b7280" stroke-width="2"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
                 </button>
                 <div class="il-search-wrap" id="search-wrap">
@@ -1385,8 +1391,16 @@ function shareVia(method) {
 /* ── Search ── */
 function toggleSearch() {
     const w = document.getElementById('search-wrap');
-    w.classList.toggle('open');
-    if (w.classList.contains('open')) document.getElementById('search-input').focus();
+    const toolbar = w?.closest('.il-left-toolbar');
+    const button = toolbar?.querySelector('.il-search-btn');
+    if (!w || !toolbar) return;
+
+    const isOpen = w.classList.toggle('open');
+    button?.setAttribute('aria-expanded', String(isOpen));
+
+    if (isOpen) {
+        requestAnimationFrame(() => document.getElementById('search-input')?.focus());
+    }
 }
 function filterItems() {
     renderList();

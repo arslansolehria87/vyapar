@@ -2520,6 +2520,200 @@ textarea.meta-control,
     font-size: 11px;
     margin-bottom: 3px;
 }
+
+.item-table .open-scan-serial-modal {
+    width: 40px;
+    height: 38px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: #d9eee8;
+    color: #55736d;
+    font-size: 19px;
+    box-shadow: none;
+}
+
+.item-table .open-scan-serial-modal:hover,
+.item-table .open-scan-serial-modal:focus {
+    background: #c6e5dc;
+    color: #315e55;
+    box-shadow: 0 0 0 3px rgba(66, 153, 133, 0.16);
+}
+
+#scanSerialModal .modal-dialog {
+    width: min(600px, calc(100vw - 32px));
+    max-width: 600px;
+    margin: 24px auto;
+}
+
+#scanSerialModal .modal-content {
+    height: min(854px, calc(100vh - 48px));
+    min-height: 560px;
+    overflow: hidden;
+    border: 0;
+    border-radius: 12px;
+    box-shadow: 0 24px 55px rgba(15, 23, 42, 0.3);
+}
+
+#scanSerialModal .modal-header {
+    min-height: 94px;
+    padding: 26px 38px 22px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+#scanSerialModal .modal-title {
+    color: #292d32;
+    font-size: 27px;
+    font-weight: 400;
+}
+
+#scanSerialModal .btn-close {
+    width: 22px;
+    height: 22px;
+    margin: 0;
+    padding: 8px;
+    opacity: 0.58;
+}
+
+#scanSerialModal .modal-body {
+    display: flex;
+    min-height: 0;
+    padding: 24px 38px 12px;
+    flex: 1 1 auto;
+    flex-direction: column;
+}
+
+#scanSerialModal .scan-serial-label-row {
+    margin-bottom: 4px;
+    color: #252525;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+#scanSerialModal .scan-serial-count {
+    color: #252525 !important;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+#scanSerialModal .scan-serial-input-group {
+    height: 60px;
+}
+
+#scanSerialModal #scanSerialInput {
+    border: 0;
+    border-radius: 7px 0 0 7px;
+    background: #f4f4f5;
+    color: #20242a;
+    font-size: 18px;
+    font-weight: 500;
+    box-shadow: none;
+}
+
+#scanSerialModal #scanSerialInput::placeholder {
+    color: #cbd0da;
+}
+
+#scanSerialModal #confirmScanSerialBtn {
+    width: 96px;
+    border: 0;
+    border-radius: 7px;
+    background: #0b7be8;
+    font-size: 27px;
+}
+
+#scanSerialModal .scan-serial-feedback {
+    min-height: 24px;
+    padding-top: 7px;
+    color: #dc3545;
+    font-size: 13px;
+}
+
+#scanSerialModal .scan-serial-results {
+    min-height: 0;
+    padding: 4px 2px 12px;
+    overflow-y: auto;
+    flex: 1 1 auto;
+}
+
+#scanSerialModal .scan-serial-result {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 9px;
+    padding: 12px 14px;
+    border: 1px solid #e4e9f0;
+    border-radius: 8px;
+    background: #fff;
+}
+
+#scanSerialModal .scan-serial-result-name {
+    overflow: hidden;
+    color: #263244;
+    font-size: 14px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#scanSerialModal .scan-serial-result-code {
+    margin-top: 2px;
+    color: #8a94a4;
+    font-size: 12px;
+}
+
+#scanSerialModal .remove-scan-serial-entry {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: #fff1f2;
+    color: #e11d48;
+}
+
+#scanSerialModal .modal-footer {
+    min-height: 110px;
+    padding: 18px 38px 28px;
+    border-top: 0;
+    gap: 18px;
+}
+
+#scanSerialModal .scan-serial-close-btn,
+#scanSerialModal #saveScanSerialBtn {
+    height: 64px;
+    border-radius: 7px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+#scanSerialModal .scan-serial-close-btn {
+    width: 120px;
+    border: 3px solid #e2e5eb;
+    background: #fff;
+    color: #606776;
+}
+
+#scanSerialModal #saveScanSerialBtn {
+    width: 150px;
+    border: 0;
+    background: #0b7be8;
+    box-shadow: 0 5px 10px rgba(11, 123, 232, 0.24);
+}
+
+@media (max-width: 640px) {
+    #scanSerialModal .modal-header,
+    #scanSerialModal .modal-body,
+    #scanSerialModal .modal-footer {
+        padding-left: 22px;
+        padding-right: 22px;
+    }
+
+    #scanSerialModal .modal-title {
+        font-size: 23px;
+    }
+}
     </style>
 
 @php
@@ -2567,6 +2761,19 @@ textarea.meta-control,
         ->unique()
         ->sort()
         ->values();
+
+    $saleBarcodes = collect();
+    if (\Illuminate\Support\Facades\Schema::hasTable('barcodes')) {
+        $saleBarcodes = \App\Models\Barcode::query()
+            ->when(auth()->check(), function ($query) {
+                $query->where(function ($userQuery) {
+                    $userQuery->whereNull('user_id')
+                        ->orWhere('user_id', auth()->id());
+                });
+            })
+            ->latest('id')
+            ->get(['id', 'item_id', 'item_name', 'item_code', 'barcode_value']);
+    }
 @endphp
 
 <body>
@@ -2799,7 +3006,11 @@ textarea.meta-control,
                                 <thead>
                                     <tr>
                                         <th class="row-num">#</th>
-                                        <th class="col-barcode-scan d-none"><i class="fa-solid fa-qrcode"></i></th>
+                                        <th class="col-barcode-scan d-none">
+                                            <button type="button" class="btn btn-sm open-scan-serial-modal open-scan-from-header" title="Scan code/serial">
+                                                <i class="fa-solid fa-barcode"></i>
+                                            </button>
+                                        </th>
                                         <th class="col-item-name">ITEM</th>
                                         <th class="col-serial-no d-none">SERIAL NO.</th>
                                         <th class="col-description d-none">DESCRIPTION</th>
@@ -2859,7 +3070,7 @@ textarea.meta-control,
                                             <div class="delete-row-icon"><i class="fa-solid fa-trash-can"></i></div>
                                         </td>
                                         <td class="col-barcode-scan d-none">
-                                            <button type="button" class="btn btn-sm btn-outline-primary open-scan-serial-modal" title="Scan code/serial"><i class="fa-solid fa-qrcode"></i></button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary open-scan-serial-modal" title="Scan code/serial"><i class="fa-solid fa-barcode"></i></button>
                                         </td>
                                         <td class="col-item-name">
                                             <div class="item-picker">
@@ -3448,24 +3659,26 @@ textarea.meta-control,
     </div>
 
     <div class="modal fade" id="scanSerialModal" tabindex="-1" aria-labelledby="scanSerialModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title" id="scanSerialModalLabel">Scan code/serial</h6>
+                    <h5 class="modal-title" id="scanSerialModalLabel">Scan code/serial</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="scan-serial-label-row d-flex justify-content-between align-items-center">
                         <label class="form-label mb-0">Enter code/serial:</label>
-                        <small class="text-muted scan-serial-count">0 Entered</small>
+                        <span class="scan-serial-count">0 Entered</span>
                     </div>
-                    <div class="input-group">
-                        <input type="text" class="form-control" id="scanSerialInput" placeholder="Enter/scan">
+                    <div class="input-group scan-serial-input-group">
+                        <input type="text" class="form-control" id="scanSerialInput" placeholder="Enter/Scan" autocomplete="off">
                         <button class="btn btn-primary" type="button" id="confirmScanSerialBtn"><i class="fa-solid fa-check"></i></button>
                     </div>
+                    <div class="scan-serial-feedback" role="status" aria-live="polite"></div>
+                    <div class="scan-serial-results" aria-live="polite"></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn scan-serial-close-btn" data-bs-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-primary" id="saveScanSerialBtn">Save</button>
                 </div>
             </div>
@@ -3760,6 +3973,8 @@ textarea.meta-control,
 
 <script>
     window.items = @json(($saleItemsSource ?? collect())->concat($serviceItemsSource ?? collect())->values());
+    window.saleBarcodes = @json($saleBarcodes ?? collect());
+    window.saleBarcodeScannerEnabled = true;
     window.parties = @json($parties ?? []);
     window.brokers = @json($brokers ?? []);
     window.bankAccounts = @json($bankAccounts ?? []);

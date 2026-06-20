@@ -56,18 +56,21 @@
         </div>
 
         <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
+          <table class="table table-hover align-middle mb-0"
+                 id="purchaseOrderTransactionsTable"
+                 data-column-drag="native"
+                 data-column-drag-storage="vyapar.purchase-order.transactions.column-order.v1">
             <thead>
               <tr>
-                <th>Party</th>
-                <th>No.</th>
-                <th>Date</th>
-                <th>Due Date</th>
-                <th class="text-end">Total Amount</th>
-                <th class="text-end">Balance</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Action</th>
+                <th data-column-key="party">Party</th>
+                <th data-column-key="number">No.</th>
+                <th data-column-key="date">Date</th>
+                <th data-column-key="due_date">Due Date</th>
+                <th class="text-end" data-column-key="total">Total Amount</th>
+                <th class="text-end" data-column-key="balance">Balance</th>
+                <th data-column-key="type">Type</th>
+                <th data-column-key="status">Status</th>
+                <th data-column-key="action">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -143,6 +146,6 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="{{ asset('js/components.js') }}?v={{ filemtime(public_path('js/components.js')) }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
+  <script src="{{ asset('js/transaction-column-drag.js') }}"></script>
 </body>
 </html>
-

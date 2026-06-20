@@ -19,13 +19,13 @@
             width: 100%;
             max-width: 100%;
             min-width: 0;
-            min-height: calc(100vh - var(--navbar-height, 50px) - 40px);
             display: flex;
             flex-direction: column;
-            background: #f1f3f5;
+            background: #fff;
             box-sizing: border-box;
-            overflow: hidden;
+            overflow: visible;
             padding: 0;
+            border: 1px solid #e5e7eb;
         }
 
         /* ── Balance Header ── */
@@ -82,13 +82,14 @@
         /* ── Table Wrapper ── */
         .cash-tbl-wrap {
             width: 100%;
-            flex: 1;
+            flex: 0 1 auto;
             overflow-y: auto;
             overflow-x: auto;
             position: relative;
             border: 1px solid #e5e7eb;
             border-top: none;
             min-height: 0;
+            max-height: calc(100vh - 310px);
             max-width: 100%;
             box-sizing: border-box;
             background: #fff;
@@ -283,6 +284,22 @@
             width: 40px;
             text-align: center;
             background-color: #ffffff;
+        }
+
+        .cash-empty-row td {
+            height: 170px;
+            padding: 32px 20px !important;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 14px;
+            white-space: normal;
+        }
+
+        .cash-empty-row i {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 30px;
+            color: #cbd5e1;
         }
 
         /* hover — only when not selected */
@@ -974,7 +991,8 @@
         </div>
 
         <div class="cash-tbl-wrap">
-            <table class="cash-tbl" id="cash-table">
+            <table class="cash-tbl" id="cash-table" data-column-drag="native"
+                data-column-drag-storage="vyapar.accounts.cash-in-hand.transactions.v1">
                 <colgroup>
                     <col style="width: 160px; min-width: 100px;">
                     <col style="width: auto; min-width: 100px;">
@@ -985,7 +1003,7 @@
                 <thead>
                     <tr id="cash-thead-row">
 
-                        <th data-col="type">
+                        <th data-col="type" data-column-key="type">
                             <span class="th-inner" onclick="sortCashCol('type')">
                                 TYPE <i class="th-sort-arrow"></i>
                                 <i class="fa-solid fa-filter th-filter-icon" id="fi-type" onclick="toggleCashColFilter(event,'ccf-type')"></i>
@@ -1006,7 +1024,7 @@
                             </div>
                         </th>
 
-                        <th data-col="name">
+                        <th data-col="name" data-column-key="name">
                             <span class="th-inner" onclick="sortCashCol('name')">
                                 NAME <i class="th-sort-arrow"></i>
                                 <i class="fa-solid fa-filter th-filter-icon" id="fi-name" onclick="toggleCashColFilter(event,'ccf-name')"></i>
@@ -1028,7 +1046,7 @@
                             </div>
                         </th>
 
-                        <th data-col="date">
+                        <th data-col="date" data-column-key="date">
                             <span class="th-inner" onclick="sortCashCol('date')">
                                 DATE <i class="th-sort-arrow"></i>
                                 <i class="fa-solid fa-filter th-filter-icon" id="fi-date" onclick="toggleCashColFilter(event,'ccf-date')"></i>
@@ -1056,7 +1074,7 @@
                             </div>
                         </th>
 
-                        <th data-col="amount" class="th-price-right">
+                        <th data-col="amount" data-column-key="amount" class="th-price-right">
                             <span class="th-inner" onclick="sortCashCol('amount')">
                                 AMOUNT <i class="th-sort-arrow"></i>
                                 <i class="fa-solid fa-filter th-filter-icon" id="fi-amount" onclick="toggleCashColFilter(event,'ccf-amount')"></i>
@@ -1082,7 +1100,7 @@
                             </div>
                         </th>
 
-                        <th data-col="actions">
+                        <th data-col="actions" data-column-key="actions">
                             <span class="th-inner">ACTIONS</span>
                             <div class="col-resize-handle"></div>
                         </th>
@@ -1156,15 +1174,15 @@
 
                     @forelse($allRows as $row)
                     <tr data-type="{{ strtolower($row['type']) }}" data-name="{{ strtolower($row['name']) }}" data-date="{{ $row['date'] }}" data-amount="{{ $row['amount'] }}" data-direction="{{ $row['direction'] ?? '' }}" data-id="{{ $row['id'] }}" data-ref-id="{{ $row['ref_id'] ?? '' }}" data-ref-type="{{ $row['ref_type'] ?? '' }}" onclick="setRowHighlight(this, event)">
-                        <td>
+                        <td data-column-key="type">
                             <span class="type-label">
                                 {{ $row['type'] }}
                             </span>
                         </td>
-                        <td title="{{ $row['name'] }}">{{ $row['name'] }}</td>
-                        <td>{{ $row['date'] }}</td>
-                        <td class="td-price {{ ($row['direction'] ?? '') === 'out' ? 'out' : '' }}">{{ ($row['direction'] ?? '') === 'out' ? '- ' : '' }}Rs {{ number_format($row['amount'], 0) }}</td>
-                        <td class="td-actions">
+                        <td data-column-key="name" title="{{ $row['name'] }}">{{ $row['name'] }}</td>
+                        <td data-column-key="date">{{ $row['date'] }}</td>
+                        <td data-column-key="amount" class="td-price {{ ($row['direction'] ?? '') === 'out' ? 'out' : '' }}">{{ ($row['direction'] ?? '') === 'out' ? '- ' : '' }}Rs {{ number_format($row['amount'], 0) }}</td>
+                        <td data-column-key="actions" class="td-actions">
                             <div class="il-row-menu-wrap">
                                 <button class="il-row-menu-btn" onclick="toggleCashRowMenu(event,'cash-menu-{{ $loop->index }}')" aria-label="Row actions">⋮</button>
                                 <div class="il-row-menu" id="cash-menu-{{ $loop->index }}">
@@ -1185,29 +1203,10 @@
                         </td>
                     </tr>
                     @empty
-                    <tr data-type="sale" data-name="ateeq" data-date="15/05/2026" data-amount="500" data-id="demo-1" data-ref-id="1" data-ref-type="sale" onclick="setRowHighlight(this, event)">
-                        <td><span class="type-label">Sale</span></td>
-                        <td>Ateeq</td>
-                        <td>15/05/2026</td>
-                        <td class="td-price">Rs 500</td>
-                        <td class="td-actions">
-                            <div class="il-row-menu-wrap">
-                                <button class="il-row-menu-btn" onclick="toggleCashRowMenu(event,'cash-menu-0')">⋮</button>
-                                <div class="il-row-menu" id="cash-menu-0">
-                                    <div class="il-row-menu-item" onclick="viewEditRow('1','sale')">
-                                        <i class="fa-regular fa-pen-to-square"></i> View/Edit
-                                    </div>
-                                    <div class="il-row-menu-item danger" onclick="deleteRow('1','sale')">
-                                        <i class="fa-regular fa-trash-can"></i> Delete
-                                    </div>
-                                    <div class="il-row-menu-item" onclick="printRow('1','sale','Sale','Ateeq','15/05/2026','500')">
-                                        <i class="fa-solid fa-print"></i> Print
-                                    </div>
-                                    <div class="il-row-menu-item" onclick="viewHistory('1','sale','Sale')">
-                                        <i class="fa-solid fa-clock-rotate-left"></i> View History
-                                    </div>
-                                </div>
-                            </div>
+                    <tr class="cash-empty-row">
+                        <td colspan="5">
+                            <i class="fa-regular fa-folder-open"></i>
+                            No cash transactions found.
                         </td>
                     </tr>
                     @endforelse
@@ -1236,6 +1235,7 @@
 @endsection
 
 @push('scripts')
+    <script src="{{ asset('js/transaction-column-drag.js') }}"></script>
     <script>
         /* ════════════════════════════════════════
         COLUMN RESIZE ENGINE — improved
@@ -1329,7 +1329,7 @@
             if (th) th.classList.add(cashSortAsc ? 'sort-asc' : 'sort-desc');
 
             var tbody = document.getElementById('cash-tbody');
-            var rows = Array.from(tbody.querySelectorAll('tr'));
+            var rows = Array.from(tbody.querySelectorAll('tr[data-id]'));
             rows.sort(function(a, b) {
                 var av = a.dataset[col] || '';
                 var bv = b.dataset[col] || '';
@@ -1397,7 +1397,7 @@
             var amtVal = document.getElementById('ccf-amount-val') ? parseFloat(document.getElementById('ccf-amount-val').value) : NaN;
             var amtVal2 = document.getElementById('ccf-amount-val2') ? parseFloat(document.getElementById('ccf-amount-val2').value) : NaN;
 
-            var rows = document.querySelectorAll('#cash-tbody tr');
+            var rows = document.querySelectorAll('#cash-tbody tr[data-id]');
             var visibleCount = 0;
 
             rows.forEach(function(row) {
@@ -1776,7 +1776,7 @@
             document.querySelectorAll('#cash-tbody tr.tr-highlight').forEach(function(r) {
                 r.classList.remove('tr-highlight');
             });
-            var first = document.querySelector('#cash-tbody tr:not([style*="display: none"]):not([style*="display:none"])');
+            var first = document.querySelector('#cash-tbody tr[data-id]:not([style*="display: none"]):not([style*="display:none"])');
             if (first) first.classList.add('tr-highlight');
         }
 

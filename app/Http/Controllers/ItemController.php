@@ -6,6 +6,7 @@ use App\Models\Item;
 use App\Models\AppSetting;
 use App\Models\Category;
 use App\Models\ItemUnit;
+use App\Models\TaxRate;
 use Illuminate\Http\Request;
 use App\Models\SaleItem;
 use App\Models\Sale;
@@ -720,12 +721,20 @@ class ItemController extends Controller
                 'min_stock' => $stock->min_stock_level ?? $item->min_stock,
                 'location' => $stock->location ?? $item->location,
                 'bag_weight' => $item->bag_weight,
+                'tax_rate_id' => data_get($item->custom_fields, 'tax_rate_id'),
+                'tax_rate_name' => data_get($item->custom_fields, 'tax_rate_name'),
+                'tax_rate_value' => data_get($item->custom_fields, 'tax_rate_value', 0),
             ];
         })->values();
 
         return response()->json([
             'success' => true,
             'items' => $rows,
+            'tax_rates' => TaxRate::query()
+                ->orderBy('rate')
+                ->orderBy('name')
+                ->get(['id', 'name', 'rate'])
+                ->values(),
         ]);
     }
 
@@ -1152,6 +1161,33 @@ class ItemController extends Controller
                 }
                 if (array_key_exists('location', $fields)) {
                     $item->location = $fields['location'] !== '' ? $fields['location'] : null;
+                }
+                if (
+                    array_key_exists('tax_rate_id', $fields)
+                    || array_key_exists('tax_rate_name', $fields)
+                    || array_key_exists('tax_rate_value', $fields)
+                ) {
+                    $customFields = is_array($item->custom_fields) ? $item->custom_fields : [];
+                    $taxRateId = $fields['tax_rate_id'] ?? null;
+
+                    if ($taxRateId === null || $taxRateId === '') {
+                        unset(
+                            $customFields['tax_rate_id'],
+                            $customFields['tax_rate_name'],
+                            $customFields['tax_rate_value']
+                        );
+                    } else {
+                        $taxRate = TaxRate::query()->find($taxRateId);
+                        if (!$taxRate) {
+                            throw new \InvalidArgumentException('Selected tax slab is not available.');
+                        }
+
+                        $customFields['tax_rate_id'] = $taxRate->id;
+                        $customFields['tax_rate_name'] = $taxRate->name;
+                        $customFields['tax_rate_value'] = (float) $taxRate->rate;
+                    }
+
+                    $item->custom_fields = $customFields;
                 }
 
                 $item->save();

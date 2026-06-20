@@ -1306,7 +1306,8 @@
             <button class="btn-add-entity" id="addLoanBtn" type="button">
                 <i class="fa-solid fa-plus me-1"></i> Add Loan
             </button>
-            <button class="btn-settings" title="Settings">
+            <button class="btn-settings" id="loanSettingsBtn" type="button" title="Settings"
+                data-settings-url="{{ route('settings.general') }}">
                 <i class="fa-solid fa-gear"></i>
             </button>
             <button class="btn-ellipsis" title="More Options">
@@ -1370,7 +1371,10 @@
             <div>
                 <div class="entity-detail-name" id="loanDetailName" style="font-weight: 400;">
                     <span id="loanDetailNameText">{{ optional($loanAccounts->first())->display_name ?? 'Select a loan' }}</span>
-                    <button class="btn-icon" title="Edit" id="loanDetailEditBtn">
+                    <button class="btn-icon" type="button"
+                        title="{{ $loanAccounts->isEmpty() ? 'Add Loan' : 'Edit Loan' }}"
+                        aria-label="{{ $loanAccounts->isEmpty() ? 'Add Loan' : 'Edit Loan' }}"
+                        id="loanDetailEditBtn">
                         <i class="fa-solid fa-pen"></i>
                     </button>
                 </div>
@@ -1426,36 +1430,37 @@
             </div>
 
             <div class="table-responsive">
-                <table class="txn-table" id="loanTable">
+                <table class="txn-table" id="loanTable" data-column-drag="native"
+                    data-column-drag-storage="vyapar.accounts.loan.transactions.v1">
                     <thead>
                         <tr>
-                            <th data-col="type">
+                            <th data-col="type" data-column-key="type">
                                 <span class="loan-th-inner">Type <i class="fa-solid fa-filter loan-filter-icon" data-filter-target="lcf-type"></i></span>
                                 <div class="loan-col-resize-handle" data-col="type"></div>
                             </th>
-                            <th data-col="date">
+                            <th data-col="date" data-column-key="date">
                                 <span class="loan-th-inner">Date <i class="fa-solid fa-filter loan-filter-icon" data-filter-target="lcf-date"></i></span>
                                 <div class="loan-col-resize-handle" data-col="date"></div>
                             </th>
-                            <th data-col="principal">
+                            <th data-col="principal" data-column-key="principal">
                                 <span class="loan-th-inner">Principal <i class="fa-solid fa-filter loan-filter-icon" data-filter-target="lcf-principal"></i></span>
                                 <div class="loan-col-resize-handle" data-col="principal"></div>
                             </th>
 
-                            <th data-col="charges">
+                            <th data-col="charges" data-column-key="charges">
                                 <span class="loan-th-inner">Interest & Other Charges <i class="fa-solid fa-filter loan-filter-icon" data-filter-target="lcf-charges"></i></span>
                                 <div class="loan-col-resize-handle" data-col="charges"></div>
                             </th>
-                            <th data-col="total_amount">
+                            <th data-col="total_amount" data-column-key="total_amount">
                                 <span class="loan-th-inner">Total Amount <i class="fa-solid fa-filter loan-filter-icon" data-filter-target="lcf-total-amount"></i></span>
                                 <div class="loan-col-resize-handle" data-col="total_amount"></div>
                             </th>
-                            <th data-col="loan_received_in">
+                            <th data-col="loan_received_in" data-column-key="loan_received_in">
                                 <span class="loan-th-inner">Bank/Cash <i class="fa-solid fa-filter loan-filter-icon" data-filter-target="lcf-loan-received-in"></i></span>
                                 <div class="loan-col-resize-handle" data-col="loan_received_in"></div>
                             </th>
 
-                            <th data-col="actions">Actions<div class="loan-col-resize-handle" data-col="actions"></div></th>
+                            <th data-col="actions" data-column-key="actions">Actions<div class="loan-col-resize-handle" data-col="actions"></div></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1478,13 +1483,13 @@
                                     };
                                 @endphp
                                 <tr data-loan-id="{{ $loan->id }}" data-transaction-id="{{ $txn->id }}" data-entry-type="{{ $txn->type }}" data-date="{{ optional($txn->transaction_date)->format('Y-m-d') }}" data-amount="{{ $txn->amount }}" data-principal="{{ $principal }}" data-interest="{{ $charges }}" data-bank-account-id="{{ $txn->to_bank_account_id ?? $txn->from_bank_account_id }}" data-details="{{ e(($meta['details'] ?? '') ?: $txn->description) }}">
-                                    <td>{{ $typeLabel }}</td>
-                                    <td>{{ optional($txn->transaction_date)->format('d/m/Y') ?? '-' }}</td>
-                                    <td>Rs {{ number_format($principal, 2) }}</td>
-                                    <td>Rs {{ number_format($charges, 2) }}</td>
-                                    <td>Rs {{ number_format((float) $txn->amount, 2) }}</td>
-                                    <td>{{ $bankName }}</td>
-                                    <td>
+                                    <td data-column-key="type">{{ $typeLabel }}</td>
+                                    <td data-column-key="date">{{ optional($txn->transaction_date)->format('d/m/Y') ?? '-' }}</td>
+                                    <td data-column-key="principal">Rs {{ number_format($principal, 2) }}</td>
+                                    <td data-column-key="charges">Rs {{ number_format($charges, 2) }}</td>
+                                    <td data-column-key="total_amount">Rs {{ number_format((float) $txn->amount, 2) }}</td>
+                                    <td data-column-key="loan_received_in">{{ $bankName }}</td>
+                                    <td data-column-key="actions">
                                         <div class="action-dropdown">
                                             <button type="button" class="action-toggle" aria-label="Actions">
                                                 <i class="fa-solid fa-ellipsis-vertical"></i>
@@ -1763,5 +1768,6 @@
 @endsection
 
 @push('scripts')
+<script src="{{ asset('js/transaction-column-drag.js') }}"></script>
 <script src="{{ asset('js/loan.js') }}"></script>
 @endpush

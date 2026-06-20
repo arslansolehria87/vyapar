@@ -365,7 +365,10 @@
         </div>
       </div>
       <div class="table-wrapper">
-        <table class="custom-table" id="mainTable">
+        <table class="custom-table"
+               id="mainTable"
+               data-column-drag="native"
+               data-column-drag-storage="vyapar.payment-out.transactions.column-order.v1">
           <colgroup>
             <col id="col-date"    style="width:120px">
             <col id="col-ref"     style="width:90px">
@@ -378,35 +381,35 @@
           </colgroup>
           <thead>
             <tr>
-              <th>
+              <th data-column-key="date">
                 <div class="col-header">Date <button class="col-filter-btn" data-col="date" onclick="toggleColFilter(this,'date',event)"><i class="fa-solid fa-filter"></i></button></div>
                 <div class="resizer" data-col="col-date"></div>
               </th>
-              <th>
+              <th data-column-key="reference">
                 <div class="col-header">Ref. No. <button class="col-filter-btn" data-col="refNo" onclick="toggleColFilter(this,'refNo',event)"><i class="fa-solid fa-filter"></i></button></div>
                 <div class="resizer" data-col="col-ref"></div>
               </th>
-              <th>
+              <th data-column-key="party">
                 <div class="col-header">Party Name <button class="col-filter-btn" data-col="party" onclick="toggleColFilter(this,'party',event)"><i class="fa-solid fa-filter"></i></button></div>
                 <div class="resizer" data-col="col-party"></div>
               </th>
-              <th>
+              <th data-column-key="amount">
                 <div class="col-header">Total Amount <button class="col-filter-btn" data-col="amount" onclick="toggleColFilter(this,'amount',event)"><i class="fa-solid fa-filter"></i></button></div>
                 <div class="resizer" data-col="col-total"></div>
               </th>
-              <th>
+              <th data-column-key="paid">
                 <div class="col-header">Paid <button class="col-filter-btn" data-col="paid" onclick="toggleColFilter(this,'paid',event)"><i class="fa-solid fa-filter"></i></button></div>
                 <div class="resizer" data-col="col-paid"></div>
               </th>
-              <th>
+              <th data-column-key="payment_type">
                 <div class="col-header">Payment Type <button class="col-filter-btn" data-col="payType" onclick="toggleColFilter(this,'payType',event)"><i class="fa-solid fa-filter"></i></button></div>
                 <div class="resizer" data-col="col-type"></div>
               </th>
-              <th>
+              <th data-column-key="status">
                 <div class="col-header">Status <button class="col-filter-btn" data-col="status" onclick="toggleColFilter(this,'status',event)"><i class="fa-solid fa-filter"></i></button></div>
                 <div class="resizer" data-col="col-status"></div>
               </th>
-              <th style="text-align:center;">Actions</th>
+              <th style="text-align:center;" data-column-key="actions">Actions</th>
             </tr>
           </thead>
           <tbody id="tableBody">
@@ -1139,14 +1142,14 @@
         const sc = p.status === 'Unused' ? 'badge-status-unused' : 'badge-status-used';
         return `
           <tr data-id="${p.id}">
-            <td>${dateStr}</td>
-            <td><span class="badge-ref">${p.receiptNo}</span></td>
-            <td><span class="party-name">${p.party}</span></td>
-            <td><span class="amount-danger">Rs ${parseFloat(p.amount).toFixed(2)}</span></td>
-            <td><span class="amount-danger">Rs ${parseFloat(p.amount).toFixed(2)}</span></td>
-            <td><span class="badge-payment">${p.payType}</span></td>
-            <td><span class="${sc}">${p.status}</span></td>
-            <td>
+            <td data-column-key="date">${dateStr}</td>
+            <td data-column-key="reference"><span class="badge-ref">${p.receiptNo}</span></td>
+            <td data-column-key="party"><span class="party-name">${p.party}</span></td>
+            <td data-column-key="amount"><span class="amount-danger">Rs ${parseFloat(p.amount).toFixed(2)}</span></td>
+            <td data-column-key="paid"><span class="amount-danger">Rs ${parseFloat(p.amount).toFixed(2)}</span></td>
+            <td data-column-key="payment_type"><span class="badge-payment">${p.payType}</span></td>
+            <td data-column-key="status"><span class="${sc}">${p.status}</span></td>
+            <td data-column-key="actions">
               <div class="row-actions">
             <i class="fa-solid fa-print row-action-icon" title="Print" onclick="openReportOptions('print', ${p.id})"></i>
             <i class="fa-solid fa-share-nodes row-action-icon" title="Share"></i>
@@ -2402,12 +2405,13 @@
       let startX, startW, col;
       resizer.addEventListener('mousedown', function(e) {
         e.preventDefault();
+        e.stopPropagation();
         col = document.getElementById(this.dataset.col);
         startX = e.clientX; startW = col.offsetWidth;
         resizer.classList.add('active');
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup', onUp);
-      });
+      }, true);
       function onMove(e) { col.style.width = Math.max(60, startW+(e.clientX-startX))+'px'; }
       function onUp()    { resizer.classList.remove('active'); document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); }
     });
@@ -2469,5 +2473,6 @@
       });
     });
   </script>
+  <script src="{{ asset('js/transaction-column-drag.js') }}"></script>
 </body>
 </html>

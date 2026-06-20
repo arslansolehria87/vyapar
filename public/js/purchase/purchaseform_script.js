@@ -330,6 +330,44 @@ function initializeForm(context) {
         $ctx.find('.billing-address').val(billing);
     });
 
+    // Item table settings dropdown and column visibility.
+    $ctx.on('click', '.table-settings-btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const $box = $(this).siblings('.settings-box');
+        $ctx.find('.settings-box').not($box).hide();
+        $box.stop(true, true).fadeToggle(150);
+    });
+
+    $ctx.on('click', '.settings-box', function(e) {
+        e.stopPropagation();
+    });
+
+    $ctx.on('click', '.settings-item label', function(e) {
+        e.preventDefault();
+        const $checkbox = $(this).siblings('input[type="checkbox"]').first();
+        $checkbox.prop('checked', !$checkbox.prop('checked')).trigger('change');
+    });
+
+    $(document).on('click', function() {
+        $ctx.find('.settings-box').fadeOut(150);
+    });
+
+    function toggleColumn(className, show) {
+        $ctx.find(`.${className}`).toggleClass('d-none', !show);
+    }
+
+    $ctx.on('change', '.check-category, .check-item-code, .check-description, .check-discount', function() {
+        const columnMap = {
+            'check-category': 'col-category',
+            'check-item-code': 'col-item-code',
+            'check-description': 'col-description',
+            'check-discount': 'col-discount',
+        };
+        const checkboxClass = Object.keys(columnMap).find(className => this.classList.contains(className));
+        if (checkboxClass) toggleColumn(columnMap[checkboxClass], this.checked);
+    });
+
     // Add row functionality
     $ctx.find('.add-row-btn').on('click', function() {
         addRow();
@@ -874,4 +912,3 @@ function initializeForm(context) {
     renderTransportationFields();
     calculateTotals();
 }
-

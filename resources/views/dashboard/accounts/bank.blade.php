@@ -1583,7 +1583,8 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
         <i class="fa-solid fa-plus me-1"></i> Add Bank Account
       </button>
 
-      <button class="btn-settings" title="Settings">
+      <button class="btn-settings" id="bankSettingsBtn" type="button" title="Settings"
+        data-settings-url="{{ route('settings.general') }}">
         <i class="fa-solid fa-gear"></i>
       </button>
 
@@ -1686,8 +1687,8 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
       <div class="detail-panel-header">
         <div>
           <div class="entity-detail-name" id="bankDetailName" style="font-weight: 400;">
-            {{ optional($bankAccounts->first())->display_with_account ?? 'Select a bank account' }}
-            <button class="btn-icon" title="Edit">
+            <span id="bankDetailNameText">{{ optional($bankAccounts->first())->display_with_account ?? 'Select a bank account' }}</span>
+            <button class="btn-icon" type="button" title="Edit" id="bankDetailEditBtn">
               <i class="fa-solid fa-pen"></i>
             </button>
           </div>
@@ -1735,59 +1736,60 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
 
 
         <div class="txn-table-wrap">
-        <table class="txn-table" id="bankTable">
+        <table class="txn-table" id="bankTable" data-column-drag="native"
+          data-column-drag-storage="vyapar.accounts.bank.transactions.v1">
           <thead>
             <tr>
-              <th data-col="type" style="width:130px;">
+              <th data-col="type" data-column-key="type" style="width:130px;">
                 <span class="bank-th-inner" data-sort-col="type">
                   <span class="bank-th-label">Type</span><span class="bank-sort-arrow"></span>
                   <i class="fa-solid fa-filter bank-filter-icon" data-filter-target="bcf-type"></i>
                 </span>
                 <div class="bank-col-resize-handle" data-col="type"></div>
               </th>
-              <th data-col="invoice" style="width:130px;">
+              <th data-col="invoice" data-column-key="invoice" style="width:130px;">
                 <span class="bank-th-inner" data-sort-col="invoice">
                   <span class="bank-th-label">Invoice No</span><span class="bank-sort-arrow"></span>
                   <i class="fa-solid fa-filter bank-filter-icon" data-filter-target="bcf-invoice"></i>
                 </span>
                 <div class="bank-col-resize-handle" data-col="invoice"></div>
               </th>
-              <th data-col="party" style="width:150px;">
+              <th data-col="party" data-column-key="party" style="width:150px;">
                 <span class="bank-th-inner" data-sort-col="party">
                   <span class="bank-th-label">Party</span><span class="bank-sort-arrow"></span>
                   <i class="fa-solid fa-filter bank-filter-icon" data-filter-target="bcf-party"></i>
                 </span>
                 <div class="bank-col-resize-handle" data-col="party"></div>
               </th>
-              <th data-col="bank" style="width:150px;">
+              <th data-col="bank" data-column-key="bank" style="width:150px;">
                 <span class="bank-th-inner" data-sort-col="bank">
                   <span class="bank-th-label">Bank Name</span><span class="bank-sort-arrow"></span>
                   <i class="fa-solid fa-filter bank-filter-icon" data-filter-target="bcf-bank"></i>
                 </span>
                 <div class="bank-col-resize-handle" data-col="bank"></div>
               </th>
-              <th data-col="payment" style="width:140px;">
+              <th data-col="payment" data-column-key="payment" style="width:140px;">
                 <span class="bank-th-inner" data-sort-col="payment">
                   <span class="bank-th-label">Payment Type</span><span class="bank-sort-arrow"></span>
                   <i class="fa-solid fa-filter bank-filter-icon" data-filter-target="bcf-payment"></i>
                 </span>
                 <div class="bank-col-resize-handle" data-col="payment"></div>
               </th>
-              <th data-col="date" style="width:150px;">
+              <th data-col="date" data-column-key="date" style="width:150px;">
                 <span class="bank-th-inner" data-sort-col="date">
                   <span class="bank-th-label">Date</span><span class="bank-sort-arrow"></span>
                   <i class="fa-solid fa-filter bank-filter-icon" data-filter-target="bcf-date"></i>
                 </span>
                 <div class="bank-col-resize-handle" data-col="date"></div>
               </th>
-              <th data-col="amount" style="width:130px;">
+              <th data-col="amount" data-column-key="amount" style="width:130px;">
                 <span class="bank-th-inner" data-sort-col="amount">
                   <span class="bank-th-label">Amount</span><span class="bank-sort-arrow"></span>
                   <i class="fa-solid fa-filter bank-filter-icon" data-filter-target="bcf-amount"></i>
                 </span>
                 <div class="bank-col-resize-handle" data-col="amount"></div>
               </th>
-              <th class="action-cell" data-col="actions" style="width:54px;"></th>
+              <th class="action-cell" data-col="actions" data-column-key="actions" style="width:54px;"></th>
             </tr>
           </thead>
           <tbody>
@@ -1801,14 +1803,14 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
                   data-delete-url="{{ $transaction->delete_url }}"
                   data-history-url="{{ $transaction->history_url }}"
                   data-transaction-label="{{ $transaction->type_label ?? 'transaction' }}">
-                <td>{{ $transaction->type_label ?? '-' }}</td>
-                <td>{{ $transaction->invoice_no ?? '-' }}</td>
-                <td>{{ $transaction->party_name ?? '-' }}</td>
-                <td>{{ $transaction->bank_name ?? '-' }}</td>
-                <td>{{ $transaction->payment_type ?? '-' }}</td>
-                <td>{{ optional($transaction->created_at)->format('d/m/Y') }}</td>
-                <td class="{{ $amountClass }}">₹ {{ number_format($transaction->amount, 2) }}</td>
-                <td class="action-cell">
+                <td data-column-key="type">{{ $transaction->type_label ?? '-' }}</td>
+                <td data-column-key="invoice">{{ $transaction->invoice_no ?? '-' }}</td>
+                <td data-column-key="party">{{ $transaction->party_name ?? '-' }}</td>
+                <td data-column-key="bank">{{ $transaction->bank_name ?? '-' }}</td>
+                <td data-column-key="payment">{{ $transaction->payment_type ?? '-' }}</td>
+                <td data-column-key="date">{{ optional($transaction->created_at)->format('d/m/Y') }}</td>
+                <td data-column-key="amount" class="{{ $amountClass }}">₹ {{ number_format($transaction->amount, 2) }}</td>
+                <td data-column-key="actions" class="action-cell">
                   <div class="action-dropdown">
                     <button type="button" class="action-toggle" title="More Options" aria-label="More Options">
                       <i class="fa-solid fa-ellipsis-vertical"></i>
@@ -2009,6 +2011,7 @@ document.querySelectorAll('.clear-btn').forEach(btn=>{
 @endsection
 
 @push('scripts')
+<script src="{{ asset('js/transaction-column-drag.js') }}"></script>
 <script src="{{ asset('js/bank.js') }}"></script>
 <script>
   document.querySelectorAll('.dropdown-container').forEach(container => {

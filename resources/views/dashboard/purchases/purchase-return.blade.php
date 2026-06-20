@@ -132,10 +132,13 @@
         </div>
 
         <div class="table-responsive small-table">
-          <table class="table table-hover mb-0 align-middle table-clean">
+          <table class="table table-hover mb-0 align-middle table-clean"
+                 id="purchaseReturnTransactionsTable"
+                 data-column-drag="native"
+                 data-column-drag-storage="vyapar.purchase-return.transactions.column-order.v1">
             <thead>
               <tr class="d-flex gap-3">
-                <th class="d-flex">
+                <th class="d-flex" data-column-key="date">
                   <p class="pt-1">Date</p>
                   <div class="dropdown ms-3">
                     <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -165,7 +168,7 @@
                     </ul>
                   </div>
                 </th>
-                <th class="d-flex">
+                <th class="d-flex" data-column-key="reference">
                   <p class="pt-1">Refernece No</p>
                   <div class="dropdown ms-3">
                     <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -195,7 +198,7 @@
                     </ul>
                   </div>
                 </th>
-                <th class="d-flex">
+                <th class="d-flex" data-column-key="party">
                   <p class="pt-1">Party Name</p>
                   <div class="dropdown ms-3">
                     <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -224,7 +227,7 @@
                     </ul>
                   </div>
                 </th>
-                <th class="d-flex">
+                <th class="d-flex" data-column-key="category">
                   <p class="pt-1">Category Name</p>
                   <div class="dropdown ms-3">
                     <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -254,7 +257,7 @@
                     </ul>
                   </div>
                 </th>
-                <th class="d-flex">
+                <th class="d-flex" data-column-key="type">
                   <p class="pt-1">Type</p>
                   <div class="dropdown ms-3">
                     <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -289,7 +292,7 @@
                     </ul>
                   </div>
                 </th>
-                <th class="d-flex">
+                <th class="d-flex" data-column-key="total">
                   <p class="pt-1">Total</p>
                   <div class="dropdown ms-3">
                     <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -320,7 +323,7 @@
                     </ul>
                   </div>
                 </th>
-                <th class="d-flex">
+                <th class="d-flex" data-column-key="received">
                   <p class="pt-1">Received</p>
                   <div class="dropdown ms-3">
                     <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -351,7 +354,7 @@
                     </ul>
                   </div>
                 </th>
-                <th class="d-flex">
+                <th class="d-flex" data-column-key="balance">
                   <p class="pt-1">Balance</p>
                   <div class="dropdown ms-3">
                     <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -384,7 +387,7 @@
                 </th>
 
 
-                <th class="d-flex col-1">
+                <th class="d-flex col-1" data-column-key="print_share">
                   <p class="pt-1">Print / Share</p>
                 </th>
               </tr>
@@ -412,8 +415,8 @@
   <script src="{{ asset('js/components.js') }}?v={{ filemtime(public_path('js/components.js')) }}"></script>
   <script src="{{ asset('js/common.js') }}"></script>
   <script src="{{ asset('js/purchase_return.js') }}"></script>
+  <script src="{{ asset('js/transaction-column-drag.js') }}"></script>
 
 </body>
 
 </html>
-

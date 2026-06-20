@@ -48,6 +48,8 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener("pageshow", clearAutoFilledValues);
 
     const detailName = document.getElementById("bankDetailName");
+    const detailNameText =
+        document.getElementById("bankDetailNameText") || detailName;
     const detailAccountNumber = document.getElementById(
         "bankDetailAccountNumber",
     );
@@ -267,7 +269,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ? Number(item.dataset.openingBalance)
             : 0;
 
-        detailName.textContent = name || "Select a bank account";
+        detailNameText.textContent = name || "Select a bank account";
         detailAccountNumber.textContent = accountNumber || "-";
         detailBankName.textContent = bankName || "-";
         detailOpeningBalance.textContent = `₹ ${openingBalance.toFixed(2)}`;
@@ -289,15 +291,6 @@ document.addEventListener("DOMContentLoaded", () => {
         applyBankTableFilters();
     }
 
-    const bankTableColumns = {
-        type: 0,
-        invoice: 1,
-        party: 2,
-        bank: 3,
-        payment: 4,
-        date: 5,
-        amount: 6,
-    };
     const bankTableFilterState = {};
     let bankTableSortCol = null;
     let bankTableSortAsc = true;
@@ -310,8 +303,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function getBankCellText(row, col) {
-        const index = bankTableColumns[col];
-        return index === undefined
+        const index = Array.from(
+            bankTable?.tHead?.rows?.[0]?.cells || [],
+        ).findIndex((header) => header.dataset.columnKey === col);
+        return index < 0
             ? ""
             : row.cells[index]?.textContent.trim() || "";
     }
@@ -361,7 +356,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const selectedBankId = getSelectedBankId();
         const q = (tableSearch?.value || "").trim().toLowerCase();
         const rowText = Array.from(row.cells)
-            .slice(0, -1)
+            .filter((cell) => cell.dataset.columnKey !== "actions")
             .map((cell) => cell.textContent.trim().toLowerCase())
             .join(" ");
 
@@ -718,7 +713,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (remaining) {
                     selectBankItem(remaining);
                 } else {
-                    detailName.textContent = "Select a bank account";
+                    detailNameText.textContent = "Select a bank account";
                     detailAccountNumber.textContent = "-";
                     detailBankName.textContent = "-";
                     detailOpeningBalance.textContent = "₹ 0.00";
@@ -1197,11 +1192,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Make the detail panel edit icon open the selected bank in edit mode
-    const detailEditButton = document.querySelector(
-        ".entity-detail-name .btn-icon",
-    );
+    const detailEditButton = document.getElementById("bankDetailEditBtn");
     if (detailEditButton) {
-        detailEditButton.addEventListener("click", () => {
+        detailEditButton.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
             const activeItem = document.querySelector("li.active[data-bank]");
             if (!activeItem) return;
             const bankId = activeItem.dataset.bank;
@@ -1443,6 +1438,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     initBankTableFilters();
 
+    const bankSettingsBtn = document.getElementById("bankSettingsBtn");
+    if (bankSettingsBtn) {
+        bankSettingsBtn.addEventListener("click", () => {
+            const settingsUrl = bankSettingsBtn.dataset.settingsUrl;
+            if (settingsUrl) window.location.href = settingsUrl;
+        });
+    }
+
     const focusSearchBtn = document.getElementById("focusSearchBtn");
     if (focusSearchBtn) {
         focusSearchBtn.addEventListener("click", () => {
@@ -1467,12 +1470,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const row = cell.closest("tr");
             if (!row) return;
 
-            const cells = Array.from(row.children);
-            const dateColumnIndex = 5;
-            const clickedIndex = cells.indexOf(cell);
-
             // If clicked outside the date column, clear the date filter
-            if (clickedIndex !== dateColumnIndex) {
+            if (cell.dataset.columnKey !== "date") {
                 if (activeFilterDate) {
                     activeFilterDate = null;
                     applyBankTableFilters();

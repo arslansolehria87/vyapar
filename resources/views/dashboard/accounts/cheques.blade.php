@@ -13,12 +13,12 @@
       width: 100%;
       max-width: 100%;
       min-width: 0;
-      min-height: calc(100vh - var(--navbar-height, 50px) - 40px);
       display: flex;
       flex-direction: column;
       background: #fff;
       box-sizing: border-box;
-      overflow: hidden;
+      overflow: visible;
+      border: 1px solid #e5e7eb;
     }
 
     /* ── Header ── */
@@ -54,7 +54,13 @@
     .txn-search-input.has-value { border-color: #e53e3e !important; background-color: #fff5f5; }
 
     /* ── Table Wrapper ── */
-    .cheque-tbl-wrap { overflow-y: auto; overflow-x: auto; position: relative; border: 1px solid #ebebeb; }
+    .cheque-tbl-wrap {
+      overflow-y: auto;
+      overflow-x: auto;
+      position: relative;
+      max-height: calc(100vh - 300px);
+      border-top: 1px solid #ebebeb;
+    }
     .cheque-tbl-wrap::-webkit-scrollbar { width: 4px; height: 4px; }
     .cheque-tbl-wrap::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
 
@@ -126,6 +132,20 @@
     .cheque-tbl td.td-price { text-align: right; color: #10b981; font-weight: 500; }
     .cheque-tbl th.th-price-right { text-align: right; }
     .cheque-tbl td.td-actions { padding: 2px 4px; width: 40px; text-align: center; background-color: #ffffff; }
+    .cheque-empty-row td {
+      height: 170px;
+      padding: 32px 20px;
+      text-align: center;
+      color: #94a3b8;
+      font-size: 14px;
+      white-space: normal;
+    }
+    .cheque-empty-row i {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 30px;
+      color: #cbd5e1;
+    }
 
     .cheque-tbl tbody tr:not(.tr-highlight):hover td { background-color: #f5fbff; }
     .cheque-tbl tbody tr.tr-highlight td { background-color: #dceefa !important; }
@@ -334,7 +354,8 @@
 
     <!-- ── Table ── -->
     <div class="cheque-tbl-wrap">
-      <table class="cheque-tbl" id="cheque-table">
+      <table class="cheque-tbl" id="cheque-table" data-column-drag="native"
+        data-column-drag-storage="vyapar.accounts.cheques.transactions.v1">
         <colgroup>
           <col style="width:160px; min-width:100px;">
           <col style="width:auto;  min-width:160px;">
@@ -349,7 +370,7 @@
           <tr id="cheque-thead-row">
 
             {{-- TYPE --}}
-            <th data-col="type">
+            <th data-col="type" data-column-key="type">
               <span class="th-inner" onclick="sortChequeCol('type')">
                 TYPE <i class="th-sort-arrow"></i>
                 <i class="fa-solid fa-filter th-filter-icon" id="cfi-type" onclick="toggleChequeColFilter(event,'ccf-type')"></i>
@@ -370,7 +391,7 @@
             </th>
 
             {{-- NAME --}}
-            <th data-col="name">
+            <th data-col="name" data-column-key="name">
               <span class="th-inner" onclick="sortChequeCol('name')">
                 NAME <i class="th-sort-arrow"></i>
                 <i class="fa-solid fa-filter th-filter-icon" id="cfi-name" onclick="toggleChequeColFilter(event,'ccf-name')"></i>
@@ -392,7 +413,7 @@
             </th>
 
             {{-- REF NO --}}
-            <th data-col="ref_no">
+            <th data-col="ref_no" data-column-key="ref_no">
               <span class="th-inner" onclick="sortChequeCol('ref_no')">
                 REF NO. <i class="th-sort-arrow"></i>
                 <i class="fa-solid fa-filter th-filter-icon" id="cfi-ref_no" onclick="toggleChequeColFilter(event,'ccf-refno')"></i>
@@ -409,7 +430,7 @@
             </th>
 
             {{-- TRANSACTION DATE --}}
-            <th data-col="transaction_date">
+            <th data-col="transaction_date" data-column-key="transaction_date">
               <span class="th-inner" onclick="sortChequeCol('transaction_date')">
                 TRANSACTION DATE <i class="th-sort-arrow"></i>
                 <i class="fa-solid fa-filter th-filter-icon" id="cfi-transaction_date" onclick="toggleChequeColFilter(event,'ccf-txdate')"></i>
@@ -437,7 +458,7 @@
             </th>
 
             {{-- CHEQUE DATE --}}
-            <th data-col="cheque_date">
+            <th data-col="cheque_date" data-column-key="cheque_date">
               <span class="th-inner" onclick="sortChequeCol('cheque_date')">
                 CHEQUE DATE <i class="th-sort-arrow"></i>
                 <i class="fa-solid fa-filter th-filter-icon" id="cfi-cheque_date" onclick="toggleChequeColFilter(event,'ccf-chqdate')"></i>
@@ -465,7 +486,7 @@
             </th>
 
             {{-- AMOUNT --}}
-            <th data-col="amount" class="th-price-right">
+            <th data-col="amount" data-column-key="amount" class="th-price-right">
               <span class="th-inner" onclick="sortChequeCol('amount')">
                 AMOUNT <i class="th-sort-arrow"></i>
                 <i class="fa-solid fa-filter th-filter-icon" id="cfi-amount" onclick="toggleChequeColFilter(event,'ccf-amount')"></i>
@@ -491,7 +512,7 @@
             </th>
 
             {{-- STATUS --}}
-            <th data-col="status">
+            <th data-col="status" data-column-key="status">
               <span class="th-inner" onclick="sortChequeCol('status')">
                 STATUS <i class="th-sort-arrow"></i>
                 <i class="fa-solid fa-filter th-filter-icon" id="cfi-status" onclick="toggleChequeColFilter(event,'ccf-status')"></i>
@@ -511,7 +532,7 @@
             </th>
 
             {{-- DOTS --}}
-            <th data-col="actions"></th>
+            <th data-col="actions" data-column-key="actions"></th>
 
           </tr>
         </thead>
@@ -528,27 +549,20 @@
               data-status="{{ $cheque->status }}"
               onclick="setRowHighlight(this, event)"
             >
-              <td><span class="type-label">{{ ucwords(str_replace('_', ' ', $cheque->type)) }}</span></td>
-              <td title="{{ $cheque->name }}">{{ $cheque->name }}</td>
-              <td>{{ $cheque->ref_no ?? '—' }}</td>
-              <td>{{ $cheque->transaction_date ? $cheque->transaction_date->format('d/m/Y') : '—' }}</td>
-              <td>{{ $cheque->cheque_date ? $cheque->cheque_date->format('d/m/Y') : '—' }}</td>
-              <td class="td-price">Rs {{ number_format($cheque->amount, 2) }}</td>
-              <td>
+              <td data-column-key="type"><span class="type-label">{{ ucwords(str_replace('_', ' ', $cheque->type)) }}</span></td>
+              <td data-column-key="name" title="{{ $cheque->name }}">{{ $cheque->name }}</td>
+              <td data-column-key="ref_no">{{ $cheque->ref_no ?? '—' }}</td>
+              <td data-column-key="transaction_date">{{ $cheque->transaction_date ? $cheque->transaction_date->format('d/m/Y') : '—' }}</td>
+              <td data-column-key="cheque_date">{{ $cheque->cheque_date ? $cheque->cheque_date->format('d/m/Y') : '—' }}</td>
+              <td data-column-key="amount" class="td-price">Rs {{ number_format($cheque->amount, 2) }}</td>
+              <td data-column-key="status">
                 @if($cheque->status === 'open')
                   <button class="deposit-link" onclick="markChequeDeposited({{ $cheque->id }}, event)">Open/Deposit</button>
                 @else
                   {{ $cheque->statusBadge() }}
                 @endif
               </td>
-              <td style="display:none;">
-                @if($cheque->status === 'open')
-                  <button class="deposit-link" onclick="openDepositModal({{ $cheque->id }}, '{{ $cheque->name }}', '{{ number_format($cheque->amount,2) }}', event)">Deposit</button>
-                @else
-                  <span style="font-size:13px; color:#94a3b8;">—</span>
-                @endif
-              </td>
-              <td class="td-actions">
+              <td data-column-key="actions" class="td-actions">
                 <div class="il-row-menu-wrap">
                   <button class="il-row-menu-btn" onclick="toggleChequeRowMenu(event,'chq-menu-{{ $loop->index }}')" aria-label="Row actions">⋮</button>
                   <div class="il-row-menu" id="chq-menu-{{ $loop->index }}">
@@ -580,6 +594,12 @@
               </td>
             </tr>
           @empty
+            <tr class="cheque-empty-row">
+              <td colspan="8">
+                <i class="fa-regular fa-folder-open"></i>
+                No cheque transactions found.
+              </td>
+            </tr>
           @endforelse
         </tbody>
       </table>
@@ -704,6 +724,7 @@
 
 @push('scripts')
 
+  <script src="{{ asset('js/transaction-column-drag.js') }}"></script>
   <script>
     /* ═══════════════════════════════════════════
         COLUMN RESIZE ENGINE
@@ -764,7 +785,7 @@
       var th = document.querySelector('#cheque-thead-row th[data-col="'+col+'"]');
       if (th) th.classList.add(chqSortAsc ? 'sort-asc' : 'sort-desc');
       var tbody = document.getElementById('cheque-tbody');
-      var rows = Array.from(tbody.querySelectorAll('tr'));
+      var rows = Array.from(tbody.querySelectorAll('tr[data-id]'));
       rows.sort(function(a, b) {
         var av = a.dataset[col] || ''; var bv = b.dataset[col] || '';
         if (col === 'amount') return chqSortAsc ? parseFloat(av)-parseFloat(bv) : parseFloat(bv)-parseFloat(av);
@@ -830,7 +851,7 @@
       var amtVal  = parseFloat(document.getElementById('ccf-amount-val').value);
       var amtVal2 = parseFloat(document.getElementById('ccf-amount-val2').value);
 
-      var rows = document.querySelectorAll('#cheque-tbody tr');
+      var rows = document.querySelectorAll('#cheque-tbody tr[data-id]');
       var visibleCount = 0;
 
       function matchDate(rowDateStr, op, v1, v2) {
@@ -1111,6 +1132,7 @@
       closeAllMenus();
       var row = document.querySelector('#cheque-tbody tr[data-id="'+id+'"]');
       if (!row) return;
+      var partyCell = row.querySelector('td[data-column-key="name"]');
       var printArea = document.getElementById('print-area'); printArea.style.display='block';
       printArea.innerHTML = `
         <div style="font-family:Arial,sans-serif;padding:30px;max-width:480px;margin:auto;border:1px solid #e5e7eb;border-radius:8px;">
@@ -1119,7 +1141,7 @@
           </div>
           <table style="width:100%;font-size:13px;border-collapse:collapse;">
             <tr><td style="padding:6px 0;color:#64748b;">Type</td><td style="padding:6px 0;font-weight:600;">${row.dataset.type}</td></tr>
-            <tr><td style="padding:6px 0;color:#64748b;">Party</td><td style="padding:6px 0;font-weight:600;">${row.querySelector('td:nth-child(2)').textContent}</td></tr>
+            <tr><td style="padding:6px 0;color:#64748b;">Party</td><td style="padding:6px 0;font-weight:600;">${partyCell ? partyCell.textContent : '—'}</td></tr>
             <tr><td style="padding:6px 0;color:#64748b;">Ref No.</td><td style="padding:6px 0;font-weight:600;">${row.dataset.ref_no||'—'}</td></tr>
             <tr><td style="padding:6px 0;color:#64748b;">Txn Date</td><td style="padding:6px 0;font-weight:600;">${row.dataset.transaction_date||'—'}</td></tr>
             <tr><td style="padding:6px 0;color:#64748b;">Cheque Date</td><td style="padding:6px 0;font-weight:600;">${row.dataset.cheque_date||'—'}</td></tr>
@@ -1170,7 +1192,7 @@
     }
     function highlightFirstVisible() {
       document.querySelectorAll('#cheque-tbody tr.tr-highlight').forEach(function(r){ r.classList.remove('tr-highlight'); });
-      var first = document.querySelector('#cheque-tbody tr:not([style*="display: none"]):not([style*="display:none"])');
+      var first = document.querySelector('#cheque-tbody tr[data-id]:not([style*="display: none"]):not([style*="display:none"])');
       if (first) first.classList.add('tr-highlight');
     }
 
@@ -1186,5 +1208,4 @@
     document.addEventListener('keydown', function(e){ if (e.key==='Escape') { closeAllMenus(); closeHistoryModal(); closeChequeModal(); closeDepositModal(); } });
     document.addEventListener('DOMContentLoaded', function(){ highlightFirstVisible(); });
   </script>
-</body>
-</html>
+@endpush

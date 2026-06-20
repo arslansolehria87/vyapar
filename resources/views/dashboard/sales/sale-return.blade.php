@@ -406,11 +406,14 @@
     $saleReturnTypeFilterOptions = ['Credit Note', 'Debit Note', 'Sale', 'Purchase', 'Payment-In', 'Payment-Out'];
     $saleReturnStatusFilterOptions = ['Paid', 'Partial', 'Unpaid'];
   @endphp
-  <table class="table sale-return-table align-middle mb-0 txn-table">
+  <table class="table sale-return-table align-middle mb-0 txn-table"
+         id="saleReturnTransactionsTable"
+         data-column-drag="native"
+         data-column-drag-storage="vyapar.sale-return.transactions.column-order.v1">
             <thead>
               <tr>
-                <th>#</th>
-                <th>
+                <th data-column-key="row_number">#</th>
+                <th data-column-key="date">
                   <div class="column-filter-header">
                     <span>Date</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -430,7 +433,7 @@
                     </div>
                   </div>
                 </th>
-                <th>
+                <th data-column-key="reference">
                   <div class="column-filter-header">
                     <span>Ref No.</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -443,7 +446,7 @@
                     </div>
                   </div>
                 </th>
-                <th>
+                <th data-column-key="party">
                   <div class="column-filter-header">
                     <span>Party Name</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -456,7 +459,7 @@
                     </div>
                   </div>
                 </th>
-                <th>
+                <th data-column-key="type">
                   <div class="column-filter-header">
                     <span>Type</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -476,7 +479,7 @@
                     </div>
                   </div>
                 </th>
-                <th class="text-end">
+                <th class="text-end" data-column-key="total">
                   <div class="column-filter-header justify-content-end">
                     <button type="button" class="sale-return-sort-btn" data-sort-column="5">
                       <span>Total</span>
@@ -500,7 +503,7 @@
                     </div>
                   </div>
                 </th>
-                <th class="text-end">
+                <th class="text-end" data-column-key="received">
                   <div class="column-filter-header justify-content-end">
                     <span class="me-2">Received/Paid</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -513,7 +516,7 @@
                     </div>
                   </div>
                 </th>
-                <th class="text-end">
+                <th class="text-end" data-column-key="balance">
                   <div class="column-filter-header justify-content-end">
                     <span class="me-2">Balance</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -526,7 +529,7 @@
                     </div>
                   </div>
                 </th>
-                <th>
+                <th data-column-key="status">
                   <div class="column-filter-header">
                     <span>Status</span>
                     <button class="filter-icon-btn" type="button"><i class="fa-solid fa-filter"></i></button>
@@ -546,8 +549,8 @@
                     </div>
                   </div>
                 </th>
-                <th style="width: 110px;">Print / Share</th>
-                <th style="width: 56px;">Action</th>
+                <th style="width: 110px;" data-column-key="print_share">Print / Share</th>
+                <th style="width: 56px;" data-column-key="action">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -758,9 +761,9 @@
     document.addEventListener('DOMContentLoaded', function () {
       const searchInput = document.querySelector('.sale-return-search input');
       const columnFilters = {};
-      const dateFilterColumns = new Set(['1']);
-      const multiSelectFilterColumns = new Set(['4', '8']);
-      const numericFilterColumns = new Set(['5', '6', '7']);
+      const dateFilterColumns = new Set(['date']);
+      const multiSelectFilterColumns = new Set(['type', 'status']);
+      const numericFilterColumns = new Set(['total', 'received', 'balance']);
       const totalSortButton = document.querySelector('.sale-return-sort-btn[data-sort-column="5"]');
       let totalSortDirection = null;
 
@@ -813,46 +816,46 @@
         });
       }
 
-      function setColumnFilter(columnIndex, dropdown) {
+      function setColumnFilter(columnKey, dropdown) {
         const normalizedValue = normalizeText(dropdown?.querySelector('.column-filter-input')?.value || '');
         const operator = dropdown?.querySelector('.column-filter-operator')?.value || 'eq';
 
-        if (dateFilterColumns.has(String(columnIndex))) {
+        if (dateFilterColumns.has(columnKey)) {
           if (normalizedValue) {
-            columnFilters[columnIndex] = { type: 'date', operator, value: normalizedValue };
+            columnFilters[columnKey] = { type: 'date', operator, value: normalizedValue };
           } else {
-            delete columnFilters[columnIndex];
+            delete columnFilters[columnKey];
           }
           return;
         }
 
-        if (multiSelectFilterColumns.has(String(columnIndex))) {
+        if (multiSelectFilterColumns.has(columnKey)) {
           const values = getCheckedValues(dropdown);
           if (values.length) {
-            columnFilters[columnIndex] = { type: 'multi', values };
+            columnFilters[columnKey] = { type: 'multi', values };
           } else {
-            delete columnFilters[columnIndex];
+            delete columnFilters[columnKey];
           }
           return;
         }
 
-        if (numericFilterColumns.has(String(columnIndex))) {
+        if (numericFilterColumns.has(columnKey)) {
           if (normalizedValue) {
-            columnFilters[columnIndex] = {
+            columnFilters[columnKey] = {
               type: 'number',
               operator,
               value: normalizedValue,
             };
           } else {
-            delete columnFilters[columnIndex];
+            delete columnFilters[columnKey];
           }
           return;
         }
 
         if (normalizedValue) {
-          columnFilters[columnIndex] = normalizedValue;
+          columnFilters[columnKey] = normalizedValue;
         } else {
-          delete columnFilters[columnIndex];
+          delete columnFilters[columnKey];
         }
       }
 
@@ -863,52 +866,38 @@
         rows.forEach((row) => {
           if (row.cells.length === 1) return;
 
-          let matchesUniversal = !universalSearchQuery;
-          let matchesColumnFilters = true;
-          const cells = row.querySelectorAll('td');
+          const matchesUniversal = !universalSearchQuery
+            || normalizeText(row.textContent || '').includes(universalSearchQuery);
+          const matchesColumnFilters = Object.entries(columnFilters).every(([columnKey, filterValue]) => {
+            const header = document.querySelector(`.sale-return-table thead th[data-column-key="${columnKey}"]`);
+            const cell = header ? row.cells[header.cellIndex] : null;
+            const cellText = normalizeText(cell?.textContent || '');
 
-          cells.forEach((cell, index) => {
-            const cellText = normalizeText(cell.textContent || cell.innerText);
+            if (!cell) return true;
 
-            if (universalSearchQuery && cellText.includes(universalSearchQuery)) {
-              matchesUniversal = true;
+            if (dateFilterColumns.has(columnKey)) {
+              return matchesDateFilter(cell.textContent || '', filterValue);
             }
 
-            if (columnFilters[index] !== undefined) {
-              const filterValue = columnFilters[index];
-
-              if (dateFilterColumns.has(String(index))) {
-                if (!matchesDateFilter(cell.textContent || cell.innerText, filterValue)) {
-                  matchesColumnFilters = false;
-                }
-              } else if (filterValue && typeof filterValue === 'object' && filterValue.type === 'number') {
-                const cellNumber = parseNumericText(cell.textContent || cell.innerText);
+            if (filterValue && typeof filterValue === 'object' && filterValue.type === 'number') {
+                const cellNumber = parseNumericText(cell.textContent || '');
                 const filterNumber = parseNumericText(filterValue.value);
-                if (cellNumber === null || filterNumber === null) {
-                  matchesColumnFilters = false;
-                } else if (filterValue.operator === 'contains') {
-                  const normalizedCellNumber = normalizeText(cell.textContent || cell.innerText);
-                  if (!normalizedCellNumber.includes(normalizeText(filterValue.value))) {
-                    matchesColumnFilters = false;
-                  }
-                } else if (filterValue.operator === 'gt') {
-                  if (!(cellNumber > filterNumber)) matchesColumnFilters = false;
-                } else if (filterValue.operator === 'lt') {
-                  if (!(cellNumber < filterNumber)) matchesColumnFilters = false;
-                } else if (!(cellNumber === filterNumber)) {
-                  matchesColumnFilters = false;
+                if (cellNumber === null || filterNumber === null) return false;
+                if (filterValue.operator === 'contains') {
+                  return cellText.includes(normalizeText(filterValue.value));
                 }
-              } else if (filterValue && typeof filterValue === 'object' && filterValue.type === 'multi') {
-                const normalizedCell = normalizeOptionValue(cell.textContent || cell.innerText);
-                const selectedValues = (filterValue.values || []).map(normalizeOptionValue);
-                const matched = selectedValues.some((value) => normalizedCell.includes(value));
-                if (!matched) {
-                  matchesColumnFilters = false;
-                }
-              } else if (!cellText.includes(filterValue)) {
-                matchesColumnFilters = false;
-              }
+                if (filterValue.operator === 'gt') return cellNumber > filterNumber;
+                if (filterValue.operator === 'lt') return cellNumber < filterNumber;
+                return cellNumber === filterNumber;
             }
+
+            if (filterValue && typeof filterValue === 'object' && filterValue.type === 'multi') {
+                const normalizedCell = normalizeOptionValue(cell.textContent || '');
+                const selectedValues = (filterValue.values || []).map(normalizeOptionValue);
+                return selectedValues.some((value) => normalizedCell.includes(value));
+            }
+
+            return cellText.includes(filterValue);
           });
 
           row.style.display = (matchesUniversal && matchesColumnFilters) ? '' : 'none';
@@ -921,10 +910,12 @@
         const tbody = document.querySelector('.txn-table tbody');
         if (!tbody) return;
 
+        const totalHeader = document.querySelector('.sale-return-table thead th[data-column-key="total"]');
+        const totalColumnIndex = totalHeader?.cellIndex ?? -1;
         const rows = Array.from(tbody.querySelectorAll('tr')).filter((row) => row.cells.length > 1);
         rows.sort((a, b) => {
-          const aValue = parseNumericText(a.cells[5]?.textContent || '');
-          const bValue = parseNumericText(b.cells[5]?.textContent || '');
+          const aValue = parseNumericText(a.cells[totalColumnIndex]?.textContent || '');
+          const bValue = parseNumericText(b.cells[totalColumnIndex]?.textContent || '');
           const aNum = aValue === null ? 0 : aValue;
           const bNum = bValue === null ? 0 : bValue;
           return totalSortDirection === 'asc' ? aNum - bNum : bNum - aNum;
@@ -966,8 +957,8 @@
           }
 
           const currentFilterButton = dropdown.querySelector('.column-filter-apply');
-          const columnIndex = currentFilterButton?.dataset.columnIndex;
-          const currentValue = columnFilters[columnIndex];
+          const columnKey = currentFilterButton?.closest('th')?.dataset.columnKey;
+          const currentValue = columnFilters[columnKey];
           const input = dropdown.querySelector('.column-filter-input');
           const operatorSelect = dropdown.querySelector('.column-filter-operator');
 
@@ -998,10 +989,10 @@
       document.querySelectorAll('.column-filter-apply').forEach((button) => {
         button.addEventListener('click', function (event) {
           event.preventDefault();
-          const columnIndex = this.dataset.columnIndex;
+          const columnKey = this.closest('th')?.dataset.columnKey;
           const dropdown = this.closest('.column-filter-dropdown');
-          const input = dropdown?.querySelector('.column-filter-input');
-          setColumnFilter(columnIndex, dropdown);
+          if (!columnKey) return;
+          setColumnFilter(columnKey, dropdown);
 
           dropdown?.classList.remove('show');
           applySaleReturnTableFilters();
@@ -1012,10 +1003,10 @@
         input.addEventListener('input', function () {
           const dropdown = this.closest('.column-filter-dropdown');
           const applyButton = dropdown?.querySelector('.column-filter-apply');
-          const columnIndex = applyButton?.dataset.columnIndex;
+          const columnKey = applyButton?.closest('th')?.dataset.columnKey;
 
-          if (columnIndex === undefined) return;
-          setColumnFilter(columnIndex, dropdown);
+          if (!columnKey) return;
+          setColumnFilter(columnKey, dropdown);
 
           applySaleReturnTableFilters();
         });
@@ -1025,17 +1016,17 @@
         select.addEventListener('change', function () {
           const dropdown = this.closest('.column-filter-dropdown');
           const applyButton = dropdown?.querySelector('.column-filter-apply');
-          const columnIndex = applyButton?.dataset.columnIndex;
+          const columnKey = applyButton?.closest('th')?.dataset.columnKey;
           const input = dropdown?.querySelector('.column-filter-input');
 
-          if (!dateFilterColumns.has(String(columnIndex)) && !numericFilterColumns.has(String(columnIndex))) return;
+          if (!dateFilterColumns.has(columnKey) && !numericFilterColumns.has(columnKey)) return;
 
           const normalizedValue = normalizeText(input?.value || '');
-          const type = dateFilterColumns.has(String(columnIndex)) ? 'date' : 'number';
+          const type = dateFilterColumns.has(columnKey) ? 'date' : 'number';
           if (normalizedValue) {
-            columnFilters[columnIndex] = { type, operator: this.value || 'eq', value: normalizedValue };
+            columnFilters[columnKey] = { type, operator: this.value || 'eq', value: normalizedValue };
           } else {
-            delete columnFilters[columnIndex];
+            delete columnFilters[columnKey];
           }
           applySaleReturnTableFilters();
         });
@@ -1044,7 +1035,7 @@
       document.querySelectorAll('.column-filter-clear').forEach((button) => {
         button.addEventListener('click', function (event) {
           event.preventDefault();
-          const columnIndex = this.dataset.columnIndex;
+          const columnKey = this.closest('th')?.dataset.columnKey;
           const dropdown = this.closest('.column-filter-dropdown');
           const input = dropdown?.querySelector('.column-filter-input');
           const operator = dropdown?.querySelector('.column-filter-operator');
@@ -1054,7 +1045,7 @@
           dropdown?.querySelectorAll('.column-filter-checkbox').forEach((checkbox) => {
             checkbox.checked = false;
           });
-          delete columnFilters[columnIndex];
+          if (columnKey) delete columnFilters[columnKey];
           dropdown?.classList.remove('show');
           applySaleReturnTableFilters();
         });
@@ -1115,8 +1106,8 @@
     });
     initResizeHandles();
   })();
-</script>
+  </script>
+  <script src="{{ asset('js/transaction-column-drag.js') }}"></script>
 </body>
 
 </html>
-
