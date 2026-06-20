@@ -22,16 +22,18 @@ class PerfomaController extends Controller
     public function proformaInvoice(Request $request)
     {
         $search = trim((string) $request->get('search', ''));
-        $dateRange = $request->get('date_range', 'all');
+        $dateRange = $request->get('date_range', 'custom');
         $partyId = $request->get('party_id', 'all');
-        $dateRangeLabel = $this->formatProformaDateRangeText($dateRange);
+        $fromDate = $request->get('from_date');
+        $toDate = $request->get('to_date');
+        $dateRangeLabel = $this->formatProformaDateRangeText($dateRange, $fromDate, $toDate);
 
         $baseQuery = Sale::with(['items', 'payments', 'party'])
             ->where('type', 'proforma')
             ->orderByDesc('created_at');
 
         if ($dateRange !== 'all') {
-            $range = $this->resolveProformaDateRange($dateRange);
+            $range = $this->resolveProformaDateRange($dateRange, $fromDate, $toDate);
             if ($range) {
                 $baseQuery->whereBetween('invoice_date', [$range['from']->toDateString(), $range['to']->toDateString()]);
             }
@@ -75,6 +77,8 @@ class PerfomaController extends Controller
             'search',
             'dateRange',
             'dateRangeLabel',
+            'fromDate',
+            'toDate',
             'partyId',
             'partyOptions',
             'convertedSales',
@@ -83,11 +87,24 @@ class PerfomaController extends Controller
         ));
     }
 
-    private function resolveProformaDateRange(string $dateRange): ?array
+    private function resolveProformaDateRange(string $dateRange, ?string $fromDate = null, ?string $toDate = null): ?array
     {
         $today = Carbon::today();
 
         switch ($dateRange) {
+            case 'custom':
+                try {
+                    $from = $fromDate ? Carbon::parse($fromDate)->startOfDay() : $today->copy()->startOfMonth();
+                    $to = $toDate ? Carbon::parse($toDate)->endOfDay() : $today->copy()->endOfMonth();
+                } catch (\Throwable $exception) {
+                    return null;
+                }
+
+                if ($from->gt($to)) {
+                    [$from, $to] = [$to, $from];
+                }
+
+                return ['from' => $from, 'to' => $to];
             case 'this_month':
                 return ['from' => $today->copy()->startOfMonth(), 'to' => $today->copy()->endOfMonth()];
             case 'last_month':
@@ -102,9 +119,9 @@ class PerfomaController extends Controller
         }
     }
 
-    private function formatProformaDateRangeText(string $dateRange): string
+    private function formatProformaDateRangeText(string $dateRange, ?string $fromDate = null, ?string $toDate = null): string
     {
-        $range = $this->resolveProformaDateRange($dateRange);
+        $range = $this->resolveProformaDateRange($dateRange, $fromDate, $toDate);
         if (! $range) {
             return 'All dates';
         }

@@ -85,13 +85,225 @@
   .proforma-action-menu .dropdown-divider {
     margin: 0.35rem 0;
   }
- 
+  .proforma-filter-row {
+    border-top: 3px solid #d3dee8;
+    border-bottom: 1px solid #d6e1eb;
+    background: #fff;
+    min-height: 102px;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+  .proforma-filter-label {
+    color: #1f2937;
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .proforma-filter-form {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .proforma-filter-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 54px;
+    padding: 0 20px;
+    border: 0;
+    border-radius: 999px;
+    background: #e5f3ff;
+    color: #17233c;
+    font-size: 18px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .proforma-period-pill {
+    width: 134px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-right: 1px solid #c4d4e1;
+    padding-left: 19px;
+    padding-right: 16px;
+  }
+  .proforma-date-pill {
+    width: 312px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    gap: 12px;
+    margin-left: -18px;
+    padding-left: 23px;
+    justify-content: flex-start;
+  }
+  .proforma-filter-select {
+    appearance: none;
+    -webkit-appearance: none;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    padding-right: 24px;
+  }
+  .proforma-select-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  .proforma-select-wrap::after {
+    content: "\f107";
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    font-size: 13px;
+    pointer-events: none;
+  }
+  .proforma-date-picker {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .proforma-date-trigger {
+    border: 0;
+    background: #e5f3ff;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+  .proforma-firm-pill {
+    width: 142px;
+    justify-content: center;
+  }
+  .proforma-date-popover {
+    position: fixed;
+    z-index: 1080;
+    width: 300px;
+    background: #fff;
+    border: 1px solid #d9dde7;
+    border-radius: 9px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.24);
+    color: #3e4254;
+    overflow: hidden;
+  }
+  .proforma-date-popover.d-none {
+    display: none;
+  }
+  .proforma-date-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 12px 16px 14px;
+    border-bottom: 1px solid #e4e7ef;
+  }
+  .proforma-date-field label {
+    display: block;
+    margin-bottom: 5px;
+    color: #737994;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .proforma-date-field input {
+    width: 100%;
+    height: 38px;
+    border: 1px solid #dce2ec;
+    border-radius: 8px;
+    color: #202944;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 0 14px;
+    outline: none;
+  }
+  .proforma-date-field input::placeholder {
+    color: #959ab5;
+    opacity: 1;
+  }
+  .proforma-calendar {
+    padding: 13px 16px 15px;
+  }
+  .proforma-calendar-nav {
+    display: grid;
+    grid-template-columns: 32px 1fr 32px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .proforma-calendar-nav button {
+    border: 0;
+    background: transparent;
+    color: #0876e6;
+    font-size: 18px;
+    line-height: 1;
+    padding: 4px;
+  }
+  .proforma-calendar-month {
+    justify-self: center;
+    min-width: 128px;
+    height: 30px;
+    border: 1px solid #dce2ec;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #34384b;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .proforma-calendar-weekdays,
+  .proforma-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+  }
+  .proforma-calendar-weekdays span {
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #3d4153;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .proforma-calendar-day {
+    height: 31px;
+    border: 0;
+    background: transparent;
+    color: #3e4254;
+    font-size: 16px;
+    font-weight: 500;
+  }
+  .proforma-calendar-day.muted {
+    color: #b2b6c8;
+  }
+  .proforma-calendar-day.in-range {
+    background: #e1f0ff;
+  }
+  .proforma-calendar-day.selected span,
+  .proforma-calendar-day.today span {
+    width: 29px;
+    height: 29px;
+    border-radius: 999px;
+    background: #0876e6;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .proforma-calendar-day.today:not(.selected) span {
+    border-radius: 0;
+  }
+
 
 
   @media (max-width: 991px) {
     .table-wrapper { max-height: none; border-radius: 8px; }
     .custom-table thead th { font-size: 11px; padding: 8px 6px; }
     .custom-table tbody td { font-size: 12px; padding: 10px 6px; }
+    .proforma-filter-row { min-height: auto; }
+    .proforma-filter-label { font-size: 16px; }
+    .proforma-filter-pill { min-height: 44px; font-size: 14px; }
   }
 
   @media (max-width: 575px) {
@@ -154,31 +366,72 @@
         </button>
       </div>
 
-      <div class="d-flex justify-content-between align-items-center bg-light mb-2 px-4 py-2 rounded">
-        <div class="d-flex">
-          <div class="d-flex justify-content-center align-items-center me-2">Filter By:</div>
-          <form method="GET" action="{{ route('proforma-invoice') }}" class="d-flex rounded-pill" style="background-color:#E4F2FF;">
-            <input type="hidden" name="search" value="{{ $search ?? '' }}">
-            <div class="d-flex justify-content-center align-items-center text-center" style="width: 8rem; height:40px; border-right: 1px solid rgb(45, 44, 44); font-size:12px;">
-              <select name="date_range" class="bg-transparent border-0" style="outline:none;" onchange="this.form.submit()">
-                <option value="all" {{ ($dateRange ?? 'all') === 'all' ? 'selected' : '' }}>All Proformas</option>
-                <option value="this_month" {{ ($dateRange ?? 'all') === 'this_month' ? 'selected' : '' }}>This Month</option>
-                <option value="last_month" {{ ($dateRange ?? 'all') === 'last_month' ? 'selected' : '' }}>Last Month</option>
-                <option value="this_quarter" {{ ($dateRange ?? 'all') === 'this_quarter' ? 'selected' : '' }}>This Quarter</option>
-                <option value="this_year" {{ ($dateRange ?? 'all') === 'this_year' ? 'selected' : '' }}>This Year</option>
+      @php
+        $selectedDateRange = $dateRange ?? 'custom';
+        $customFromDate = $fromDate ?: now()->startOfMonth()->toDateString();
+        $customToDate = $toDate ?: now()->endOfMonth()->toDateString();
+      @endphp
+      <div class="proforma-filter-row d-flex align-items-center mb-2 px-4 py-3">
+        <form method="GET" action="{{ route('proforma-invoice') }}" class="proforma-filter-form">
+          <input type="hidden" name="search" value="{{ $search ?? '' }}">
+          <input type="hidden" name="from_date" id="proformaFromDate" value="{{ $customFromDate }}">
+          <input type="hidden" name="to_date" id="proformaToDate" value="{{ $customToDate }}">
+
+          <span class="proforma-filter-label">Filter by :</span>
+
+          <div class="proforma-filter-pill proforma-period-pill">
+            <span class="proforma-select-wrap">
+              <select name="date_range" class="proforma-filter-select" onchange="this.form.submit()">
+                <option value="all" {{ $selectedDateRange === 'all' ? 'selected' : '' }}>All Proformas</option>
+                <option value="this_month" {{ $selectedDateRange === 'this_month' ? 'selected' : '' }}>This Month</option>
+                <option value="last_month" {{ $selectedDateRange === 'last_month' ? 'selected' : '' }}>Last Month</option>
+                <option value="this_quarter" {{ $selectedDateRange === 'this_quarter' ? 'selected' : '' }}>This Quarter</option>
+                <option value="this_year" {{ $selectedDateRange === 'this_year' ? 'selected' : '' }}>This Year</option>
+                <option value="custom" {{ $selectedDateRange === 'custom' ? 'selected' : '' }}>Custom</option>
               </select>
+            </span>
+          </div>
+
+          <button type="button" class="proforma-filter-pill proforma-date-pill proforma-date-trigger" id="proformaDateTrigger">
+            <i class="fa-regular fa-calendar-days"></i>
+            <span id="proformaDateRangeText">{{ $dateRangeLabel ?? 'All dates' }}</span>
+          </button>
+
+          <div class="proforma-date-popover d-none" id="proformaDatePopover" aria-hidden="true">
+            <div class="proforma-date-fields">
+              <div class="proforma-date-field">
+                <label for="proformaFromDisplay">From</label>
+                <input type="text" id="proformaFromDisplay" placeholder="From Date" readonly>
+              </div>
+              <div class="proforma-date-field">
+                <label for="proformaToDisplay">To</label>
+                <input type="text" id="proformaToDisplay" placeholder="To Date" readonly>
+              </div>
             </div>
-            <div class="d-flex justify-content-center align-items-center text-center" style="width: 10rem; height:40px; border-right: 1px solid rgb(45, 44, 44); font-size:12px;">
-              <select name="party_id" class="bg-transparent border-0" style="outline:none;" onchange="this.form.submit()">
+            <div class="proforma-calendar">
+              <div class="proforma-calendar-nav">
+                <button type="button" id="proformaCalendarPrev" aria-label="Previous month"><i class="fa-solid fa-caret-left"></i></button>
+                <div class="proforma-calendar-month" id="proformaCalendarMonth"></div>
+                <button type="button" id="proformaCalendarNext" aria-label="Next month"><i class="fa-solid fa-caret-right"></i></button>
+              </div>
+              <div class="proforma-calendar-weekdays">
+                <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+              </div>
+              <div class="proforma-calendar-grid" id="proformaCalendarGrid"></div>
+            </div>
+          </div>
+
+          <div class="proforma-filter-pill proforma-firm-pill">
+            <span class="proforma-select-wrap">
+              <select name="party_id" class="proforma-filter-select" onchange="this.form.submit()">
                 <option value="all" {{ ($partyId ?? 'all') === 'all' ? 'selected' : '' }}>All Firms</option>
                 @foreach($partyOptions ?? [] as $party)
                   <option value="{{ $party->id }}" {{ ($partyId ?? 'all') == $party->id ? 'selected' : '' }}>{{ $party->name }}</option>
                 @endforeach
               </select>
-            </div>
-            <div class="d-flex justify-content-center align-items-center" style="width: 14rem; height: 40px;">{{ $dateRangeLabel ?? 'All dates' }}</div>
-          </form>
-        </div>
+            </span>
+          </div>
+        </form>
       </div>
 
       <div class="bg-light mb-2 px-4 py-3 rounded">
@@ -316,14 +569,7 @@
                   </tr>
                 @empty
                   <tr>
-                    <td class="text-center text-muted py-4">No proforma invoices yet.</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
+                    <td colspan="7" class="text-center text-muted py-4">No proforma invoices yet.</td>
                   </tr>
                 @endforelse
               </tbody>
@@ -426,6 +672,163 @@
       const proformaSearchToggle = document.getElementById('proformaSearchToggle');
       const proformaSearchForm = document.getElementById('proformaSearchForm');
       const proformaSearchInput = document.getElementById('proformaSearchInput');
+      const proformaFilterForm = document.querySelector('.proforma-filter-form');
+      const proformaDateRangeSelect = proformaFilterForm?.querySelector('select[name="date_range"]');
+      const proformaFromDate = document.getElementById('proformaFromDate');
+      const proformaToDate = document.getElementById('proformaToDate');
+      const proformaDateTrigger = document.getElementById('proformaDateTrigger');
+      const proformaDatePopover = document.getElementById('proformaDatePopover');
+      const proformaFromDisplay = document.getElementById('proformaFromDisplay');
+      const proformaToDisplay = document.getElementById('proformaToDisplay');
+      const proformaCalendarMonth = document.getElementById('proformaCalendarMonth');
+      const proformaCalendarGrid = document.getElementById('proformaCalendarGrid');
+      const proformaCalendarPrev = document.getElementById('proformaCalendarPrev');
+      const proformaCalendarNext = document.getElementById('proformaCalendarNext');
+      const proformaMonthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      let proformaSelectedFrom = parseProformaDate(proformaFromDate?.value);
+      let proformaSelectedTo = parseProformaDate(proformaToDate?.value);
+      let proformaCalendarView = proformaSelectedFrom
+        ? new Date(proformaSelectedFrom.getFullYear(), proformaSelectedFrom.getMonth(), 1)
+        : new Date();
+
+      function parseProformaDate(value) {
+        const parts = String(value || '').split('-').map(Number);
+        if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+      }
+
+      function formatProformaDateInput(date) {
+        if (!date) return '';
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      }
+
+      function formatProformaDateDisplay(date) {
+        if (!date) return '';
+        const dd = String(date.getDate()).padStart(2, '0');
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        return `${dd}/${mm}/${date.getFullYear()}`;
+      }
+
+      function sameProformaDay(a, b) {
+        return !!a && !!b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+      }
+
+      function isProformaInRange(date) {
+        if (!proformaSelectedFrom || !proformaSelectedTo) return false;
+        const time = date.getTime();
+        return time >= proformaSelectedFrom.getTime() && time <= proformaSelectedTo.getTime();
+      }
+
+      function syncProformaDateFields(showValues = false) {
+        if (proformaFromDate) proformaFromDate.value = formatProformaDateInput(proformaSelectedFrom);
+        if (proformaToDate) proformaToDate.value = formatProformaDateInput(proformaSelectedTo);
+        if (proformaFromDisplay) proformaFromDisplay.value = showValues ? formatProformaDateDisplay(proformaSelectedFrom) : '';
+        if (proformaToDisplay) proformaToDisplay.value = showValues ? formatProformaDateDisplay(proformaSelectedTo) : '';
+      }
+
+      function renderProformaCalendar() {
+        if (!proformaCalendarMonth || !proformaCalendarGrid) return;
+        const year = proformaCalendarView.getFullYear();
+        const month = proformaCalendarView.getMonth();
+        const today = new Date();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const gridStart = new Date(year, month, 1 - firstDay.getDay());
+        const totalCells = firstDay.getDay() + lastDay.getDate() > 35 ? 42 : 35;
+
+        proformaCalendarMonth.textContent = `${proformaMonthNames[month]} ${year}`;
+        proformaCalendarGrid.innerHTML = '';
+
+        for (let index = 0; index < totalCells; index += 1) {
+          const date = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + index);
+          const button = document.createElement('button');
+          const day = document.createElement('span');
+          button.type = 'button';
+          button.className = 'proforma-calendar-day';
+          if (date.getMonth() !== month) button.classList.add('muted');
+          if (isProformaInRange(date)) button.classList.add('in-range');
+          if (sameProformaDay(date, proformaSelectedFrom) || sameProformaDay(date, proformaSelectedTo)) button.classList.add('selected');
+          if (sameProformaDay(date, today)) button.classList.add('today');
+          day.textContent = date.getDate();
+          button.appendChild(day);
+          button.addEventListener('click', function () {
+            const picked = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            if (!proformaSelectedFrom || proformaSelectedTo) {
+              proformaSelectedFrom = picked;
+              proformaSelectedTo = null;
+              syncProformaDateFields(true);
+              renderProformaCalendar();
+              return;
+            }
+            if (picked.getTime() < proformaSelectedFrom.getTime()) {
+              proformaSelectedFrom = picked;
+              proformaSelectedTo = null;
+              syncProformaDateFields(true);
+              renderProformaCalendar();
+              return;
+            }
+            proformaSelectedTo = picked;
+            if (proformaDateRangeSelect) proformaDateRangeSelect.value = 'custom';
+            syncProformaDateFields(true);
+            proformaFilterForm?.submit();
+          });
+          proformaCalendarGrid.appendChild(button);
+        }
+      }
+
+      function positionProformaDatePopover() {
+        if (!proformaDateTrigger || !proformaDatePopover) return;
+        const rect = proformaDateTrigger.getBoundingClientRect();
+        const left = Math.max(8, Math.min(rect.left - 84, window.innerWidth - proformaDatePopover.offsetWidth - 8));
+        const belowTop = rect.bottom + 4;
+        const aboveTop = rect.top - proformaDatePopover.offsetHeight - 4;
+        const top = belowTop + proformaDatePopover.offsetHeight > window.innerHeight - 8 && aboveTop > 8
+          ? aboveTop
+          : belowTop;
+        proformaDatePopover.style.left = `${left}px`;
+        proformaDatePopover.style.top = `${top}px`;
+      }
+
+      function openProformaDatePopover() {
+        if (!proformaDatePopover) return;
+        renderProformaCalendar();
+        proformaDatePopover.classList.remove('d-none');
+        proformaDatePopover.setAttribute('aria-hidden', 'false');
+        positionProformaDatePopover();
+      }
+
+      function closeProformaDatePopover() {
+        proformaDatePopover?.classList.add('d-none');
+        proformaDatePopover?.setAttribute('aria-hidden', 'true');
+      }
+
+      syncProformaDateFields(false);
+
+      proformaDateTrigger?.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (proformaDatePopover?.classList.contains('d-none')) {
+          openProformaDatePopover();
+        } else {
+          closeProformaDatePopover();
+        }
+      });
+
+      proformaCalendarPrev?.addEventListener('click', function () {
+        proformaCalendarView = new Date(proformaCalendarView.getFullYear(), proformaCalendarView.getMonth() - 1, 1);
+        renderProformaCalendar();
+      });
+
+      proformaCalendarNext?.addEventListener('click', function () {
+        proformaCalendarView = new Date(proformaCalendarView.getFullYear(), proformaCalendarView.getMonth() + 1, 1);
+        renderProformaCalendar();
+      });
+
+      window.addEventListener('resize', positionProformaDatePopover);
+      window.addEventListener('scroll', positionProformaDatePopover, true);
 
       function closeProformaFilters() {
         document.querySelectorAll('.proforma-filter-trigger.active').forEach((btn) => btn.classList.remove('active'));
@@ -710,6 +1113,9 @@
           if (!event.target.closest('.proforma-filter-flyout') && !event.target.closest('.proforma-filter-trigger')) {
             closeProformaFilters();
           }
+          if (!event.target.closest('.proforma-date-popover') && !event.target.closest('.proforma-date-trigger')) {
+            closeProformaDatePopover();
+          }
         });
       });
     })();
@@ -751,4 +1157,3 @@
 </body>
 
 </html>
-
