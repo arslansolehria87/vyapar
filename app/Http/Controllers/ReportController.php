@@ -956,25 +956,60 @@ class ReportController extends Controller
     {
         [$from, $to] = $this->dateRange($request);
 
+        $firms = Schema::hasTable('parties')
+            ? DB::table('parties')->select('id', 'name')->whereNotNull('name')->orderBy('name')->get()
+            : collect();
+
         if (!Schema::hasTable('purchases')) {
-            return response()->json(['success' => true, 'transactions' => [], 'total_amount' => 0]);
+            return response()->json([
+                'success'       => true,
+                'transactions'  => [],
+                'total_amount'  => 0,
+                'total_paid'    => 0,
+                'total_balance' => 0,
+                'period'        => ['from' => $from, 'to' => $to],
+                'firms'         => $firms,
+            ]);
         }
+
+        $hasTypeColumn = Schema::hasColumn('purchases', 'type');
+        $hasStatusColumn = Schema::hasColumn('purchases', 'status');
+        $hasPurchasePayments = Schema::hasTable('purchase_payments')
+            && Schema::hasColumn('purchase_payments', 'purchase_id')
+            && Schema::hasColumn('purchase_payments', 'payment_type');
+        $paymentTypeSelect = $hasPurchasePayments
+            ? "COALESCE(pp.payment_type, 'Cash') as payment_type"
+            : "'Cash' as payment_type";
+        $statusSelect = $hasStatusColumn ? 'pu.status' : DB::raw('NULL as status');
 
         $query = DB::table('purchases as pu')
             ->leftJoin('parties as p', 'p.id', '=', 'pu.party_id')
+            ->when($hasPurchasePayments, function ($query) {
+                $query->leftJoinSub(
+                    DB::table('purchase_payments')
+                        ->select('purchase_id', DB::raw('MIN(payment_type) as payment_type'))
+                        ->groupBy('purchase_id'),
+                    'pp',
+                    'pp.purchase_id',
+                    '=',
+                    'pu.id'
+                );
+            })
             ->whereBetween('pu.bill_date', [$from, $to])
+            ->when($hasTypeColumn, fn ($query) => $query->where('pu.type', 'purchase_bill'))
             ->select(
                 'pu.id',
                 'pu.bill_number',
                 'pu.bill_date',
                 'pu.total_amount',
                 'pu.grand_total',
-                DB::raw("COALESCE(pu.payment_type, 'Cash') as payment_type"),
+                DB::raw($paymentTypeSelect),
                 DB::raw('COALESCE(pu.paid_amount, 0) as paid_amount'),
                 DB::raw('COALESCE(pu.balance, 0) as balance_due'),
-                'p.name as party_name',
-                'p.phone as party_phone',
-                'pu.status'
+                DB::raw('COALESCE(pu.party_name, p.name) as party_name'),
+                DB::raw('COALESCE(pu.phone, p.phone) as party_phone'),
+                'pu.description',
+                $statusSelect
             )
             ->orderByDesc('pu.bill_date')
             ->orderByDesc('pu.id');
@@ -986,10 +1021,11 @@ class ReportController extends Controller
         return response()->json([
             'success'       => true,
             'transactions'  => $rows->toArray(),
-            'total_amount'  => $this->fmt($rows->sum('total_amount')),
+            'total_amount'  => $this->fmt($rows->sum(fn ($row) => (float) ($row->grand_total ?: $row->total_amount))),
             'total_paid'    => $this->fmt($rows->sum('paid_amount')),
             'total_balance' => $this->fmt($rows->sum('balance_due')),
             'period'        => ['from' => $from, 'to' => $to],
+            'firms'         => $firms,
         ]);
     }
 

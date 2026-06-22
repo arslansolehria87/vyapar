@@ -599,6 +599,8 @@
   let purSortState  = { key: null, dir: 1 };
   let purColFilters = {};
   let purCurrentPage = 1;
+  let purActiveFrom = null;
+  let purActiveTo = null;
   const PUR_PAGE_SIZE = 25;
 
   /* ── Helpers ── */
@@ -636,6 +638,9 @@
 
   /* ── Fetch Data ── */
   function purLoadData(fromDate, toDate) {
+    purActiveFrom = fromDate;
+    purActiveTo = toDate;
+
     const tbody = document.getElementById('purTxnTableBody');
     tbody.innerHTML = `<tr><td colspan="9" class="pur-empty-state">
       <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;color:#d1d5db;display:block;margin-bottom:6px;"></i>
@@ -643,12 +648,17 @@
     </td></tr>`;
     document.getElementById('purPagination').style.display = 'none';
 
-    fetch(`{{ route('reports.purchase') }}?from=${fromDate}&to=${toDate}`, {
+    const params = new URLSearchParams({ from: fromDate, to: toDate });
+    const partyId = document.getElementById('purFirmSelect')?.value;
+    if (partyId && partyId !== 'all') params.set('party', partyId);
+
+    fetch(`{{ route('reports.purchase') }}?${params.toString()}`, {
       headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
     })
     .then(r => r.json())
     .then(data => {
       if (data.success) {
+        purSyncFilterOptions(data);
         purAllRows  = data.transactions || [];
         purFiltered = [...purAllRows];
         updatePurSummary(data);
@@ -667,7 +677,7 @@
   function updatePurSummary(data) {
     // Calculate paid/unpaid from the transactions array if server doesn't provide
     const rows = data.transactions || [];
-    const totalAmount = parseFloat(data.total_amount || rows.reduce((s,r)=>s+parseFloat(r.total_amount||0),0));
+    const totalAmount = parseFloat(data.total_amount || rows.reduce((s,r)=>s+parseFloat(r.grand_total||r.total_amount||0),0));
     const totalPaid   = parseFloat(data.total_paid   || rows.reduce((s,r)=>s+parseFloat(r.paid_amount||r.received_paid||0),0));
     const totalBalance= parseFloat(data.total_balance|| data.total_unpaid || rows.reduce((s,r)=>s+parseFloat(r.balance_due||0),0));
 
@@ -677,6 +687,30 @@
   }
 
   /* ── Render Table ── */
+  function purPopulateFilter(selectId, items, defaultLabel) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    const selectedValue = select.value || 'all';
+    select.replaceChildren(new Option(defaultLabel, 'all'));
+
+    (items || []).forEach(item => {
+      if (item?.id == null || !item?.name) return;
+      select.add(new Option(item.name, String(item.id)));
+    });
+
+    const selectedStillExists = Array.from(select.options).some(option => option.value === selectedValue);
+    select.value = selectedStillExists ? selectedValue : 'all';
+  }
+
+  function purSyncFilterOptions(data) {
+    purPopulateFilter('purFirmSelect', data.firms, 'All Firms');
+  }
+
+  function purReloadWithFilters() {
+    if (purActiveFrom && purActiveTo) purLoadData(purActiveFrom, purActiveTo);
+  }
+
   function purRenderTable() {
     const tbody = document.getElementById('purTxnTableBody');
     const total = purFiltered.length;
@@ -708,7 +742,7 @@
         <td>${row.party_name || '-'}</td>
         <td>Purchase</td>
         <td>${row.payment_type || 'Cash'}</td>
-        <td style="text-align:right;font-weight:500;">${fmt(row.total_amount || row.amount || 0)}</td>
+        <td style="text-align:right;font-weight:500;">${fmt(row.grand_total || row.total_amount || row.amount || 0)}</td>
         <td style="text-align:right;">${fmt(row.balance_due || 0)}</td>
         <td>${badge}</td>
         <td>
@@ -753,7 +787,7 @@
       if (keyword) {
         const hay = [
           row.bill_date, row.bill_number, row.party_name,
-          row.payment_type, row.total_amount, row.balance_due
+          row.payment_type, row.grand_total, row.total_amount, row.balance_due
         ].join(' ').toLowerCase();
         if (!hay.includes(keyword)) return false;
       }
@@ -804,7 +838,7 @@
 
       // ─ Amount range ─
       if (purColFilters.amount) {
-        const amt = parseFloat(row.total_amount || row.amount || 0);
+        const amt = parseFloat(row.grand_total || row.total_amount || row.amount || 0);
         const { min, max } = purColFilters.amount;
         if (min != null && amt < min) return false;
         if (max != null && amt > max) return false;
@@ -833,7 +867,7 @@
           date:       r => new Date(r.bill_date || r.invoice_date || r.date),
           invoice_no: r => (r.bill_number || r.invoice_no || '').toLowerCase(),
           party_name: r => (r.party_name || '').toLowerCase(),
-          amount:     r => parseFloat(r.total_amount || 0),
+          amount:     r => parseFloat(r.grand_total || r.total_amount || 0),
           balance:    r => parseFloat(r.balance_due  || 0),
         };
         const fn = keyMap[purSortState.key] || (r => r[purSortState.key] || '');
@@ -992,6 +1026,7 @@
     purApplyAllFilters();
   });
   document.getElementById('purTxnSearchInput')?.addEventListener('input', purApplyAllFilters);
+  document.getElementById('purFirmSelect')?.addEventListener('change', purReloadWithFilters);
 
   /* ── Chart ── */
   let purChart = null;
@@ -1018,7 +1053,7 @@
                 : period === 'monthly' ? d.toLocaleString('default', {month:'short', year:'2-digit'})
                 : period === 'yearly'  ? d.getFullYear().toString()
                 : `W${Math.ceil(d.getDate()/7)} ${d.toLocaleString('default',{month:'short'})}`;
-      grouped[key] = (grouped[key] || 0) + parseFloat(row.total_amount || 0);
+      grouped[key] = (grouped[key] || 0) + parseFloat(row.grand_total || row.total_amount || 0);
     });
     if (purChart) purChart.destroy();
     const drawFn = () => {
@@ -1063,7 +1098,7 @@
       date:         { label:'Date',          fn: r => fmtDate(r.bill_date || r.invoice_date) },
       invoice_no:   { label:'Invoice No',    fn: r => r.bill_number || '-' },
       party_name:   { label:'Party Name',    fn: r => r.party_name || '-' },
-      total:        { label:'Total',         fn: r => parseFloat(r.total_amount || 0).toFixed(2) },
+      total:        { label:'Total',         fn: r => parseFloat(r.grand_total || r.total_amount || 0).toFixed(2) },
       payment_type: { label:'Payment Type',  fn: r => r.payment_type || 'Cash' },
       received_paid:{ label:'Paid Amount',   fn: r => parseFloat(r.paid_amount || r.received_paid || 0).toFixed(2) },
       balance_due:  { label:'Balance Due',   fn: r => parseFloat(r.balance_due || 0).toFixed(2) },
@@ -1108,7 +1143,7 @@
       date:         { label:'DATE',         fn: r => fmtDate(r.bill_date || r.invoice_date) },
       invoice_no:   { label:'INVOICE NO.',  fn: r => r.bill_number || '-' },
       party_name:   { label:'PARTY NAME',   fn: r => r.party_name || '-' },
-      total:        { label:'TOTAL',        fn: r => fmt(r.total_amount || 0) },
+      total:        { label:'TOTAL',        fn: r => fmt(r.grand_total || r.total_amount || 0) },
       payment_type: { label:'PAYMENT TYPE', fn: r => r.payment_type || 'Cash' },
       received_paid:{ label:'PAID',         fn: r => fmt(r.paid_amount || r.received_paid || 0) },
       balance_due:  { label:'BALANCE DUE',  fn: r => fmt(r.balance_due || 0) },
@@ -1143,7 +1178,7 @@
       <p><b>Date:</b> ${fmtDate(row.bill_date || row.invoice_date)}</p>
       <p><b>Party:</b> ${row.party_name || '-'}</p>
       <p><b>Payment Type:</b> ${row.payment_type || '-'}</p>
-      <p><b>Total:</b> ${fmt(row.total_amount || 0)}</p>
+      <p><b>Total:</b> ${fmt(row.grand_total || row.total_amount || 0)}</p>
       <p><b>Paid:</b> ${fmt(row.paid_amount || row.received_paid || 0)}</p>
       <p><b>Balance Due:</b> ${fmt(row.balance_due || 0)}</p>
       <p><b>Status:</b> ${getStatus(row)}</p>
