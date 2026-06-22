@@ -833,18 +833,41 @@ class ReportController extends Controller
     {
         [$from, $to] = $this->dateRange($request);
 
+        $firms = Schema::hasTable('parties')
+            ? DB::table('parties')->select('id', 'name')->whereNotNull('name')->orderBy('name')->get()
+            : collect();
+
+        $stores = Schema::hasTable('warehouses')
+            ? DB::table('warehouses')
+                ->select('id', 'name')
+                ->when(Schema::hasColumn('warehouses', 'is_active'), fn ($query) => $query->where('is_active', true))
+                ->whereNotNull('name')
+                ->orderBy('name')
+                ->get()
+            : collect();
+
         if (!Schema::hasTable('sales')) {
             return response()->json([
                 'success' => true, 'transactions' => [],
                 'total_amount' => 0, 'total_received' => 0,
                 'total_balance' => 0, 'growth_pct' => 0,
+                'firms' => $firms,
+                'stores' => $stores,
             ]);
         }
 
+        $hasSaleDetails = Schema::hasTable('sales_details')
+            && Schema::hasColumn('sales_details', 'sale_id')
+            && Schema::hasColumn('sales_details', 'warehouse_id');
+        $hasWarehouses = $hasSaleDetails && Schema::hasTable('warehouses');
+
         $query = DB::table('sales as s')
             ->leftJoin('parties as p', 'p.id', '=', 's.party_id')
-            ->whereBetween('s.invoice_date', [$from, $to])
-            ->select(
+            ->when($hasSaleDetails, fn ($query) => $query->leftJoin('sales_details as sd', 'sd.sale_id', '=', 's.id'))
+            ->when($hasWarehouses, fn ($query) => $query->leftJoin('warehouses as w', 'w.id', '=', 'sd.warehouse_id'))
+            ->whereBetween('s.invoice_date', [$from, $to]);
+
+        $query->select(
                 's.id',
                 's.bill_number',
                 's.invoice_date',
@@ -858,12 +881,29 @@ class ReportController extends Controller
                 's.status',
                 's.description',
                 's.order_date'
-            )
+            );
+
+        if ($hasSaleDetails) {
+            $query->addSelect('sd.warehouse_id');
+        } else {
+            $query->addSelect(DB::raw('NULL as warehouse_id'));
+        }
+
+        if ($hasWarehouses) {
+            $query->addSelect('w.name as warehouse_name');
+        } else {
+            $query->addSelect(DB::raw('NULL as warehouse_name'));
+        }
+
+        $query
             ->orderByDesc('s.invoice_date')
             ->orderByDesc('s.id');
 
         if ($request->filled('party')) $query->where('s.party_id', $request->party);
         if ($request->filled('type'))  $query->where('s.type', $request->type);
+        if ($request->filled('warehouse') && $hasSaleDetails) {
+            $query->where('sd.warehouse_id', $request->warehouse);
+        }
 
         $rows = $query->get();
 
@@ -877,9 +917,17 @@ class ReportController extends Controller
         $prevFrom = (clone $fromDate)->modify("-{$diffDays} days")->format('Y-m-d');
         $prevTo   = (clone $fromDate)->modify('-1 day')->format('Y-m-d');
 
-        $prevTotal = DB::table('sales')
-            ->whereBetween('invoice_date', [$prevFrom, $prevTo])
-            ->sum('total_amount');
+        $prevQuery = DB::table('sales as s')
+            ->when($hasSaleDetails, fn ($query) => $query->leftJoin('sales_details as sd', 'sd.sale_id', '=', 's.id'))
+            ->whereBetween('s.invoice_date', [$prevFrom, $prevTo]);
+
+        if ($request->filled('party')) $prevQuery->where('s.party_id', $request->party);
+        if ($request->filled('type')) $prevQuery->where('s.type', $request->type);
+        if ($request->filled('warehouse') && $hasSaleDetails) {
+            $prevQuery->where('sd.warehouse_id', $request->warehouse);
+        }
+
+        $prevTotal = $prevQuery->sum('s.total_amount');
 
         $growthPct = 0;
         if ($prevTotal > 0) {
@@ -896,6 +944,8 @@ class ReportController extends Controller
             'total_balance'  => $this->fmt($totalBalance),
             'growth_pct'     => $growthPct,
             'period'         => ['from' => $from, 'to' => $to],
+            'firms'          => $firms,
+            'stores'         => $stores,
         ]);
     }
 

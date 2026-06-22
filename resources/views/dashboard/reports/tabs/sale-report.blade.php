@@ -10,12 +10,13 @@
   <div class="sale-report-header d-flex justify-content-between align-items-center mb-3 px-1">
     <h3 class="sale-report-title mb-0">Sale Invoices</h3>
     <div class="d-flex gap-2 align-items-center">
-      <button class="sale-add-btn" id="saleAddSaleBtn">
+      <button class="sale-add-btn" id="saleAddSaleBtn" type="button">
         <i class="fa-solid fa-plus me-1"></i> Add Sale
       </button>
-      <button class="sale-icon-btn" id="saleSettingsBtn" title="Settings">
+      <a class="sale-icon-btn" id="saleSettingsBtn" href="{{ route('settings.transactions') }}"
+        title="Transaction Settings" aria-label="Open transaction settings">
         <i class="fa-solid fa-gear"></i>
-      </button>
+      </a>
     </div>
   </div>
 
@@ -37,7 +38,7 @@
         <i class="fa-solid fa-chevron-down sale-period-arrow"></i>
       </div>
       <div class="sale-period-divider"></div>
-      <div class="sale-date-range-display" id="saleDateRangeDisplay">
+      <div class="sale-date-range-display" id="saleDateRangeDisplay" role="button" tabindex="0" title="Click to set custom date range">
         <i class="fa-regular fa-calendar me-1" style="color:#6b7280;font-size:13px;"></i>
         <span id="saleDateFrom">01/03/2026</span>
         <span class="mx-1" style="color:#6b7280;">To</span>
@@ -57,6 +58,14 @@
     <div class="sale-firm-select-wrap">
       <select id="saleFirmSelect" class="sale-firm-select">
         <option value="all">All Firms</option>
+      </select>
+      <i class="fa-solid fa-chevron-down sale-period-arrow"></i>
+    </div>
+
+    <!-- Store Filter -->
+    <div class="sale-firm-select-wrap">
+      <select id="saleStoreSelect" class="sale-firm-select">
+        <option value="all">All Store</option>
       </select>
       <i class="fa-solid fa-chevron-down sale-period-arrow"></i>
     </div>
@@ -141,11 +150,12 @@
 
     <!-- Table -->
     <div class="table-responsive">
-      <table class="sale-table" id="saleTransactionsTable">
+      <table class="sale-table" id="saleTransactionsTable" data-column-drag="native"
+        data-column-drag-storage="vyapar.reports.sale.transactions.v1">
         <thead>
           <tr>
             <!-- Date -->
-            <th>
+            <th data-column-key="date">
               <div class="sale-th-inner">
                 <span>Date</span>
                 <button class="sale-th-sort" onclick="saleSortBy('date', this)" title="Sort">
@@ -181,7 +191,7 @@
             </th>
 
             <!-- Invoice No -->
-            <th>
+            <th data-column-key="invoice_no">
               <div class="sale-th-inner">
                 <span>Invoice No.</span>
                 <button class="sale-th-sort" onclick="saleSortBy('invoice_no', this)" title="Sort">
@@ -211,7 +221,7 @@
             </th>
 
             <!-- Party Name -->
-            <th>
+            <th data-column-key="party_name">
               <div class="sale-th-inner">
                 <span>Party Name</span>
                 <button class="sale-th-sort" onclick="saleSortBy('party_name', this)" title="Sort">
@@ -241,7 +251,7 @@
             </th>
 
             <!-- Transaction -->
-            <th>
+            <th data-column-key="transaction">
               <div class="sale-th-inner">
                 <span>Transaction</span>
                 <div class="sale-th-filter-wrap">
@@ -268,7 +278,7 @@
             </th>
 
             <!-- Payment Type -->
-            <th>
+            <th data-column-key="payment_type">
               <div class="sale-th-inner">
                 <span>Payment Type</span>
                 <div class="sale-th-filter-wrap">
@@ -292,7 +302,7 @@
             </th>
 
             <!-- Amount -->
-            <th>
+            <th data-column-key="amount">
               <div class="sale-th-inner">
                 <span>Amount</span>
                 <button class="sale-th-sort" onclick="saleSortBy('amount', this)" title="Sort">
@@ -327,7 +337,7 @@
             </th>
 
             <!-- Balance -->
-            <th>
+            <th data-column-key="balance">
               <div class="sale-th-inner">
                 <span>Balance</span>
                 <button class="sale-th-sort" onclick="saleSortBy('balance', this)" title="Sort">
@@ -362,7 +372,7 @@
             </th>
 
             <!-- Actions -->
-            <th><div class="sale-th-inner"><span>Actions</span></div></th>
+            <th data-column-key="actions"><div class="sale-th-inner"><span>Actions</span></div></th>
           </tr>
         </thead>
         <tbody id="saleTxnTableBody">
@@ -557,6 +567,13 @@
   font-size: 13px; color: #374151;
   white-space: nowrap;
   display: flex; align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+.sale-date-range-display:hover { background: rgba(37, 99, 235, 0.07); }
+.sale-date-range-display:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
 }
 
 .sale-firm-select-wrap {
@@ -868,6 +885,7 @@
 {{-- ══════════════════════════════════════════════════
      SCRIPTS
 ══════════════════════════════════════════════════ --}}
+<script src="{{ asset('js/transaction-column-drag.js') }}"></script>
 <script>
 (function () {
   'use strict';
@@ -878,6 +896,8 @@
   let saleSortState = { key: null, dir: 1 };
   let saleColFilters = {};
   let saleCurrentPage = 1;
+  let saleActiveFrom = '';
+  let saleActiveTo = '';
   const SALE_PAGE_SIZE = 25;
 
   /* ── Helpers ── */
@@ -923,20 +943,31 @@
 
   /* ── Fetch data from server ── */
   function saleLoadData(fromDate, toDate) {
+    saleActiveFrom = fromDate;
+    saleActiveTo = toDate;
+
     const tbody = document.getElementById('saleTxnTableBody');
     tbody.innerHTML = `<tr><td colspan="8" class="sale-empty-state">
       <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;color:#d1d5db;display:block;margin-bottom:6px;"></i>
       Loading transactions…
     </td></tr>`;
 
-    fetch(`{{ route('reports.sale') }}?from=${fromDate}&to=${toDate}`, {
+    const params = new URLSearchParams({ from: fromDate, to: toDate });
+    const partyId = document.getElementById('saleFirmSelect')?.value;
+    const warehouseId = document.getElementById('saleStoreSelect')?.value;
+    if (partyId && partyId !== 'all') params.set('party', partyId);
+    if (warehouseId && warehouseId !== 'all') params.set('warehouse', warehouseId);
+
+    fetch(`{{ route('reports.sale') }}?${params.toString()}`, {
       headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
     })
     .then(r => r.json())
     .then(data => {
       if (data.success) {
+        saleSyncFilterOptions(data);
         saleAllRows  = data.transactions || [];
         saleFiltered = [...saleAllRows];
+        saleCurrentPage = 1;
         updateSaleSummary(data);
         saleRenderTable();
       } else {
@@ -946,6 +977,31 @@
     .catch(() => {
       tbody.innerHTML = `<tr><td colspan="8" class="sale-empty-state text-danger">Error loading data.</td></tr>`;
     });
+  }
+
+  function salePopulateFilter(selectId, items, defaultLabel) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    const selectedValue = select.value || 'all';
+    select.replaceChildren(new Option(defaultLabel, 'all'));
+
+    (items || []).forEach(item => {
+      if (item?.id == null || !item?.name) return;
+      select.add(new Option(item.name, String(item.id)));
+    });
+
+    const selectedStillExists = Array.from(select.options).some(option => option.value === selectedValue);
+    select.value = selectedStillExists ? selectedValue : 'all';
+  }
+
+  function saleSyncFilterOptions(data) {
+    salePopulateFilter('saleFirmSelect', data.firms, 'All Firms');
+    salePopulateFilter('saleStoreSelect', data.stores, 'All Store');
+  }
+
+  function saleReloadWithFilters() {
+    if (saleActiveFrom && saleActiveTo) saleLoadData(saleActiveFrom, saleActiveTo);
   }
 
   function updateSaleSummary(data) {
@@ -986,14 +1042,14 @@
       }
 
       tr.innerHTML = `
-        <td>${fmtDate(row.invoice_date || row.date)}</td>
-        <td>${row.bill_number || row.invoice_no || '-'}</td>
-        <td>${row.party_name || row.customer_name || '-'}</td>
-        <td>Sale</td>
-        <td>${row.payment_type || 'Cash'}</td>
-        <td>${fmt(row.total_amount || row.amount || 0)}</td>
-        <td>${fmt(balDue)} ${badgeHtml}</td>
-        <td>
+        <td data-column-key="date">${fmtDate(row.invoice_date || row.date)}</td>
+        <td data-column-key="invoice_no">${row.bill_number || row.invoice_no || '-'}</td>
+        <td data-column-key="party_name">${row.party_name || row.customer_name || '-'}</td>
+        <td data-column-key="transaction">Sale</td>
+        <td data-column-key="payment_type">${row.payment_type || 'Cash'}</td>
+        <td data-column-key="amount">${fmt(row.total_amount || row.amount || 0)}</td>
+        <td data-column-key="balance">${fmt(balDue)} ${badgeHtml}</td>
+        <td data-column-key="actions">
           <button class="sale-row-print-btn" title="Print" onclick="salePrintRow(${JSON.stringify(row).replace(/"/g,'&quot;')})">
             <i class="fa-solid fa-print"></i>
           </button>
@@ -1189,10 +1245,34 @@
   });
 
   /* ── Period Selector ── */
+  function saleOpenCustomDates() {
+    const periodSelect = document.getElementById('salePeriodSelect');
+    const customDates  = document.getElementById('saleCustomDates');
+    const fromInput    = document.getElementById('saleFromDate');
+    const toInput      = document.getElementById('saleToDate');
+
+    if (periodSelect) periodSelect.value = 'custom';
+    customDates?.classList.remove('d-none');
+
+    const displayToISO = value => {
+      const parts = value.trim().split('/');
+      return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : '';
+    };
+
+    if (fromInput) {
+      fromInput.value = displayToISO(document.getElementById('saleDateFrom')?.textContent || '');
+    }
+    if (toInput) {
+      toInput.value = displayToISO(document.getElementById('saleDateTo')?.textContent || '');
+    }
+
+    fromInput?.focus();
+  }
+
   document.getElementById('salePeriodSelect')?.addEventListener('change', function() {
     const val = this.value;
     if (val === 'custom') {
-      document.getElementById('saleCustomDates').classList.remove('d-none');
+      saleOpenCustomDates();
       return;
     }
     document.getElementById('saleCustomDates').classList.add('d-none');
@@ -1200,14 +1280,27 @@
     saleLoadData(from, to);
   });
 
+  document.getElementById('saleDateRangeDisplay')?.addEventListener('click', saleOpenCustomDates);
+  document.getElementById('saleDateRangeDisplay')?.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      saleOpenCustomDates();
+    }
+  });
+
   document.getElementById('saleApplyDates')?.addEventListener('click', function() {
     const from = document.getElementById('saleFromDate')?.value;
     const to   = document.getElementById('saleToDate')?.value;
     if (!from || !to) return;
-    document.getElementById('saleDateFrom').textContent = new Date(from).toLocaleDateString('en-GB');
-    document.getElementById('saleDateTo').textContent   = new Date(to).toLocaleDateString('en-GB');
+    const toDisplayDate = value => value.split('-').reverse().join('/');
+    document.getElementById('saleDateFrom').textContent = toDisplayDate(from);
+    document.getElementById('saleDateTo').textContent   = toDisplayDate(to);
+    document.getElementById('saleCustomDates')?.classList.add('d-none');
     saleLoadData(from, to);
   });
+
+  document.getElementById('saleFirmSelect')?.addEventListener('change', saleReloadWithFilters);
+  document.getElementById('saleStoreSelect')?.addEventListener('change', saleReloadWithFilters);
 
   /* ── Search ── */
   document.getElementById('saleTxnSearchBtn')?.addEventListener('click', function() {
@@ -1471,7 +1564,7 @@
   /* Add Sale redirect */
   document.getElementById('saleAddSaleBtn')?.addEventListener('click', function() {
     window.location.href = '/dashboard/sale/create';
-});
+  });
 
   /* Close dropdowns on outside click */
   document.addEventListener('click', function(e) {
