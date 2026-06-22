@@ -948,17 +948,25 @@
         <div class="mb-3 d-flex align-items-center" style="gap: 12px; flex-wrap: wrap;">
             <div class="d-flex align-items-center" style="gap: 6px;">
                 <label style="font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase;">Item Name</label>
-                <input type="text" class="form-control form-control-sm" id="iwd-item-name"
-                    style="width: 160px;" oninput="filterIWDAjax()">
+                <select class="form-select form-select-sm" id="iwd-item-filter" style="width: 220px;" onchange="filterIWDAjax()">
+                    <option value="">All Items</option>
+                    @foreach($items ?? [] as $item)
+                        <option value="{{ $item->id }}">{{ $item->name }}</option>
+                    @endforeach
+                </select>
             </div>
             <select class="form-select form-select-sm" id="iwd-cat-filter" style="width: 160px;" onchange="filterIWDAjax()">
                 <option value="">All Categories</option>
-                @foreach($categories as $cat)
+                @foreach($categories ?? [] as $cat)
                     <option value="{{ $cat->id }}">{{ $cat->name }}</option>
                 @endforeach
             </select>
-            <input type="text" class="form-control form-control-sm" id="iwd-party-filter"
-                placeholder="Party Filter" style="width: 160px;" oninput="filterIWDAjax()">
+            <select class="form-select form-select-sm" id="iwd-party-filter" style="width: 220px;" onchange="filterIWDAjax()">
+                <option value="">All Parties</option>
+                @foreach($parties ?? [] as $party)
+                    <option value="{{ $party->id }}">{{ $party->name }}</option>
+                @endforeach
+            </select>
         </div>
 
         <div class="table-responsive">

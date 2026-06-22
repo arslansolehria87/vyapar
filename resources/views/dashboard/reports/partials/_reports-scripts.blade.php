@@ -613,14 +613,14 @@ function filterSalePurchaseCat() {
 
 // Item Wise Discount — AJAX fetch with all filters
 function filterIWDAjax() {
-    const itemName   = document.getElementById('iwd-item-name')?.value   || '';
+    const itemId     = document.getElementById('iwd-item-filter')?.value || '';
     const catId      = document.getElementById('iwd-cat-filter')?.value  || '';
-    const partyName  = document.getElementById('iwd-party-filter')?.value || '';
+    const partyId    = document.getElementById('iwd-party-filter')?.value || '';
     const fromDate   = document.getElementById('iwd-from-picker')?.value  || '';
     const toDate     = document.getElementById('iwd-to-picker')?.value    || '';
     const firm       = document.getElementById('iwd-firm')?.value         || '';
 
-    const params = new URLSearchParams({ item_name: itemName, category_id: catId, party_name: partyName, from: fromDate, to: toDate, firm_id: firm });
+    const params = new URLSearchParams({ item_id: itemId, category_id: catId, party_id: partyId, from: fromDate, to: toDate, firm_id: firm });
 
     fetch(`{{ route('reports.item-wise-discount') }}?${params}`, {
         headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
@@ -628,6 +628,7 @@ function filterIWDAjax() {
     .then(r => r.json())
     .then(data => {
         const tbody = document.getElementById('iwd-tbody');
+        if (!tbody) return;
         if (!data.items || !data.items.length) {
             tbody.innerHTML = `<tr id="iwd-empty-row"><td colspan="7" class="text-center text-muted py-5">No Items</td></tr>`;
             document.getElementById('iwd-total-sale').textContent = '—';
@@ -637,7 +638,7 @@ function filterIWDAjax() {
         tbody.innerHTML = data.items.map((item, i) => `
             <tr style="border-bottom: 1px solid #f3f4f6;">
                 <td data-column-key="index" style="padding:12px 16px;font-size:14px;color:#9ca3af;">${i+1}</td>
-                <td data-column-key="item_name" style="padding:12px 16px;font-size:14px;color:#1f2937;border-right:1px solid #e5e7eb;">${item.name}</td>
+                <td data-column-key="item_name" style="padding:12px 16px;font-size:14px;color:#1f2937;border-right:1px solid #e5e7eb;">${escapeReportHtml(item.name)}</td>
                 <td data-column-key="total_qty_sold" style="padding:12px 16px;font-size:14px;color:#1f2937;text-align:right;border-right:1px solid #e5e7eb;">${item.total_qty_sold}</td>
                 <td data-column-key="total_sale_amount" style="padding:12px 16px;font-size:14px;color:#1f2937;text-align:right;border-right:1px solid #e5e7eb;">Rs ${parseFloat(item.total_sale_amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}</td>
                 <td data-column-key="total_discount_amount" style="padding:12px 16px;font-size:14px;color:#1f2937;text-align:right;border-right:1px solid #e5e7eb;">Rs ${parseFloat(item.total_disc_amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}</td>
@@ -672,6 +673,9 @@ window.showTab = function(tabName) {
     if (activeLink) activeLink.classList.add('active');
     if (tabName === 'item-report-by-party') {
         filterItemReportByParty();
+    }
+    if (tabName === 'item-wise-discount') {
+        filterIWDAjax();
     }
 };
 

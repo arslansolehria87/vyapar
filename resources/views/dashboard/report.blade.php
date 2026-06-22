@@ -236,70 +236,70 @@
           <ul class="nav flex-column mb-4 reports-nav">
 
             <li class="nav-item">
-  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+  <a href="#" class="nav-link py-2 px-4 report-nav-link"
      data-tab="stock-summary"
      onclick="showTab('stock-summary'); return false;">
     <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Stock Summary
   </a>
 </li>
 <li class="nav-item">
-  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+  <a href="#" class="nav-link py-2 px-4 report-nav-link"
      data-tab="item-report-by-party"
      onclick="showTab('item-report-by-party'); return false;">
     <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Item Report By Party
   </a>
 </li>
 <li class="nav-item">
-  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+  <a href="#" class="nav-link py-2 px-4 report-nav-link"
      data-tab="item-wise-profit-and-loss"
      onclick="showTab('item-wise-profit-and-loss'); return false;">
     <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Item wise profit and loss
   </a>
 </li>
 <li class="nav-item">
-  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+  <a href="#" class="nav-link py-2 px-4 report-nav-link"
      data-tab="item-category-wise-profit-and-loss"
      onclick="showTab('item-category-wise-profit-and-loss'); return false;">
     <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Item Category wise profit and loss
   </a>
 </li>
 <li class="nav-item">
-  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+  <a href="#" class="nav-link py-2 px-4 report-nav-link"
      data-tab="low-stock-summary"
      onclick="showTab('low-stock-summary'); return false;">
     <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Low stock summary
   </a>
 </li>
 <li class="nav-item">
-  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+  <a href="#" class="nav-link py-2 px-4 report-nav-link"
      data-tab="stock-details"
      onclick="showTab('stock-details'); return false;">
     <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Stock Details
   </a>
 </li>
 <li class="nav-item">
-  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+  <a href="#" class="nav-link py-2 px-4 report-nav-link"
      data-tab="item-details"
      onclick="showTab('item-details'); return false;">
     <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Item Details
   </a>
 </li>
 <li class="nav-item">
-  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+  <a href="#" class="nav-link py-2 px-4 report-nav-link"
      data-tab="sale-purchase-report-by-item-category"
      onclick="showTab('sale-purchase-report-by-item-category'); return false;">
     <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Sale/Purchase report by item category
   </a>
 </li>
 <li class="nav-item">
-  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+  <a href="#" class="nav-link py-2 px-4 report-nav-link"
      data-tab="stock-summary-report-by-item-category"
      onclick="showTab('stock-summary-report-by-item-category'); return false;">
     <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Stock Summary report by item category
   </a>
 </li>
 <li class="nav-item">
-  <a href="#" class="nav-link py-2 px-4 report-nav-link" 
+  <a href="#" class="nav-link py-2 px-4 report-nav-link"
      data-tab="item-wise-discount"
      onclick="showTab('item-wise-discount'); return false;">
     <i class="fa-regular fa-file-lines me-2 text-secondary"></i>Item wise discount
@@ -374,8 +374,8 @@
         </div>
       </aside>
 
-     
-       
+
+
        <!-- Main Reports Content Area -->
 
 <div class="flex-grow-1 overflow-auto p-4" id="reportsContentArea">

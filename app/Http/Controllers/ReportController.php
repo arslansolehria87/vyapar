@@ -129,8 +129,14 @@ class ReportController extends Controller
         ];
         $itemCategoryPnL    = collect();
         $salePurchaseByCat  = collect();
-        $itemWiseDiscount   = collect();
+        $itemWiseDiscountData = $this->buildItemWiseDiscountReport(new Request([
+            'from' => now()->startOfMonth()->toDateString(),
+            'to' => now()->endOfMonth()->toDateString(),
+        ]));
+        $itemWiseDiscount   = $itemWiseDiscountData['items'];
+        $iwdTotals          = $itemWiseDiscountData['totals'];
         $itemDetail         = collect();
+        $firms              = collect();
 
         return view('dashboard.report', compact(
             'categories', 'parties', 'partyGroups', 'brokers', 'items',
@@ -140,7 +146,7 @@ class ReportController extends Controller
             'stockSummaryByCat', 'partyReport', 'partyReportTotals',
             'itemReportByParty', 'itemReportByPartyTotals',
             'itemCategoryPnL', 'salePurchaseByCat',
-            'itemWiseDiscount', 'itemDetail'
+            'itemWiseDiscount', 'iwdTotals', 'itemDetail', 'firms'
         ));
     }
 
@@ -2154,33 +2160,109 @@ class ReportController extends Controller
     // ============================================================
     public function itemWiseDiscount(Request $request)
     {
-        [$from, $to] = $this->dateRange($request);
-
-        if (!Schema::hasTable('sale_items')) {
-            return response()->json(['success' => true, 'rows' => []]);
-        }
-
-        $rows = DB::table('sale_items as si')
-            ->join('sales as s', 's.id', '=', 'si.sale_id')
-            ->join('items as i', 'i.id', '=', 'si.item_id')
-            ->whereBetween('s.invoice_date', [$from, $to])
-            ->where('si.discount', '>', 0)
-            ->select(
-                'i.name as item_name',
-                DB::raw('SUM(si.quantity) as total_qty'),
-                DB::raw('SUM(si.amount) as total_amount'),
-                DB::raw('SUM(si.discount) as total_discount')
-            )
-            ->groupBy('i.id', 'i.name')
-            ->orderByDesc('total_discount')
-            ->get();
+        $data = $this->buildItemWiseDiscountReport($request);
 
         return response()->json([
             'success'        => true,
-            'rows'           => $rows->toArray(),
-            'total_discount' => $this->fmt($rows->sum('total_discount')),
-            'period'         => ['from' => $from, 'to' => $to],
+            'items'          => $data['items']->values()->all(),
+            'rows'           => $data['items']->values()->all(),
+            'totals'         => $data['totals'],
+            'total_discount' => $data['totals']['total_disc'],
+            'period'         => $data['period'],
         ]);
+    }
+
+    private function buildItemWiseDiscountReport(Request $request): array
+    {
+        [$from, $to] = $this->dateRange($request);
+
+        $empty = [
+            'items' => collect(),
+            'totals' => ['total_sale' => 0, 'total_disc' => 0],
+            'period' => ['from' => $from, 'to' => $to],
+        ];
+
+        if (!Schema::hasTable('sale_items') || !Schema::hasTable('sales')) {
+            return $empty;
+        }
+
+        $hasItemsTable = Schema::hasTable('items');
+        $hasPartiesTable = Schema::hasTable('parties');
+        $hasItemId = Schema::hasColumn('sale_items', 'item_id');
+        $hasItemName = Schema::hasColumn('sale_items', 'item_name');
+        $hasItemCategory = Schema::hasColumn('sale_items', 'item_category');
+        $hasPartyId = Schema::hasColumn('sales', 'party_id');
+        $hasPartyName = Schema::hasColumn('sales', 'party_name');
+
+        $itemNameExpr = $hasItemsTable && $hasItemId
+            ? ($hasItemName ? 'COALESCE(i.name, si.item_name)' : 'i.name')
+            : ($hasItemName ? 'si.item_name' : "'Unknown Item'");
+
+        $itemIdExpr = $hasItemsTable && $hasItemId ? 'COALESCE(i.id, 0)' : '0';
+        $groupColumns = [DB::raw($itemIdExpr), DB::raw($itemNameExpr)];
+
+        $query = DB::table('sale_items as si')
+            ->join('sales as s', 's.id', '=', 'si.sale_id')
+            ->when($hasItemsTable && $hasItemId, fn ($query) => $query->leftJoin('items as i', 'i.id', '=', 'si.item_id'))
+            ->when($hasPartiesTable && $hasPartyId, fn ($query) => $query->leftJoin('parties as p', 'p.id', '=', 's.party_id'))
+            ->whereBetween('s.invoice_date', [$from, $to]);
+
+        if ($request->filled('item_id') && $hasItemId) {
+            $query->where('si.item_id', $request->input('item_id'));
+        } elseif ($request->filled('item_name')) {
+            $query->where(DB::raw($itemNameExpr), 'like', '%' . $request->input('item_name') . '%');
+        }
+
+        if ($request->filled('category_id')) {
+            $categoryId = $request->input('category_id');
+            $categoryName = Schema::hasTable('categories')
+                ? DB::table('categories')->where('id', $categoryId)->value('name')
+                : null;
+
+            $query->where(function ($query) use ($categoryId, $categoryName, $hasItemsTable, $hasItemCategory) {
+                if ($hasItemsTable) {
+                    $query->where('i.category_id', $categoryId);
+                }
+
+                if ($hasItemCategory && $categoryName) {
+                    $hasItemsTable
+                        ? $query->orWhere('si.item_category', $categoryName)
+                        : $query->where('si.item_category', $categoryName);
+                }
+            });
+        }
+
+        if ($request->filled('party_id') && $hasPartyId) {
+            $query->where('s.party_id', $request->input('party_id'));
+        } elseif ($request->filled('party_name')) {
+            $partyNameExpr = $hasPartiesTable && $hasPartyId
+                ? ($hasPartyName ? 'COALESCE(p.name, s.party_name)' : 'p.name')
+                : ($hasPartyName ? 's.party_name' : "''");
+
+            $query->where(DB::raw($partyNameExpr), 'like', '%' . $request->input('party_name') . '%');
+        }
+
+        $items = $query
+            ->select(
+                DB::raw($itemIdExpr . ' as id'),
+                DB::raw($itemNameExpr . ' as name'),
+                DB::raw('SUM(COALESCE(si.quantity, 0)) as total_qty_sold'),
+                DB::raw('SUM(COALESCE(si.amount, 0)) as total_sale_amount'),
+                DB::raw('SUM(COALESCE(si.discount, 0)) as total_disc_amount'),
+                DB::raw('CASE WHEN SUM(COALESCE(si.amount, 0)) > 0 THEN (SUM(COALESCE(si.discount, 0)) / SUM(COALESCE(si.amount, 0))) * 100 ELSE 0 END as avg_disc_percent')
+            )
+            ->groupBy(...$groupColumns)
+            ->orderByDesc('total_disc_amount')
+            ->get();
+
+        return [
+            'items' => $items,
+            'totals' => [
+                'total_sale' => $this->fmt($items->sum('total_sale_amount')),
+                'total_disc' => $this->fmt($items->sum('total_disc_amount')),
+            ],
+            'period' => ['from' => $from, 'to' => $to],
+        ];
     }
 
     // ============================================================
