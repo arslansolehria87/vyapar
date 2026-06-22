@@ -79,18 +79,19 @@
       </div>
     </div>
     <div class="table-responsive">
-      <table class="table table-hover mb-0 align-middle" id="expenseTable">
+      <table class="table table-hover mb-0 align-middle" id="expenseTable"
+             data-column-drag="native" data-column-drag-storage="vyapar.reports.expense.transactions.v1">
         <thead style="background:#f9fafb;">
           <tr>
-            <th style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;">DATE</th>
-            <th style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;">EXP NO.</th>
-            <th style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;">PARTY</th>
-            <th style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;">CATEGORY NAME</th>
-            <th style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;">PAYMENT TYPE</th>
-            <th style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;text-align:right;">AMOUNT</th>
-            <th style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;text-align:right;">BALANCE DUE</th>
-            <th style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;text-align:center;">STATUS</th>
-            <th style="width:40px;"></th>
+            <th data-column-key="date" style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;">DATE</th>
+            <th data-column-key="expense_no" style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;">EXP NO.</th>
+            <th data-column-key="party" style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;">PARTY</th>
+            <th data-column-key="category_name" style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;">CATEGORY NAME</th>
+            <th data-column-key="payment_type" style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;">PAYMENT TYPE</th>
+            <th data-column-key="amount" style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;text-align:right;">AMOUNT</th>
+            <th data-column-key="balance_due" style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;text-align:right;">BALANCE DUE</th>
+            <th data-column-key="status" style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;text-align:center;">STATUS</th>
+            <th data-column-key="actions" style="width:40px;"></th>
           </tr>
         </thead>
         <tbody id="expenseTableBody">
@@ -256,14 +257,15 @@
 
   <div class="bg-white rounded-3 border overflow-hidden">
     <div class="table-responsive">
-      <table class="table table-hover mb-0 align-middle" id="expItemTable">
+      <table class="table table-hover mb-0 align-middle" id="expItemTable"
+             data-column-drag="native" data-column-drag-storage="vyapar.reports.expense.items.v1">
         <thead style="background:#f9fafb;">
           <tr>
-            <th style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;">EXPENSE ITEM</th>
-            <th style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;">PARTY</th>
-            <th style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;text-align:right;">UNIT PRICE</th>
-            <th style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;text-align:right;">QUANTITY</th>
-            <th style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;text-align:right;">AMOUNT</th>
+            <th data-column-key="item_name" style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;">EXPENSE ITEM</th>
+            <th data-column-key="party" style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;">PARTY</th>
+            <th data-column-key="unit_price" style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;text-align:right;">UNIT PRICE</th>
+            <th data-column-key="quantity" style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;text-align:right;">QUANTITY</th>
+            <th data-column-key="amount" style="font-size:12px;font-weight:600;color:#6b7280;padding:12px 16px;text-align:right;">AMOUNT</th>
           </tr>
         </thead>
         <tbody id="expItemBody">
@@ -279,6 +281,9 @@
 
 
 {{-- SCRIPTS --}}
+@once
+<script src="{{ asset('js/transaction-column-drag.js') }}"></script>
+@endonce
 <script>
 const expFmt  = v => 'Rs ' + parseFloat(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
 const expCsrf = () => window.App?.csrfToken || document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -352,20 +357,20 @@ function renderExpenseTable(rows){
   }
   tbody.innerHTML=rows.map(r=>`
     <tr style="cursor:pointer;">
-      <td style="padding:14px 16px;font-size:14px;">${r.expense_date||'-'}</td>
-      <td style="padding:14px 16px;font-size:14px;">${r.expense_no||'-'}</td>
-      <td style="padding:14px 16px;font-size:14px;">${r.party||'-'}</td>
-      <td style="padding:14px 16px;font-size:14px;">${r.category_name||'-'}</td>
-      <td style="padding:14px 16px;font-size:14px;">${r.payment_type||'-'}</td>
-      <td style="padding:14px 16px;font-size:14px;text-align:right;">${expFmt(r.total_amount)}</td>
-      <td style="padding:14px 16px;font-size:14px;text-align:right;">${expFmt(r.balance_due||0)}</td>
-      <td style="padding:14px 16px;font-size:14px;text-align:center;">
+      <td data-column-key="date" style="padding:14px 16px;font-size:14px;">${r.expense_date||'-'}</td>
+      <td data-column-key="expense_no" style="padding:14px 16px;font-size:14px;">${r.expense_no||'-'}</td>
+      <td data-column-key="party" style="padding:14px 16px;font-size:14px;">${r.party||'-'}</td>
+      <td data-column-key="category_name" style="padding:14px 16px;font-size:14px;">${r.category_name||'-'}</td>
+      <td data-column-key="payment_type" style="padding:14px 16px;font-size:14px;">${r.payment_type||'-'}</td>
+      <td data-column-key="amount" style="padding:14px 16px;font-size:14px;text-align:right;">${expFmt(r.total_amount)}</td>
+      <td data-column-key="balance_due" style="padding:14px 16px;font-size:14px;text-align:right;">${expFmt(r.balance_due||0)}</td>
+      <td data-column-key="status" style="padding:14px 16px;font-size:14px;text-align:center;">
         <span class="badge rounded-pill px-3 py-1"
           style="background:${r.status==='Paid'?'#d1fae5':'#fef3c7'};color:${r.status==='Paid'?'#065f46':'#92400e'};font-size:12px;">
           ${r.status||'Paid'}
         </span>
       </td>
-      <td style="padding:14px 8px;text-align:center;">
+      <td data-column-key="actions" style="padding:14px 8px;text-align:center;">
         <button class="btn btn-sm p-1 border-0 bg-transparent" onclick="showExpMenu(event,${r.id})">
           <i class="fa-solid fa-ellipsis-vertical text-secondary"></i>
         </button>
@@ -539,11 +544,11 @@ function renderEiTable(rows){
   }
   tbody.innerHTML=rows.map(r=>`
     <tr>
-      <td style="padding:14px 16px;font-size:14px;">${r.item_name||'-'}</td>
-      <td style="padding:14px 16px;font-size:14px;">${r.party||'-'}</td>
-      <td style="padding:14px 16px;font-size:14px;text-align:right;">${expFmt(r.price_per_unit)}</td>
-      <td style="padding:14px 16px;font-size:14px;text-align:right;">${parseFloat(r.quantity||0).toFixed(2)}</td>
-      <td style="padding:14px 16px;font-size:14px;text-align:right;">${expFmt(r.amount)}</td>
+      <td data-column-key="item_name" style="padding:14px 16px;font-size:14px;">${r.item_name||'-'}</td>
+      <td data-column-key="party" style="padding:14px 16px;font-size:14px;">${r.party||'-'}</td>
+      <td data-column-key="unit_price" style="padding:14px 16px;font-size:14px;text-align:right;">${expFmt(r.price_per_unit)}</td>
+      <td data-column-key="quantity" style="padding:14px 16px;font-size:14px;text-align:right;">${parseFloat(r.quantity||0).toFixed(2)}</td>
+      <td data-column-key="amount" style="padding:14px 16px;font-size:14px;text-align:right;">${expFmt(r.amount)}</td>
     </tr>`).join('');
 }
 

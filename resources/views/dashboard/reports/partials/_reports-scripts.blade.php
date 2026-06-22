@@ -454,6 +454,95 @@ function filterItemWisePnL() {
 }
 
 // Low Stock — category + show in stock
+function setItemCategoryPeriod(label) {
+    setPeriodLabel('icp-period-label', label);
+    if (label === 'Custom') return;
+
+    const now = new Date();
+    let from;
+    let to;
+
+    if (label === 'Last Month') {
+        from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        to = new Date(now.getFullYear(), now.getMonth(), 0);
+    } else if (label === 'This Quarter') {
+        const quarterStart = Math.floor(now.getMonth() / 3) * 3;
+        from = new Date(now.getFullYear(), quarterStart, 1);
+        to = new Date(now.getFullYear(), quarterStart + 3, 0);
+    } else if (label === 'This Year') {
+        from = new Date(now.getFullYear(), 0, 1);
+        to = new Date(now.getFullYear(), 11, 31);
+    } else {
+        from = new Date(now.getFullYear(), now.getMonth(), 1);
+        to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    }
+
+    const toYmd = date => [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, '0'),
+        String(date.getDate()).padStart(2, '0')
+    ].join('-');
+
+    const fromValue = toYmd(from);
+    const toValue = toYmd(to);
+    document.getElementById('icp-from-picker').value = fromValue;
+    document.getElementById('icp-to-picker').value = toValue;
+    document.getElementById('icp-from-display').value = formatDateDisplay(fromValue);
+    document.getElementById('icp-to-display').value = formatDateDisplay(toValue);
+    filterItemCategoryPnL();
+}
+
+function filterItemCategoryPnL() {
+    const tbody = document.getElementById('icp-tbody');
+    if (!tbody) return;
+
+    const params = new URLSearchParams({
+        from: document.getElementById('icp-from-picker')?.value || '',
+        to: document.getElementById('icp-to-picker')?.value || '',
+        item_status: document.getElementById('icp-item-status')?.value || 'active'
+    });
+
+    tbody.innerHTML = `<tr><td colspan="12" class="text-center text-muted py-5"><div class="spinner-border spinner-border-sm me-2"></div>Loading…</td></tr>`;
+
+    fetch(`{{ route('reports.item-category-pnl') }}?${params}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Unable to load report');
+        return response.json();
+    })
+    .then(data => {
+        const rows = data.rows || [];
+        if (!rows.length) {
+            tbody.innerHTML = `<tr><td colspan="12" class="text-center text-muted py-5">No data to show</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = rows.map(row => {
+            const netProfit = Number(row.net_profit || 0);
+            return `
+                <tr style="border-bottom:1px solid #f3f4f6;">
+                    <td style="padding:12px 16px;font-size:14px;color:#1f2937;border-right:1px solid #e5e7eb;font-weight:600;">${escapeReportHtml(row.category_name || 'Uncategorized')}</td>
+                    <td style="padding:12px 16px;font-size:14px;text-align:right;border-right:1px solid #e5e7eb;">Rs ${formatReportNumber(row.sale)}</td>
+                    <td style="padding:12px 16px;font-size:14px;text-align:right;border-right:1px solid #e5e7eb;">Rs ${formatReportNumber(row.cr_note)}</td>
+                    <td style="padding:12px 16px;font-size:14px;text-align:right;border-right:1px solid #e5e7eb;">Rs ${formatReportNumber(row.purchase)}</td>
+                    <td style="padding:12px 16px;font-size:14px;text-align:right;border-right:1px solid #e5e7eb;">Rs ${formatReportNumber(row.dr_note)}</td>
+                    <td style="padding:12px 16px;font-size:14px;text-align:right;border-right:1px solid #e5e7eb;">Rs ${formatReportNumber(row.opening_stock)}</td>
+                    <td style="padding:12px 16px;font-size:14px;text-align:right;border-right:1px solid #e5e7eb;">Rs ${formatReportNumber(row.closing_stock)}</td>
+                    <td style="padding:12px 16px;font-size:14px;text-align:right;border-right:1px solid #e5e7eb;">Rs ${formatReportNumber(row.tax_receivable)}</td>
+                    <td style="padding:12px 16px;font-size:14px;text-align:right;border-right:1px solid #e5e7eb;">Rs ${formatReportNumber(row.tax_payable)}</td>
+                    <td style="padding:12px 16px;font-size:14px;text-align:right;border-right:1px solid #e5e7eb;">Rs ${formatReportNumber(row.mfg_cost)}</td>
+                    <td style="padding:12px 16px;font-size:14px;text-align:right;border-right:1px solid #e5e7eb;">Rs ${formatReportNumber(row.consumption_cost)}</td>
+                    <td style="padding:12px 16px;font-size:14px;text-align:right;font-weight:700;color:${netProfit >= 0 ? '#10b981' : '#ef4444'};">Rs ${formatReportNumber(netProfit)}</td>
+                </tr>
+            `;
+        }).join('');
+    })
+    .catch(() => {
+        tbody.innerHTML = `<tr><td colspan="12" class="text-center text-danger py-5">Failed to load category profit and loss report.</td></tr>`;
+    });
+}
+
 function filterLowStock() {
     const cat    = document.getElementById('ls-cat-filter')?.value || '';
     const showIn = document.getElementById('lowStockShowItems')?.checked;
@@ -704,6 +793,9 @@ window.showTab = function(tabName) {
     }
     if (tabName === 'item-wise-discount') {
         filterIWDAjax();
+    }
+    if (tabName === 'item-category-wise-profit-and-loss') {
+        filterItemCategoryPnL();
     }
     if (tabName === 'sale-purchase-report-by-item-category') {
         filterSalePurchaseCat();

@@ -2635,6 +2635,120 @@ class ReportController extends Controller
     public function saleOrder(Request $request)
     {
         [$from, $to] = $this->dateRange($request);
+        $orderType = $request->input('order_type') === 'purchase_order'
+            ? 'purchase_order'
+            : 'sale_order';
+
+        if ($orderType === 'purchase_order') {
+            if (!Schema::hasTable('purchases')) {
+                return response()->json(['success' => true, 'rows' => [], 'total_amount' => 0]);
+            }
+
+            $dateExpression = DB::raw('DATE(COALESCE(po.bill_date, po.created_at))');
+            $convertedExistsSql = "EXISTS (
+                SELECT 1 FROM purchases converted
+                WHERE converted.source_purchase_order_id = po.id
+                  AND converted.type = 'purchase_bill'
+            )";
+
+            $query = DB::table('purchases as po')
+                ->leftJoin('parties as p', 'p.id', '=', 'po.party_id')
+                ->whereBetween($dateExpression, [$from, $to])
+                ->where('po.type', 'purchase_order')
+                ->select(
+                    'po.id',
+                    'po.bill_number',
+                    DB::raw('NULL as reference_bill_number'),
+                    DB::raw('DATE(COALESCE(po.bill_date, po.created_at)) as date'),
+                    DB::raw('po.bill_date as order_date'),
+                    'po.due_date',
+                    'po.description',
+                    DB::raw("COALESCE(p.name, po.party_name, 'Walk-in') as party_name"),
+                    'po.total_amount',
+                    'po.grand_total',
+                    'po.balance',
+                    DB::raw("CASE WHEN {$convertedExistsSql} THEN 'completed' ELSE 'open' END as status"),
+                    DB::raw("'Cash' as payment_type"),
+                    DB::raw("'purchase_order' as order_type")
+                )
+                ->orderByDesc($dateExpression)
+                ->orderByDesc('po.id');
+
+            if ($request->filled('party')) {
+                $party = trim((string) $request->party);
+                $query->where(function ($partyQuery) use ($party) {
+                    $partyQuery->where('p.name', 'like', '%' . $party . '%')
+                        ->orWhere('po.party_name', 'like', '%' . $party . '%')
+                        ->orWhere('po.party_id', $party);
+                });
+            }
+
+            if ($request->filled('status')) {
+                $status = strtolower((string) $request->status);
+                if ($status === 'completed') {
+                    $query->whereExists(function ($converted) {
+                        $converted->selectRaw('1')
+                            ->from('purchases as converted')
+                            ->whereColumn('converted.source_purchase_order_id', 'po.id')
+                            ->where('converted.type', 'purchase_bill');
+                    });
+                } elseif (in_array($status, ['open', 'pending', 'confirmed'], true)) {
+                    $query->whereNotExists(function ($converted) {
+                        $converted->selectRaw('1')
+                            ->from('purchases as converted')
+                            ->whereColumn('converted.source_purchase_order_id', 'po.id')
+                            ->where('converted.type', 'purchase_bill');
+                    });
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            }
+
+            $rows = $query->get();
+            $itemsByOrder = collect();
+
+            if ($rows->isNotEmpty() && Schema::hasTable('purchase_items')) {
+                $itemsByOrder = DB::table('purchase_items as pi')
+                    ->whereIn('pi.purchase_id', $rows->pluck('id'))
+                    ->select(
+                        'pi.purchase_id',
+                        'pi.item_name',
+                        'pi.quantity',
+                        'pi.unit',
+                        'pi.unit_price',
+                        'pi.amount',
+                        'pi.discount'
+                    )
+                    ->orderBy('pi.id')
+                    ->get()
+                    ->groupBy('purchase_id');
+            }
+
+            $rows = $rows->map(function ($row) use ($itemsByOrder) {
+                $row->items = ($itemsByOrder->get($row->id) ?? collect())->map(function ($item) {
+                    return [
+                        'item_name' => $item->item_name ?: 'Item',
+                        'quantity' => $this->fmt($item->quantity ?? 0),
+                        'unit' => $item->unit ?: '-',
+                        'unit_price' => $this->fmt($item->unit_price ?? 0),
+                        'discount' => $this->fmt($item->discount ?? 0),
+                        'amount' => $this->fmt($item->amount ?? 0),
+                    ];
+                })->values()->toArray();
+
+                return $row;
+            });
+
+            return response()->json([
+                'success'      => true,
+                'rows'         => $rows->toArray(),
+                'total_amount' => $this->fmt($rows->sum('grand_total')),
+                'total_orders' => $rows->count(),
+                'open_orders'  => $rows->where('status', 'open')->count(),
+                'order_type'   => $orderType,
+                'period'       => ['from' => $from, 'to' => $to],
+            ]);
+        }
 
         if (!Schema::hasTable('sales')) {
             return response()->json(['success' => true, 'rows' => [], 'total_amount' => 0]);
@@ -2654,23 +2768,23 @@ class ReportController extends Controller
                 's.order_date',
                 's.due_date',
                 's.description',
-                DB::raw("COALESCE(p.name, s.party_name, 'Walk-in') as party_name"),
+                DB::raw("COALESCE(p.name, 'Walk-in') as party_name"),
                 's.total_amount',
                 's.grand_total',
                 's.balance',
                 's.status',
-                DB::raw("COALESCE(s.payment_type, 'Cash') as payment_type")
+                DB::raw("COALESCE(s.payment_type, 'Cash') as payment_type"),
+                DB::raw("'sale_order' as order_type")
             )
             ->orderByDesc($dateExpression)
             ->orderByDesc('s.id');
 
         if ($request->filled('party')) {
-            $party = trim((string) $request->party);
-            $query->where(function ($partyQuery) use ($party) {
-                $partyQuery->where('p.name', 'like', '%' . $party . '%')
-                    ->orWhere('s.party_name', 'like', '%' . $party . '%')
-                    ->orWhere('s.party_id', $party);
-            });
+                $party = trim((string) $request->party);
+                $query->where(function ($partyQuery) use ($party) {
+                    $partyQuery->where('p.name', 'like', '%' . $party . '%')
+                        ->orWhere('s.party_id', $party);
+                });
         }
         if ($request->filled('status')) {
             $query->where('s.status', $request->status);
@@ -2715,6 +2829,7 @@ class ReportController extends Controller
             'total_amount' => $this->fmt($rows->sum('grand_total')),
             'total_orders' => $rows->count(),
             'open_orders'  => $rows->filter(fn ($row) => in_array(strtolower((string) $row->status), ['pending', 'confirmed', 'open'], true))->count(),
+            'order_type'   => $orderType,
             'period'       => ['from' => $from, 'to' => $to],
         ]);
     }
@@ -2725,6 +2840,92 @@ class ReportController extends Controller
     public function saleOrderItems(Request $request)
     {
         [$from, $to] = $this->dateRange($request);
+        $orderType = $request->input('order_type') === 'purchase_order'
+            ? 'purchase_order'
+            : 'sale_order';
+
+        if ($orderType === 'purchase_order') {
+            if (!Schema::hasTable('purchases') || !Schema::hasTable('purchase_items')) {
+                return response()->json(['success' => true, 'rows' => [], 'total_amount' => 0, 'total_qty' => 0]);
+            }
+
+            $dateExpression = DB::raw('DATE(COALESCE(po.bill_date, po.created_at))');
+            $convertedExistsSql = "EXISTS (
+                SELECT 1 FROM purchases converted
+                WHERE converted.source_purchase_order_id = po.id
+                  AND converted.type = 'purchase_bill'
+            )";
+
+            $query = DB::table('purchase_items as pi')
+                ->join('purchases as po', 'po.id', '=', 'pi.purchase_id')
+                ->leftJoin('items as i', 'i.id', '=', 'pi.item_id')
+                ->leftJoin('parties as p', 'p.id', '=', 'po.party_id')
+                ->whereBetween($dateExpression, [$from, $to])
+                ->where('po.type', 'purchase_order')
+                ->select(
+                    'po.id as sale_id',
+                    'po.bill_number',
+                    DB::raw('DATE(COALESCE(po.bill_date, po.created_at)) as date'),
+                    DB::raw("COALESCE(p.name, po.party_name, 'Walk-in') as party_name"),
+                    DB::raw("COALESCE(i.name, pi.item_name, 'Item') as item_name"),
+                    'pi.quantity',
+                    'pi.unit',
+                    'pi.unit_price',
+                    DB::raw('COALESCE(pi.amount, pi.quantity * pi.unit_price) as amount'),
+                    DB::raw("CASE WHEN {$convertedExistsSql} THEN 'completed' ELSE 'open' END as status"),
+                    DB::raw("'purchase_order' as type")
+                )
+                ->orderByDesc($dateExpression)
+                ->orderByDesc('po.id');
+
+            if ($request->filled('item')) {
+                $item = trim((string) $request->item);
+                $query->where(function ($itemQuery) use ($item) {
+                    $itemQuery->where('i.name', 'like', '%' . $item . '%')
+                        ->orWhere('pi.item_name', 'like', '%' . $item . '%')
+                        ->orWhere('pi.item_id', $item);
+                });
+            }
+            if ($request->filled('party')) {
+                $party = trim((string) $request->party);
+                $query->where(function ($partyQuery) use ($party) {
+                    $partyQuery->where('p.name', 'like', '%' . $party . '%')
+                        ->orWhere('po.party_name', 'like', '%' . $party . '%')
+                        ->orWhere('po.party_id', $party);
+                });
+            }
+            if ($request->filled('status')) {
+                $status = strtolower((string) $request->status);
+                if ($status === 'completed') {
+                    $query->whereExists(function ($converted) {
+                        $converted->selectRaw('1')
+                            ->from('purchases as converted')
+                            ->whereColumn('converted.source_purchase_order_id', 'po.id')
+                            ->where('converted.type', 'purchase_bill');
+                    });
+                } elseif (in_array($status, ['open', 'pending', 'confirmed'], true)) {
+                    $query->whereNotExists(function ($converted) {
+                        $converted->selectRaw('1')
+                            ->from('purchases as converted')
+                            ->whereColumn('converted.source_purchase_order_id', 'po.id')
+                            ->where('converted.type', 'purchase_bill');
+                    });
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+            }
+
+            $rows = $query->get();
+
+            return response()->json([
+                'success'      => true,
+                'rows'         => $rows->toArray(),
+                'total_amount' => $this->fmt($rows->sum('amount')),
+                'total_qty'    => $rows->sum('quantity'),
+                'order_type'   => $orderType,
+                'period'       => ['from' => $from, 'to' => $to],
+            ]);
+        }
 
         if (!Schema::hasTable('sales') || !Schema::hasTable('sale_items')) {
             return response()->json(['success' => true, 'rows' => [], 'total_amount' => 0, 'total_qty' => 0]);
@@ -2742,7 +2943,7 @@ class ReportController extends Controller
                 's.id as sale_id',
                 's.bill_number',
                 DB::raw('DATE(COALESCE(s.order_date, s.invoice_date, s.created_at)) as date'),
-                DB::raw("COALESCE(p.name, s.party_name, 'Walk-in') as party_name"),
+                DB::raw("COALESCE(p.name, 'Walk-in') as party_name"),
                 DB::raw("COALESCE(i.name, si.item_name, 'Item') as item_name"),
                 'si.quantity',
                 'si.unit',
@@ -2763,12 +2964,11 @@ class ReportController extends Controller
             });
         }
         if ($request->filled('party')) {
-            $party = trim((string) $request->party);
-            $query->where(function ($partyQuery) use ($party) {
-                $partyQuery->where('p.name', 'like', '%' . $party . '%')
-                    ->orWhere('s.party_name', 'like', '%' . $party . '%')
-                    ->orWhere('s.party_id', $party);
-            });
+                $party = trim((string) $request->party);
+                $query->where(function ($partyQuery) use ($party) {
+                    $partyQuery->where('p.name', 'like', '%' . $party . '%')
+                        ->orWhere('s.party_id', $party);
+                });
         }
         if ($request->filled('status')) {
             $query->where('s.status', $request->status);
@@ -2781,6 +2981,7 @@ class ReportController extends Controller
             'rows'         => $rows->toArray(),
             'total_amount' => $this->fmt($rows->sum('amount')),
             'total_qty'    => $rows->sum('quantity'),
+            'order_type'   => $orderType,
             'period'       => ['from' => $from, 'to' => $to],
         ]);
     }
@@ -2931,28 +3132,219 @@ class ReportController extends Controller
     public function itemCategoryPnL(Request $request)
     {
         [$from, $to] = $this->dateRange($request);
-        $rows = collect();
+        $itemStatus = in_array($request->input('item_status'), ['active', 'inactive', 'all'], true)
+            ? $request->input('item_status')
+            : 'active';
 
-        if (Schema::hasTable('sale_items') && Schema::hasTable('sales')) {
-            $rows = DB::table('sale_items as si')
-                ->join('sales as s', 's.id', '=', 'si.sale_id')
-                ->join('items as i', 'i.id', '=', 'si.item_id')
-                ->leftJoin('categories as c', 'c.id', '=', 'i.category_id')
-                ->whereBetween('s.invoice_date', [$from, $to])
-                ->select(
-                    DB::raw("COALESCE(c.name, 'Uncategorized') as category_name"),
-                    DB::raw('SUM(si.quantity * si.price) as sale_amount'),
-                    DB::raw('SUM(si.quantity * COALESCE(i.purchase_price, 0)) as cost_amount'),
-                    DB::raw('SUM(si.quantity * si.price) - SUM(si.quantity * COALESCE(i.purchase_price, 0)) as profit')
-                )
-                ->groupBy('c.id', 'c.name')
-                ->get();
+        if (! Schema::hasTable('items')) {
+            return response()->json([
+                'success' => true,
+                'rows' => [],
+                'total_profit' => 0,
+                'period' => ['from' => $from, 'to' => $to],
+            ]);
         }
+
+        $itemsQuery = DB::table('items as i')
+            ->leftJoin('categories as c', 'c.id', '=', 'i.category_id')
+            ->select(
+                'i.id',
+                'i.name',
+                'i.opening_qty',
+                'i.purchase_price',
+                DB::raw("COALESCE(NULLIF(c.name, ''), 'Uncategorized') as category_name")
+            );
+
+        if (Schema::hasColumn('items', 'is_active')) {
+            if ($itemStatus === 'active') {
+                $itemsQuery->where('i.is_active', true);
+            } elseif ($itemStatus === 'inactive') {
+                $itemsQuery->where('i.is_active', false);
+            }
+        }
+
+        $items = $itemsQuery->get();
+        $categoryRows = [];
+        $itemState = [];
+        $itemIdByName = [];
+
+        $emptyCategoryRow = static fn (string $categoryName): array => [
+            'category_name' => $categoryName,
+            'sale' => 0.0,
+            'cr_note' => 0.0,
+            'purchase' => 0.0,
+            'dr_note' => 0.0,
+            'opening_stock' => 0.0,
+            'closing_stock' => 0.0,
+            'tax_receivable' => 0.0,
+            'tax_payable' => 0.0,
+            'mfg_cost' => 0.0,
+            'consumption_cost' => 0.0,
+            'net_profit' => 0.0,
+        ];
+
+        foreach ($items as $item) {
+            $categoryName = (string) ($item->category_name ?: 'Uncategorized');
+            $categoryRows[$categoryName] ??= $emptyCategoryRow($categoryName);
+
+            $itemState[(int) $item->id] = [
+                'category_name' => $categoryName,
+                'purchase_price' => (float) ($item->purchase_price ?? 0),
+                'opening_qty' => (float) ($item->opening_qty ?? 0),
+                'closing_qty' => (float) ($item->opening_qty ?? 0),
+            ];
+
+            $normalizedName = strtolower(trim((string) $item->name));
+            if ($normalizedName !== '' && ! isset($itemIdByName[$normalizedName])) {
+                $itemIdByName[$normalizedName] = (int) $item->id;
+            }
+        }
+
+        $resolveItemId = static function ($transaction) use ($itemState, $itemIdByName): ?int {
+            $itemId = (int) ($transaction->item_id ?? 0);
+            if ($itemId > 0 && isset($itemState[$itemId])) {
+                return $itemId;
+            }
+
+            $normalizedName = strtolower(trim((string) ($transaction->item_name ?? '')));
+            return $normalizedName !== '' ? ($itemIdByName[$normalizedName] ?? null) : null;
+        };
+
+        if ($items->isNotEmpty() && Schema::hasTable('sales') && Schema::hasTable('sale_items')) {
+            $saleTransactions = DB::table('sale_items as si')
+                ->join('sales as s', 's.id', '=', 'si.sale_id')
+                ->whereIn('s.type', ['invoice', 'pos', 'sale_return'])
+                ->whereDate('s.invoice_date', '<=', $to)
+                ->select(
+                    'si.item_id',
+                    'si.item_name',
+                    'si.quantity',
+                    'si.unit_price',
+                    'si.amount',
+                    's.type',
+                    's.invoice_date as transaction_date',
+                    's.tax_pct'
+                )
+                ->get();
+
+            foreach ($saleTransactions as $transaction) {
+                $itemId = $resolveItemId($transaction);
+                if ($itemId === null) {
+                    continue;
+                }
+
+                $state = &$itemState[$itemId];
+                $categoryName = $state['category_name'];
+                $quantity = (float) ($transaction->quantity ?? 0);
+                $amount = $transaction->amount === null
+                    ? $quantity * (float) ($transaction->unit_price ?? 0)
+                    : (float) $transaction->amount;
+                $taxAmount = $amount * ((float) ($transaction->tax_pct ?? 0) / 100);
+                $isReturn = $transaction->type === 'sale_return';
+                $stockMovement = $isReturn ? $quantity : -$quantity;
+
+                if ((string) $transaction->transaction_date < $from) {
+                    $state['opening_qty'] += $stockMovement;
+                    $state['closing_qty'] += $stockMovement;
+                    unset($state);
+                    continue;
+                }
+
+                $state['closing_qty'] += $stockMovement;
+                if ($isReturn) {
+                    $categoryRows[$categoryName]['cr_note'] += $amount;
+                    $categoryRows[$categoryName]['tax_payable'] -= $taxAmount;
+                } else {
+                    $categoryRows[$categoryName]['sale'] += $amount;
+                    $categoryRows[$categoryName]['tax_payable'] += $taxAmount;
+                }
+                unset($state);
+            }
+        }
+
+        if ($items->isNotEmpty() && Schema::hasTable('purchases') && Schema::hasTable('purchase_items')) {
+            $purchaseTransactions = DB::table('purchase_items as pi')
+                ->join('purchases as pu', 'pu.id', '=', 'pi.purchase_id')
+                ->whereIn('pu.type', ['purchase_bill', 'purchase_return'])
+                ->whereDate('pu.bill_date', '<=', $to)
+                ->select(
+                    'pi.item_id',
+                    'pi.item_name',
+                    'pi.quantity',
+                    'pi.unit_price',
+                    'pi.amount',
+                    'pu.type',
+                    'pu.bill_date as transaction_date',
+                    'pu.tax_pct'
+                )
+                ->get();
+
+            foreach ($purchaseTransactions as $transaction) {
+                $itemId = $resolveItemId($transaction);
+                if ($itemId === null) {
+                    continue;
+                }
+
+                $state = &$itemState[$itemId];
+                $categoryName = $state['category_name'];
+                $quantity = (float) ($transaction->quantity ?? 0);
+                $amount = $transaction->amount === null
+                    ? $quantity * (float) ($transaction->unit_price ?? 0)
+                    : (float) $transaction->amount;
+                $taxAmount = $amount * ((float) ($transaction->tax_pct ?? 0) / 100);
+                $isReturn = $transaction->type === 'purchase_return';
+                $stockMovement = $isReturn ? -$quantity : $quantity;
+
+                if ((string) $transaction->transaction_date < $from) {
+                    $state['opening_qty'] += $stockMovement;
+                    $state['closing_qty'] += $stockMovement;
+                    unset($state);
+                    continue;
+                }
+
+                $state['closing_qty'] += $stockMovement;
+                if ($isReturn) {
+                    $categoryRows[$categoryName]['dr_note'] += $amount;
+                    $categoryRows[$categoryName]['tax_receivable'] -= $taxAmount;
+                } else {
+                    $categoryRows[$categoryName]['purchase'] += $amount;
+                    $categoryRows[$categoryName]['tax_receivable'] += $taxAmount;
+                }
+                unset($state);
+            }
+        }
+
+        foreach ($itemState as $state) {
+            $categoryName = $state['category_name'];
+            $categoryRows[$categoryName]['opening_stock'] += $state['opening_qty'] * $state['purchase_price'];
+            $categoryRows[$categoryName]['closing_stock'] += $state['closing_qty'] * $state['purchase_price'];
+        }
+
+        $rows = collect($categoryRows)
+            ->map(function (array $row) {
+                $row['net_profit'] = $row['sale']
+                    - $row['cr_note']
+                    - $row['purchase']
+                    + $row['dr_note']
+                    - $row['opening_stock']
+                    + $row['closing_stock']
+                    + $row['tax_receivable']
+                    - $row['tax_payable']
+                    - $row['mfg_cost']
+                    - $row['consumption_cost'];
+
+                return array_map(
+                    fn ($value) => is_numeric($value) ? $this->fmt($value) : $value,
+                    $row
+                );
+            })
+            ->sortBy('category_name', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
 
         return response()->json([
             'success'      => true,
-            'rows'         => $rows->toArray(),
-            'total_profit' => $this->fmt($rows->sum('profit')),
+            'rows'         => $rows->all(),
+            'total_profit' => $this->fmt($rows->sum('net_profit')),
             'period'       => ['from' => $from, 'to' => $to],
         ]);
     }

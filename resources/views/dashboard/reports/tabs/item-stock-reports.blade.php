@@ -307,39 +307,37 @@
                         This Month
                     </button>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#" onclick="setPeriodLabel('icp-period-label','This Month')">This Month</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="setPeriodLabel('icp-period-label','Last Month')">Last Month</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="setPeriodLabel('icp-period-label','This Quarter')">This Quarter</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="setPeriodLabel('icp-period-label','This Year')">This Year</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="setPeriodLabel('icp-period-label','Custom')">Custom</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setItemCategoryPeriod('This Month'); return false;">This Month</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setItemCategoryPeriod('Last Month'); return false;">Last Month</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setItemCategoryPeriod('This Quarter'); return false;">This Quarter</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setItemCategoryPeriod('This Year'); return false;">This Year</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="setItemCategoryPeriod('Custom'); return false;">Custom</a></li>
                     </ul>
                 </div>
                 <div class="d-flex align-items-center border rounded px-2 py-1" style="gap: 6px; font-size: 13px;">
-                    <i class="fa-regular fa-calendar text-secondary" style="cursor:pointer;" onclick="openCalendar('icp-from-picker','icp-from-display','')"></i>
+                    <i class="fa-regular fa-calendar text-secondary" style="cursor:pointer;" onclick="openCalendar('icp-from-picker','icp-from-display','filterItemCategoryPnL')"></i>
                     <input type="text" id="icp-from-display" readonly
                         style="border:none;background:transparent;font-size:13px;outline:none;width:80px;cursor:pointer;"
-                        placeholder="From"
-                        onclick="openCalendar('icp-from-picker','icp-from-display','')">
+                        value="{{ now()->startOfMonth()->format('d/m/Y') }}"
+                        onclick="openCalendar('icp-from-picker','icp-from-display','filterItemCategoryPnL')">
                     <input type="date" id="icp-from-picker" style="position:absolute;opacity:0;pointer-events:none;"
-                        onchange="syncDisplay(this,'icp-from-display')">
+                        value="{{ now()->startOfMonth()->format('Y-m-d') }}"
+                        onchange="syncDisplay(this,'icp-from-display'); filterItemCategoryPnL()">
                     <span class="text-secondary">To</span>
                     <input type="text" id="icp-to-display" readonly
                         style="border:none;background:transparent;font-size:13px;outline:none;width:80px;cursor:pointer;"
-                        placeholder="To"
-                        onclick="openCalendar('icp-to-picker','icp-to-display','')">
+                        value="{{ now()->endOfMonth()->format('d/m/Y') }}"
+                        onclick="openCalendar('icp-to-picker','icp-to-display','filterItemCategoryPnL')">
                     <input type="date" id="icp-to-picker" style="position:absolute;opacity:0;pointer-events:none;"
-                        onchange="syncDisplay(this,'icp-to-display')">
+                        value="{{ now()->endOfMonth()->format('Y-m-d') }}"
+                        onchange="syncDisplay(this,'icp-to-display'); filterItemCategoryPnL()">
                 </div>
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        Active Items
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#">Active Items</a></li>
-                        <li><a class="dropdown-item" href="#">All Items</a></li>
-                        <li><a class="dropdown-item" href="#">Inactive Items</a></li>
-                    </ul>
-                </div>
+                <select class="form-select form-select-sm" id="icp-item-status"
+                    style="width:140px;" onchange="filterItemCategoryPnL()">
+                    <option value="active">Active Items</option>
+                    <option value="all">All Items</option>
+                    <option value="inactive">Inactive Items</option>
+                </select>
             </div>
             <div class="d-flex" style="gap: 8px;">
                 <button class="btn d-flex align-items-center justify-content-center p-0"
@@ -355,9 +353,9 @@
             </div>
         </div>
 
-        @if(isset($categories) && $categories->count() > 0)
+        <h2 style="font-weight:700;color:#1f2937;margin-bottom:24px;font-size:22px;">DETAILS</h2>
         <div class="table-responsive">
-            <table class="w-100" id="icp-table" style="border-collapse: collapse;">
+            <table class="w-100" id="icp-table" style="border-collapse:collapse;min-width:1500px;">
                 <thead style="background-color: #f3f4f6;">
                     <tr style="border-bottom: 2px solid #e5e7eb;">
                         <th style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">Category Name</th>
@@ -367,34 +365,22 @@
                         <th style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">Dr. Note / Purchase Return</th>
                         <th style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">Opening Stock</th>
                         <th style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">Closing Stock</th>
+                        <th style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">Tax Receivable</th>
+                        <th style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">Tax Payable</th>
+                        <th style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">Mfg. Cost</th>
+                        <th style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">Consumption Cost</th>
                         <th style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">Net Profit / Loss</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach($itemCategoryPnL ?? [] as $item)
-                    <tr style="border-bottom: 1px solid #f3f4f6;">
-                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; border-right: 1px solid #e5e7eb;">{{ $item->category_name }}</td>
-                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">Rs {{ number_format($item->sale, 2) }}</td>
-                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">Rs {{ number_format($item->cr_note, 2) }}</td>
-                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">Rs {{ number_format($item->purchase, 2) }}</td>
-                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">Rs {{ number_format($item->dr_note, 2) }}</td>
-                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">Rs {{ number_format($item->opening_stock, 2) }}</td>
-                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">Rs {{ number_format($item->closing_stock, 2) }}</td>
-                        <td style="padding: 12px 16px; font-size: 14px; text-align: right; color: {{ $item->net_profit >= 0 ? '#10b981' : '#ef4444' }};">Rs {{ number_format($item->net_profit, 2) }}</td>
+                <tbody id="icp-tbody">
+                    <tr>
+                        <td colspan="12" class="text-center text-muted py-5">
+                            <div class="spinner-border spinner-border-sm me-2"></div>Loading…
+                        </td>
                     </tr>
-                    @endforeach
                 </tbody>
             </table>
         </div>
-        @else
-        <div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 400px;">
-            <div class="mb-3" style="width: 80px; height: 80px; background-color: #dbeafe; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                <i class="fa-regular fa-file-lines" style="font-size: 32px; color: #93c5fd;"></i>
-            </div>
-            <h5 style="color: #6b7280; font-weight: 500;">No Categories to Show</h5>
-            <p style="color: #9ca3af; font-size: 13px;">You haven't added any categories yet.</p>
-        </div>
-        @endif
     </div>
 </div>
 

@@ -327,17 +327,18 @@
 
     {{-- Table --}}
     <div class="h-100 overflow-auto">
-        <table class="table table-hover mb-0 w-100 report-resizable-table" id="ap-table">
+        <table class="table table-hover mb-0 w-100 report-resizable-table" id="ap-table"
+            data-column-drag="native" data-column-drag-storage="vyapar.reports.all-parties.columns.v1">
             <thead class="table-light" style="font-size:12px; text-transform:uppercase; position:sticky; top:0; z-index:1;">
                 <tr>
-                    <th><input type="checkbox" id="ap-select-all"></th>
-                    <th>Party Name</th>
-                    <th>Party Group</th>
-                    <th>Email</th>
-                    <th>Phone No.</th>
-                    <th class="text-end">Receivable Balance</th>
-                    <th class="text-end">Payable Balance</th>
-                    <th class="text-end">Credit Limit</th>
+                    <th data-column-key="selection"><input type="checkbox" id="ap-select-all"></th>
+                    <th data-column-key="party_name">Party Name</th>
+                    <th data-column-key="party_group">Party Group</th>
+                    <th data-column-key="email">Email</th>
+                    <th data-column-key="phone">Phone No.</th>
+                    <th data-column-key="receivable_balance" class="text-end">Receivable Balance</th>
+                    <th data-column-key="payable_balance" class="text-end">Payable Balance</th>
+                    <th data-column-key="credit_limit" class="text-end">Credit Limit</th>
                 </tr>
             </thead>
             <tbody id="ap-tbody">

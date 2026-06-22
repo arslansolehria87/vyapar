@@ -3,12 +3,26 @@
   <div class="d-flex flex-column" style="min-height:100vh;padding:24px;background:#fff;border:1px solid #e5e7eb;">
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
       <div class="d-flex align-items-center flex-wrap gap-2">
-        <input type="text" id="so-party-filter" placeholder="Party filter"
-          style="border:1px solid #d1d5db;border-radius:4px;padding:6px 10px;font-size:13px;width:170px;outline:none;color:#374151;">
+        <select id="so-party-filter"
+          style="border:1px solid #d1d5db;border-radius:4px;padding:6px 10px;font-size:13px;width:180px;background:#fff;outline:none;color:#374151;">
+          <option value="">All Parties</option>
+          @foreach(($parties ?? collect())->sortBy('name') as $party)
+            @if(!empty($party->name))
+              <option value="{{ $party->id }}">{{ $party->name }}</option>
+            @endif
+          @endforeach
+        </select>
+
+        <select id="so-order-type"
+          style="border:1px solid #d1d5db;border-radius:4px;padding:6px 10px;font-size:13px;width:155px;background:#fff;color:#2563eb;font-weight:600;outline:none;">
+          <option value="sale_order">Sale Order</option>
+          <option value="purchase_order">Purchase Order</option>
+        </select>
 
         <select id="so-status-filter"
           style="border:1px solid #d1d5db;border-radius:4px;padding:6px 10px;font-size:13px;background:#fff;color:#374151;outline:none;">
           <option value="">All Status</option>
+          <option value="open">Open</option>
           <option value="pending">Pending</option>
           <option value="confirmed">Confirmed</option>
           <option value="completed">Completed</option>
@@ -42,7 +56,7 @@
       </div>
     </div>
 
-    <h2 style="font-weight:700;color:#1f2937;margin:8px 0 16px;font-size:22px;">Sale Order Report</h2>
+    <h2 id="so-report-title" style="font-weight:700;color:#1f2937;margin:8px 0 16px;font-size:22px;">Sale Order Report</h2>
 
     <div class="d-flex gap-3 mb-3 flex-wrap">
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;min-width:150px;">
@@ -127,6 +141,11 @@
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
+  function selectedOrderLabel() {
+    var select = document.getElementById('so-order-type');
+    return select?.options[select.selectedIndex]?.text || 'Sale Order';
+  }
+
   function setEmpty(message, error) {
     rows = [];
     document.getElementById('so-table-body').innerHTML = '<tr><td colspan="7" style="padding:48px;text-align:center;color:' + (error ? '#ef4444' : '#9ca3af') + ';font-size:13px;">' + esc(message) + '</td></tr>';
@@ -151,7 +170,7 @@
     document.getElementById('so-balance-total').textContent = money(totalBalance);
 
     if (!rows.length) {
-      setEmpty('No sale orders found for the selected filters.', false);
+      setEmpty('No ' + selectedOrderLabel().toLowerCase() + 's found for the selected filters.', false);
       return;
     }
 
@@ -175,13 +194,15 @@
   function loadSaleOrderReport() {
     var params = new URLSearchParams({
       from: document.getElementById('so-from-date').value,
-      to: document.getElementById('so-to-date').value
+      to: document.getElementById('so-to-date').value,
+      order_type: document.getElementById('so-order-type').value
     });
-    var party = document.getElementById('so-party-filter').value.trim();
+    var party = document.getElementById('so-party-filter').value;
     var status = document.getElementById('so-status-filter').value;
     if (party) params.append('party', party);
     if (status) params.append('status', status);
 
+    document.getElementById('so-report-title').textContent = selectedOrderLabel() + ' Report';
     document.getElementById('so-loading').classList.remove('d-none');
     document.getElementById('so-table-wrap').classList.add('d-none');
 
@@ -195,7 +216,7 @@
       .then(render)
       .catch(function(error) {
         console.error(error);
-        setEmpty('Failed to load sale order data. Please try again.', true);
+        setEmpty('Failed to load ' + selectedOrderLabel().toLowerCase() + ' data. Please try again.', true);
       })
       .finally(function() {
         document.getElementById('so-loading').classList.add('d-none');
@@ -205,7 +226,8 @@
 
   function exportSaleOrderCSV() {
     if (!rows.length) return alert('No data to export.');
-    var csv = 'Sale Order Report\\n';
+    var orderLabel = selectedOrderLabel();
+    var csv = orderLabel + ' Report\\n';
     csv += 'From,' + document.getElementById('so-from-date').value + ',To,' + document.getElementById('so-to-date').value + '\\n\\n';
     csv += '#,Date,Order No.,Party Name,Status,Amount,Balance\\n';
     rows.forEach(function(row, index) {
@@ -223,7 +245,7 @@
 
     var link = document.createElement('a');
     link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-    link.download = 'sale_order_report.csv';
+    link.download = orderLabel.toLowerCase().replace(/\s+/g, '_') + '_report.csv';
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -231,8 +253,9 @@
 
   function printSaleOrderReport() {
     if (!rows.length) return alert('No data to print.');
+    var orderLabel = selectedOrderLabel();
     var popup = window.open('', '_blank', 'width=960,height=720');
-    popup.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Sale Order Report</title><style>body{font-family:Arial,sans-serif;padding:32px;color:#1f2937}h2{font-size:20px;margin:0 0 4px}p{font-size:12px;color:#6b7280;margin:0 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e5e7eb;padding:8px 10px;font-size:12px}th{background:#f3f4f6;text-align:left}.num{text-align:right}tfoot td{font-weight:700}@media print{@page{margin:14mm}body{padding:0}}</style></head><body><h2>Sale Order Report</h2><p>From ' + esc(document.getElementById('so-from-date').value) + ' To ' + esc(document.getElementById('so-to-date').value) + '</p>' + document.getElementById('so-main-table').outerHTML + '<script>window.onload=function(){window.print();}<\/script></body></html>');
+    popup.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + esc(orderLabel) + ' Report</title><style>body{font-family:Arial,sans-serif;padding:32px;color:#1f2937}h2{font-size:20px;margin:0 0 4px}p{font-size:12px;color:#6b7280;margin:0 0 18px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e5e7eb;padding:8px 10px;font-size:12px}th{background:#f3f4f6;text-align:left}.num{text-align:right}tfoot td{font-weight:700}@media print{@page{margin:14mm}body{padding:0}}</style></head><body><h2>' + esc(orderLabel) + ' Report</h2><p>From ' + esc(document.getElementById('so-from-date').value) + ' To ' + esc(document.getElementById('so-to-date').value) + '</p>' + document.getElementById('so-main-table').outerHTML + '<script>window.onload=function(){window.print();}<\/script></body></html>');
     popup.document.close();
   }
 
@@ -241,7 +264,11 @@
   window.printSaleOrderReport = printSaleOrderReport;
 
   document.getElementById('so-apply-btn')?.addEventListener('click', loadSaleOrderReport);
+  document.getElementById('so-party-filter')?.addEventListener('change', loadSaleOrderReport);
+  document.getElementById('so-order-type')?.addEventListener('change', loadSaleOrderReport);
+  document.getElementById('so-status-filter')?.addEventListener('change', loadSaleOrderReport);
   document.getElementById('so-excel-btn')?.addEventListener('click', exportSaleOrderCSV);
   document.getElementById('so-print-btn')?.addEventListener('click', printSaleOrderReport);
+  loadSaleOrderReport();
 })();
 </script>
