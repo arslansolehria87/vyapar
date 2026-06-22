@@ -6,12 +6,13 @@
   <div class="pur-report-header d-flex justify-content-between align-items-center mb-3 px-1">
     <h3 class="pur-report-title mb-0">Purchase Bills</h3>
     <div class="d-flex gap-2 align-items-center">
-      <button class="pur-add-btn" id="purAddPurchaseBtn">
+      <button class="pur-add-btn" id="purAddPurchaseBtn" type="button">
         <i class="fa-solid fa-plus me-1"></i> Add Purchase
       </button>
-      <button class="pur-icon-btn" id="purSettingsBtn" title="Settings">
+      <a class="pur-icon-btn" id="purSettingsBtn" href="{{ route('settings.transactions') }}"
+        title="Transaction Settings" aria-label="Open transaction settings">
         <i class="fa-solid fa-gear"></i>
-      </button>
+      </a>
     </div>
   </div>
 
@@ -145,11 +146,12 @@
 
     <!-- Table -->
     <div class="table-responsive pur-table-scroll">
-      <table class="pur-table" id="purTransactionsTable">
+      <table class="pur-table" id="purTransactionsTable" data-column-drag="native"
+        data-column-drag-storage="vyapar.reports.purchase.transactions.v1">
         <thead>
           <tr>
             <!-- Date -->
-            <th>
+            <th data-column-key="date">
               <div class="pur-th-inner">
                 <span>Date</span>
                 <button class="pur-th-sort" onclick="purSortBy('date', this)"><i class="fa-solid fa-sort"></i></button>
@@ -181,7 +183,7 @@
             </th>
 
             <!-- Invoice No -->
-            <th>
+            <th data-column-key="invoice_no">
               <div class="pur-th-inner">
                 <span>Invoice No.</span>
                 <button class="pur-th-sort" onclick="purSortBy('invoice_no', this)"><i class="fa-solid fa-sort"></i></button>
@@ -207,7 +209,7 @@
             </th>
 
             <!-- Party Name -->
-            <th>
+            <th data-column-key="party_name">
               <div class="pur-th-inner">
                 <span>Party Name</span>
                 <button class="pur-th-sort" onclick="purSortBy('party_name', this)"><i class="fa-solid fa-sort"></i></button>
@@ -233,7 +235,7 @@
             </th>
 
             <!-- Transaction -->
-            <th>
+            <th data-column-key="transaction">
               <div class="pur-th-inner">
                 <span>Transaction</span>
                 <div class="pur-th-filter-wrap">
@@ -255,7 +257,7 @@
             </th>
 
             <!-- Payment Type -->
-            <th>
+            <th data-column-key="payment_type">
               <div class="pur-th-inner">
                 <span>Payment Type</span>
                 <div class="pur-th-filter-wrap">
@@ -278,7 +280,7 @@
             </th>
 
             <!-- Amount -->
-            <th>
+            <th data-column-key="amount">
               <div class="pur-th-inner">
                 <span>Amount</span>
                 <button class="pur-th-sort" onclick="purSortBy('amount', this)"><i class="fa-solid fa-sort"></i></button>
@@ -308,7 +310,7 @@
             </th>
 
             <!-- Balance Due -->
-            <th>
+            <th data-column-key="balance">
               <div class="pur-th-inner">
                 <span>Balance Due</span>
                 <button class="pur-th-sort" onclick="purSortBy('balance', this)"><i class="fa-solid fa-sort"></i></button>
@@ -338,7 +340,7 @@
             </th>
 
             <!-- Status -->
-            <th>
+            <th data-column-key="status">
               <div class="pur-th-inner">
                 <span>Status</span>
                 <div class="pur-th-filter-wrap">
@@ -359,7 +361,7 @@
             </th>
 
             <!-- Actions -->
-            <th><div class="pur-th-inner"><span>Actions</span></div></th>
+            <th data-column-key="actions"><div class="pur-th-inner"><span>Actions</span></div></th>
           </tr>
         </thead>
         <tbody id="purTxnTableBody">
@@ -452,7 +454,8 @@
 .pur-add-btn:hover { background:#dc2626; }
 .pur-icon-btn {
   width:36px; height:36px; border-radius:8px; border:1px solid #e5e7eb; background:#fff;
-  color:#6b7280; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s;
+  color:#6b7280; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  text-decoration:none; transition:background .15s;
 }
 .pur-icon-btn:hover { background:#f3f4f6; }
 
@@ -589,6 +592,9 @@
 </style>
 
 
+@once
+<script src="{{ asset('js/transaction-column-drag.js') }}"></script>
+@endonce
 <script>
 (function () {
   'use strict';
@@ -737,15 +743,15 @@
           : `<span class="pur-badge-unpaid">Unpaid</span>`;
 
       tr.innerHTML = `
-        <td>${fmtDate(row.bill_date || row.invoice_date || row.date)}</td>
-        <td>${row.bill_number || row.invoice_no || '-'}</td>
-        <td>${row.party_name || '-'}</td>
-        <td>Purchase</td>
-        <td>${row.payment_type || 'Cash'}</td>
-        <td style="text-align:right;font-weight:500;">${fmt(row.grand_total || row.total_amount || row.amount || 0)}</td>
-        <td style="text-align:right;">${fmt(row.balance_due || 0)}</td>
-        <td>${badge}</td>
-        <td>
+        <td data-column-key="date">${fmtDate(row.bill_date || row.invoice_date || row.date)}</td>
+        <td data-column-key="invoice_no">${row.bill_number || row.invoice_no || '-'}</td>
+        <td data-column-key="party_name">${row.party_name || '-'}</td>
+        <td data-column-key="transaction">Purchase</td>
+        <td data-column-key="payment_type">${row.payment_type || 'Cash'}</td>
+        <td data-column-key="amount" style="text-align:right;font-weight:500;">${fmt(row.grand_total || row.total_amount || row.amount || 0)}</td>
+        <td data-column-key="balance" style="text-align:right;">${fmt(row.balance_due || 0)}</td>
+        <td data-column-key="status">${badge}</td>
+        <td data-column-key="actions">
           <button class="pur-row-print-btn" title="Print" onclick="purPrintRow(${row.id})">
             <i class="fa-solid fa-print"></i>
           </button>

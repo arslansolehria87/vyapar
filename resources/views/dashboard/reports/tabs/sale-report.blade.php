@@ -885,7 +885,9 @@
 {{-- ══════════════════════════════════════════════════
      SCRIPTS
 ══════════════════════════════════════════════════ --}}
+@once
 <script src="{{ asset('js/transaction-column-drag.js') }}"></script>
+@endonce
 <script>
 (function () {
   'use strict';
