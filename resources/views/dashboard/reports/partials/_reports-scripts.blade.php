@@ -636,13 +636,13 @@ function filterIWDAjax() {
         }
         tbody.innerHTML = data.items.map((item, i) => `
             <tr style="border-bottom: 1px solid #f3f4f6;">
-                <td style="padding:12px 16px;font-size:14px;color:#9ca3af;">${i+1}</td>
-                <td style="padding:12px 16px;font-size:14px;color:#1f2937;border-right:1px solid #e5e7eb;">${item.name}</td>
-                <td style="padding:12px 16px;font-size:14px;color:#1f2937;text-align:right;border-right:1px solid #e5e7eb;">${item.total_qty_sold}</td>
-                <td style="padding:12px 16px;font-size:14px;color:#1f2937;text-align:right;border-right:1px solid #e5e7eb;">Rs ${parseFloat(item.total_sale_amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}</td>
-                <td style="padding:12px 16px;font-size:14px;color:#1f2937;text-align:right;border-right:1px solid #e5e7eb;">Rs ${parseFloat(item.total_disc_amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}</td>
-                <td style="padding:12px 16px;font-size:14px;color:#1f2937;text-align:right;border-right:1px solid #e5e7eb;">${parseFloat(item.avg_disc_percent).toFixed(2)}%</td>
-                <td style="padding:12px 16px;font-size:14px;text-align:right;">
+                <td data-column-key="index" style="padding:12px 16px;font-size:14px;color:#9ca3af;">${i+1}</td>
+                <td data-column-key="item_name" style="padding:12px 16px;font-size:14px;color:#1f2937;border-right:1px solid #e5e7eb;">${item.name}</td>
+                <td data-column-key="total_qty_sold" style="padding:12px 16px;font-size:14px;color:#1f2937;text-align:right;border-right:1px solid #e5e7eb;">${item.total_qty_sold}</td>
+                <td data-column-key="total_sale_amount" style="padding:12px 16px;font-size:14px;color:#1f2937;text-align:right;border-right:1px solid #e5e7eb;">Rs ${parseFloat(item.total_sale_amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}</td>
+                <td data-column-key="total_discount_amount" style="padding:12px 16px;font-size:14px;color:#1f2937;text-align:right;border-right:1px solid #e5e7eb;">Rs ${parseFloat(item.total_disc_amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}</td>
+                <td data-column-key="average_discount" style="padding:12px 16px;font-size:14px;color:#1f2937;text-align:right;border-right:1px solid #e5e7eb;">${parseFloat(item.avg_disc_percent).toFixed(2)}%</td>
+                <td data-column-key="actions" style="padding:12px 16px;font-size:14px;text-align:right;">
                     <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="loadIWDDetails(${item.id})">Details</button>
                 </td>
             </tr>`).join('');

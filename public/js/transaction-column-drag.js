@@ -1,6 +1,9 @@
 (function () {
   'use strict';
 
+  if (window.__vyaparTransactionColumnDragLoaded) return;
+  window.__vyaparTransactionColumnDragLoaded = true;
+
   var activeTable = null;
   var draggedColumnKey = '';
 
@@ -22,7 +25,7 @@
     if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return;
 
     var columnCount = getHeaders(table).length;
-    table.querySelectorAll('thead tr:first-child, tbody > tr').forEach(function (row) {
+    table.querySelectorAll('thead tr:first-child, tbody > tr, tfoot > tr').forEach(function (row) {
       if (row.children.length !== columnCount) return;
 
       var sourceCell = row.children[sourceIndex];
@@ -60,6 +63,16 @@
       if (key) cellsByKey[key] = cell;
     });
 
+    if (Object.keys(cellsByKey).length === 0) {
+      var defaultKeys = table._transactionColumnDefaultKeys || [];
+      if (defaultKeys.length !== row.children.length) return;
+
+      Array.from(row.children).forEach(function (cell, index) {
+        cell.dataset.columnKey = defaultKeys[index];
+        cellsByKey[defaultKeys[index]] = cell;
+      });
+    }
+
     if (Object.keys(cellsByKey).length !== headers.length) return;
     headers.forEach(function (header) {
       var cell = cellsByKey[header.dataset.columnKey];
@@ -68,7 +81,7 @@
   }
 
   function alignKeyedRows(table) {
-    table.querySelectorAll('tbody > tr').forEach(function (row) {
+    table.querySelectorAll('tbody > tr, tfoot > tr').forEach(function (row) {
       alignKeyedRow(table, row);
     });
   }
@@ -119,11 +132,15 @@
 
   function isInteractiveTarget(target) {
     return Boolean(target.closest(
-      'button, input, select, textarea, a, label, .dropdown-menu, .column-filter-dropdown, .filter-popover, .th-sort, .th-filter, .loan-filter-icon, .bank-filter-icon, .th-filter-icon, .col-rh, .col-resize-handle, .col-resize-handle-sales, .loan-col-resize-handle, .bank-col-resize-handle, .resizer'
+      'button, input, select, textarea, a, label, .dropdown-menu, .column-filter-dropdown, .filter-popover, .th-sort, .th-filter, .loan-filter-icon, .bank-filter-icon, .th-filter-icon, .col-rh, .col-resize-handle, .col-resize-handle-sales, .loan-col-resize-handle, .bank-col-resize-handle, .report-col-resizer, .resizer'
     ));
   }
 
   function initializeTable(table) {
+    table._transactionColumnDefaultKeys = getHeaders(table).map(function (header) {
+      return header.dataset.columnKey;
+    });
+
     restoreOrder(table);
     alignKeyedRows(table);
 
@@ -198,8 +215,9 @@
       });
     });
 
-    var tbody = table.tBodies[0];
-    if (tbody) {
+    var observedSections = Array.from(table.tBodies);
+    if (table.tFoot) observedSections.push(table.tFoot);
+    observedSections.forEach(function (section) {
       new MutationObserver(function (mutations) {
         mutations.forEach(function (mutation) {
           mutation.addedNodes.forEach(function (node) {
@@ -208,8 +226,8 @@
             }
           });
         });
-      }).observe(tbody, { childList: true });
-    }
+      }).observe(section, { childList: true });
+    });
   }
 
   function injectStyles() {

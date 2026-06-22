@@ -100,7 +100,6 @@
     </div>
 </div>
 
-
 {{-- ============================================================
      2. ITEM REPORT BY PARTY
      ============================================================ --}}
@@ -862,6 +861,10 @@
 {{-- ============================================================
      9. ITEM WISE DISCOUNT — matches screenshot 5 & 6
      ============================================================ --}}
+@once
+<script src="{{ asset('js/transaction-column-drag.js') }}"></script>
+@endonce
+
 <div id="tab-item-wise-discount" class="report-tab-content d-none">
     <div class="d-flex flex-column" style="min-height: 100vh; padding: 24px; background-color: #ffffff;">
 
@@ -959,28 +962,30 @@
         </div>
 
         <div class="table-responsive">
-            <table class="w-100" id="iwd-table" style="border-collapse: collapse;">
+            <table class="w-100" id="iwd-table" data-column-drag="native"
+                data-column-drag-storage="vyapar.reports.item-wise-discount.transactions.v1"
+                style="border-collapse: collapse;">
                 <thead style="background-color: #f3f4f6;">
                     <tr style="border-bottom: 2px solid #e5e7eb;">
-                        <th style="padding: 12px 16px; width: 40px; font-size: 13px; font-weight: 600; color: #6b7280;">#</th>
-                        <th style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">Item Name</th>
-                        <th style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">Total Qty Sold</th>
-                        <th style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">Total Sale Amount</th>
-                        <th style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">Total Disc. Amount</th>
-                        <th style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">Avg. Disc. (%)</th>
-                        <th style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">Details</th>
+                        <th data-column-key="index" style="padding: 12px 16px; width: 40px; font-size: 13px; font-weight: 600; color: #6b7280;">#</th>
+                        <th data-column-key="item_name" style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: left; border-right: 1px solid #e5e7eb;">Item Name</th>
+                        <th data-column-key="total_qty_sold" style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">Total Qty Sold</th>
+                        <th data-column-key="total_sale_amount" style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">Total Sale Amount</th>
+                        <th data-column-key="total_discount_amount" style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">Total Disc. Amount</th>
+                        <th data-column-key="average_discount" style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right; border-right: 1px solid #e5e7eb;">Avg. Disc. (%)</th>
+                        <th data-column-key="actions" style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #6b7280; text-align: right;">Details</th>
                     </tr>
                 </thead>
                 <tbody id="iwd-tbody">
                     @forelse($itemWiseDiscount ?? [] as $index => $item)
                     <tr style="border-bottom: 1px solid #f3f4f6;">
-                        <td style="padding: 12px 16px; font-size: 14px; color: #9ca3af;">{{ $index + 1 }}</td>
-                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; border-right: 1px solid #e5e7eb;">{{ $item->name }}</td>
-                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">{{ $item->total_qty_sold }}</td>
-                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">Rs {{ number_format($item->total_sale_amount, 2) }}</td>
-                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">Rs {{ number_format($item->total_disc_amount, 2) }}</td>
-                        <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">{{ number_format($item->avg_disc_percent, 2) }}%</td>
-                        <td style="padding: 12px 16px; font-size: 14px; text-align: right;">
+                        <td data-column-key="index" style="padding: 12px 16px; font-size: 14px; color: #9ca3af;">{{ $index + 1 }}</td>
+                        <td data-column-key="item_name" style="padding: 12px 16px; font-size: 14px; color: #1f2937; border-right: 1px solid #e5e7eb;">{{ $item->name }}</td>
+                        <td data-column-key="total_qty_sold" style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">{{ $item->total_qty_sold }}</td>
+                        <td data-column-key="total_sale_amount" style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">Rs {{ number_format($item->total_sale_amount, 2) }}</td>
+                        <td data-column-key="total_discount_amount" style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">Rs {{ number_format($item->total_disc_amount, 2) }}</td>
+                        <td data-column-key="average_discount" style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">{{ number_format($item->avg_disc_percent, 2) }}%</td>
+                        <td data-column-key="actions" style="padding: 12px 16px; font-size: 14px; text-align: right;">
                             <button class="btn btn-sm btn-outline-primary py-0 px-2"
                                 onclick="loadIWDDetails({{ $item->id }})">Details</button>
                         </td>
@@ -993,15 +998,17 @@
                 </tbody>
                 <tfoot>
                     <tr style="border-top: 1px solid #e5e7eb;">
-                        <td colspan="4" style="padding: 12px 16px; font-size: 14px;">
-                            <div><strong>Summary</strong></div>
-                            <div style="font-size: 13px; color: #374151;">
-                                Total Sale Amount: <span id="iwd-total-sale">{{ isset($iwdTotals) ? 'Rs '.number_format($iwdTotals['total_sale'], 2) : '—' }}</span>
-                            </div>
-                            <div style="font-size: 13px; color: #374151;">
-                                Total Discount amount: <span id="iwd-total-disc">{{ isset($iwdTotals) ? 'Rs '.number_format($iwdTotals['total_disc'], 2) : '—' }}</span>
-                            </div>
+                        <td data-column-key="index" style="padding: 12px 16px; font-size: 14px;"><strong>Summary</strong></td>
+                        <td data-column-key="item_name"></td>
+                        <td data-column-key="total_qty_sold"></td>
+                        <td data-column-key="total_sale_amount" style="padding: 12px 16px; font-size: 13px; color: #374151; text-align:right;">
+                            Total: <span id="iwd-total-sale">{{ isset($iwdTotals) ? 'Rs '.number_format($iwdTotals['total_sale'], 2) : '—' }}</span>
                         </td>
+                        <td data-column-key="total_discount_amount" style="padding: 12px 16px; font-size: 13px; color: #374151; text-align:right;">
+                            Total: <span id="iwd-total-disc">{{ isset($iwdTotals) ? 'Rs '.number_format($iwdTotals['total_disc'], 2) : '—' }}</span>
+                        </td>
+                        <td data-column-key="average_discount"></td>
+                        <td data-column-key="actions"></td>
                     </tr>
                 </tfoot>
             </table>

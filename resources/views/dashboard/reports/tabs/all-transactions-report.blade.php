@@ -108,12 +108,14 @@
         </div>
 
         <div class="table-responsive" style="height:calc(100vh - 320px); overflow-y:auto;">
-            <table class="table table-hover mb-0 align-middle" style="border-collapse:collapse; font-size:13px;">
+            <table class="table table-hover mb-0 align-middle" id="allTransactionsTable"
+                data-column-drag="native" data-column-drag-storage="vyapar.reports.all-transactions.v1"
+                style="border-collapse:collapse; font-size:13px;">
                 <thead style="position:sticky;top:0;z-index:5;">
                     <tr style="background:#f3f4f6; border-bottom:2px solid #e5e7eb;">
 
                         {{-- NAME --}}
-                        <th style="padding:10px 14px; font-size:12px; font-weight:600; color:#6b7280; white-space:nowrap;">
+                        <th data-column-key="name" style="padding:10px 14px; font-size:12px; font-weight:600; color:#6b7280; white-space:nowrap;">
                             <div class="d-flex align-items-center gap-1">
                                 NAME
                                 <div class="dropdown">
@@ -140,7 +142,7 @@
                         </th>
 
                         {{-- REF NO --}}
-                        <th style="padding:10px 14px; font-size:12px; font-weight:600; color:#6b7280; white-space:nowrap;">
+                        <th data-column-key="reference" style="padding:10px 14px; font-size:12px; font-weight:600; color:#6b7280; white-space:nowrap;">
                             <div class="d-flex align-items-center gap-1">
                                 REF NO.
                                 <div class="dropdown">
@@ -166,7 +168,7 @@
                         </th>
 
                         {{-- TYPE --}}
-                        <th style="padding:10px 14px; font-size:12px; font-weight:600; color:#6b7280; white-space:nowrap;">
+                        <th data-column-key="type" style="padding:10px 14px; font-size:12px; font-weight:600; color:#6b7280; white-space:nowrap;">
                             <div class="d-flex align-items-center gap-1">
                                 TYPE
                                 <div class="dropdown">
@@ -193,7 +195,7 @@
                         </th>
 
                         {{-- PAYMENT TYPE --}}
-                        <th style="padding:10px 14px; font-size:12px; font-weight:600; color:#6b7280; white-space:nowrap;">
+                        <th data-column-key="payment_type" style="padding:10px 14px; font-size:12px; font-weight:600; color:#6b7280; white-space:nowrap;">
                             <div class="d-flex align-items-center gap-1">
                                 PAYMENT TYPE
                                 <div class="dropdown">
@@ -215,7 +217,7 @@
                         </th>
 
                         {{-- TOTAL --}}
-                        <th style="padding:10px 14px; font-size:12px; font-weight:600; color:#6b7280; white-space:nowrap; text-align:right;">
+                        <th data-column-key="total" style="padding:10px 14px; font-size:12px; font-weight:600; color:#6b7280; white-space:nowrap; text-align:right;">
                             <div class="d-flex align-items-center justify-content-end gap-1">
                                 TOTAL
                                 <div class="dropdown">
@@ -246,7 +248,7 @@
                         </th>
 
                         {{-- MONEY IN --}}
-                        <th style="padding:10px 14px; font-size:12px; font-weight:600; color:#6b7280; white-space:nowrap; text-align:right;">
+                        <th data-column-key="money_in" style="padding:10px 14px; font-size:12px; font-weight:600; color:#6b7280; white-space:nowrap; text-align:right;">
                             <div class="d-flex align-items-center justify-content-end gap-1">
                                 MONEY IN
                                 <div class="dropdown">
@@ -273,7 +275,7 @@
                         </th>
 
                         {{-- MONEY OUT --}}
-                        <th style="padding:10px 14px; font-size:12px; font-weight:600; color:#6b7280; white-space:nowrap; text-align:right;">
+                        <th data-column-key="money_out" style="padding:10px 14px; font-size:12px; font-weight:600; color:#6b7280; white-space:nowrap; text-align:right;">
                             <div class="d-flex align-items-center justify-content-end gap-1">
                                 MONEY OUT
                                 <div class="dropdown">
@@ -299,7 +301,7 @@
                             </div>
                         </th>
 
-                        <th style="padding:10px 14px; font-size:12px; font-weight:600; color:#6b7280; white-space:nowrap; text-align:center;">
+                        <th data-column-key="actions" style="padding:10px 14px; font-size:12px; font-weight:600; color:#6b7280; white-space:nowrap; text-align:center;">
                             PRINT / SHARE
                         </th>
                     </tr>
@@ -314,11 +316,14 @@
                 </tbody>
                 <tfoot id="db-tfoot" style="display:none; background:#f9fafb; border-top:2px solid #e5e7eb;">
                     <tr>
-                        <td colspan="4" class="px-4 py-3 fw-bold text-dark" style="font-size:13px;">Totals</td>
-                        <td class="px-4 py-3 fw-bold text-dark text-end" id="db-foot-total" style="font-size:13px;"></td>
-                        <td class="px-4 py-3 fw-bold text-success text-end" id="db-foot-moneyin" style="font-size:13px;"></td>
-                        <td class="px-4 py-3 fw-bold text-danger text-end" id="db-foot-moneyout" style="font-size:13px;"></td>
-                        <td></td>
+                        <td data-column-key="name" class="px-4 py-3 fw-bold text-dark" style="font-size:13px;">Totals</td>
+                        <td data-column-key="reference"></td>
+                        <td data-column-key="type"></td>
+                        <td data-column-key="payment_type"></td>
+                        <td data-column-key="total" class="px-4 py-3 fw-bold text-dark text-end" id="db-foot-total" style="font-size:13px;"></td>
+                        <td data-column-key="money_in" class="px-4 py-3 fw-bold text-success text-end" id="db-foot-moneyin" style="font-size:13px;"></td>
+                        <td data-column-key="money_out" class="px-4 py-3 fw-bold text-danger text-end" id="db-foot-moneyout" style="font-size:13px;"></td>
+                        <td data-column-key="actions"></td>
                     </tr>
                 </tfoot>
             </table>
@@ -351,6 +356,9 @@
     </div>
 </div>
 
+@once
+<script src="{{ asset('js/transaction-column-drag.js') }}"></script>
+@endonce
 <script>
 (function () {
     'use strict';
@@ -575,21 +583,21 @@
             const rowBg = idx === 0 ? '#eff6ff' : '#fff';
 
             tr.innerHTML = `
-                <td style="padding:12px 14px; color:#1f2937; background:${rowBg};">
+                <td data-column-key="name" style="padding:12px 14px; color:#1f2937; background:${rowBg};">
                     <span class="fw-medium">${r.name}</span>
                 </td>
-                <td style="padding:12px 14px; color:#6b7280; background:${rowBg};">${r.ref || ''}</td>
-                <td style="padding:12px 14px; background:${rowBg};">
+                <td data-column-key="reference" style="padding:12px 14px; color:#6b7280; background:${rowBg};">${r.ref || ''}</td>
+                <td data-column-key="type" style="padding:12px 14px; background:${rowBg};">
                     <span class="badge rounded-pill px-2 py-1 fw-medium"
                           style="font-size:11px; background:${typeColor(r.type)}20; color:${typeColor(r.type)};">
                         ${r.type}
                     </span>
                 </td>
-                <td style="padding:12px 14px; color:#6b7280; background:${rowBg};">${r.pay_type || '—'}</td>
-                <td style="padding:12px 14px; color:#1f2937; text-align:right; font-weight:500; background:${rowBg};">${fmt(r.total)}</td>
-                <td style="padding:12px 14px; color:${r.money_in > 0 ? '#10b981' : '#9ca3af'}; text-align:right; font-weight:${r.money_in > 0 ? '600' : '400'}; background:${rowBg};">${fmt(r.money_in)}</td>
-                <td style="padding:12px 14px; color:${r.money_out > 0 ? '#ef4444' : '#9ca3af'}; text-align:right; font-weight:${r.money_out > 0 ? '600' : '400'}; background:${rowBg};">${fmt(r.money_out)}</td>
-                <td style="padding:12px 14px; text-align:center; background:${rowBg};">
+                <td data-column-key="payment_type" style="padding:12px 14px; color:#6b7280; background:${rowBg};">${r.pay_type || '—'}</td>
+                <td data-column-key="total" style="padding:12px 14px; color:#1f2937; text-align:right; font-weight:500; background:${rowBg};">${fmt(r.total)}</td>
+                <td data-column-key="money_in" style="padding:12px 14px; color:${r.money_in > 0 ? '#10b981' : '#9ca3af'}; text-align:right; font-weight:${r.money_in > 0 ? '600' : '400'}; background:${rowBg};">${fmt(r.money_in)}</td>
+                <td data-column-key="money_out" style="padding:12px 14px; color:${r.money_out > 0 ? '#ef4444' : '#9ca3af'}; text-align:right; font-weight:${r.money_out > 0 ? '600' : '400'}; background:${rowBg};">${fmt(r.money_out)}</td>
+                <td data-column-key="actions" style="padding:12px 14px; text-align:center; background:${rowBg};">
                     <button class="btn btn-sm p-0 border-0 bg-transparent" title="Print / Share"
                             onclick="dbOpenRowAction(event, ${r.id})">
                         <i class="fa-solid fa-print" style="color:#6b7280;font-size:14px;"></i>

@@ -114,7 +114,9 @@
     </div>
 
     <div class="table-responsive">
-      <table class="w-100" id="cfTable" style="border-collapse:collapse;table-layout:fixed;">
+      <table class="w-100" id="cfTable" data-column-drag="native"
+        data-column-drag-storage="vyapar.reports.cash-flow.transactions.v1"
+        style="border-collapse:collapse;table-layout:fixed;">
         <colgroup>
           <col style="width:44px;">    {{-- # --}}
           <col style="width:100px;">   {{-- Date --}}
@@ -132,9 +134,9 @@
         <thead style="background:#f9fafb;">
           <tr style="border-bottom:2px solid #e5e7eb;">
 
-            <th style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;">#</th>
+            <th data-column-key="index" style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;">#</th>
 
-            <th style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;border-right:1px solid #f3f4f6;">
+            <th data-column-key="date" style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;border-right:1px solid #f3f4f6;">
               <div class="d-flex align-items-center gap-1">Date
                 <div class="dropdown">
                   <button class="btn p-0 border-0 bg-transparent" data-bs-toggle="dropdown"><i class="fa-solid fa-filter" style="font-size:10px;color:#9ca3af;"></i></button>
@@ -150,7 +152,7 @@
               </div>
             </th>
 
-            <th style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;border-right:1px solid #f3f4f6;">
+            <th data-column-key="name" style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;border-right:1px solid #f3f4f6;">
               <div class="d-flex align-items-center gap-1">Name
                 <div class="dropdown">
                   <button class="btn p-0 border-0 bg-transparent" data-bs-toggle="dropdown"><i class="fa-solid fa-filter" style="font-size:10px;color:#9ca3af;"></i></button>
@@ -165,7 +167,7 @@
               </div>
             </th>
 
-            <th style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;border-right:1px solid #f3f4f6;">
+            <th data-column-key="reference" style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;border-right:1px solid #f3f4f6;">
               <div class="d-flex align-items-center gap-1">Reference No.
                 <div class="dropdown">
                   <button class="btn p-0 border-0 bg-transparent" data-bs-toggle="dropdown"><i class="fa-solid fa-filter" style="font-size:10px;color:#9ca3af;"></i></button>
@@ -180,9 +182,9 @@
               </div>
             </th>
 
-            <th style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;border-right:1px solid #f3f4f6;">Category</th>
+            <th data-column-key="category" style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;border-right:1px solid #f3f4f6;">Category</th>
 
-            <th style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;border-right:1px solid #f3f4f6;">
+            <th data-column-key="type" style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;border-right:1px solid #f3f4f6;">
               <div class="d-flex align-items-center gap-1">Type
                 <div class="dropdown">
                   <button class="btn p-0 border-0 bg-transparent" data-bs-toggle="dropdown"><i class="fa-solid fa-filter" style="font-size:10px;color:#9ca3af;"></i></button>
@@ -203,7 +205,7 @@
               </div>
             </th>
 
-            <th style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;border-right:1px solid #f3f4f6;">
+            <th data-column-key="payment_type" style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;border-right:1px solid #f3f4f6;">
               <div class="d-flex align-items-center gap-1">Payment Type
                 <div class="dropdown">
                   <button class="btn p-0 border-0 bg-transparent" data-bs-toggle="dropdown"><i class="fa-solid fa-filter" style="font-size:10px;color:#9ca3af;"></i></button>
@@ -221,7 +223,7 @@
               </div>
             </th>
 
-            <th style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;text-align:right;border-right:1px solid #f3f4f6;">
+            <th data-column-key="total" style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;text-align:right;border-right:1px solid #f3f4f6;">
               <div class="d-flex align-items-center justify-content-end gap-1">Total
                 <div class="dropdown">
                   <button class="btn p-0 border-0 bg-transparent" data-bs-toggle="dropdown"><i class="fa-solid fa-filter" style="font-size:10px;color:#9ca3af;"></i></button>
@@ -236,7 +238,7 @@
               </div>
             </th>
 
-            <th style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;text-align:right;border-right:1px solid #f3f4f6;">
+            <th data-column-key="cash_in" style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;text-align:right;border-right:1px solid #f3f4f6;">
               <div class="d-flex align-items-center justify-content-end gap-1">Cash In
                 <div class="dropdown">
                   <button class="btn p-0 border-0 bg-transparent" data-bs-toggle="dropdown"><i class="fa-solid fa-filter" style="font-size:10px;color:#9ca3af;"></i></button>
@@ -251,7 +253,7 @@
               </div>
             </th>
 
-            <th style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;text-align:right;border-right:1px solid #f3f4f6;">
+            <th data-column-key="cash_out" style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;text-align:right;border-right:1px solid #f3f4f6;">
               <div class="d-flex align-items-center justify-content-end gap-1">Cash Out
                 <div class="dropdown">
                   <button class="btn p-0 border-0 bg-transparent" data-bs-toggle="dropdown"><i class="fa-solid fa-filter" style="font-size:10px;color:#9ca3af;"></i></button>
@@ -266,7 +268,7 @@
               </div>
             </th>
 
-            <th style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;text-align:right;border-right:1px solid #f3f4f6;">
+            <th data-column-key="running_cash" style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;text-align:right;border-right:1px solid #f3f4f6;">
               <div class="d-flex align-items-center justify-content-end gap-1">Running Cash
                 <div class="dropdown">
                   <button class="btn p-0 border-0 bg-transparent" data-bs-toggle="dropdown"><i class="fa-solid fa-filter" style="font-size:10px;color:#9ca3af;"></i></button>
@@ -281,7 +283,7 @@
               </div>
             </th>
 
-            <th style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;text-align:center;">Print/Share</th>
+            <th data-column-key="actions" style="padding:10px 12px;font-size:12px;font-weight:600;color:#6b7280;text-align:center;">Print/Share</th>
 
           </tr>
         </thead>
@@ -295,11 +297,18 @@
         </tbody>
         <tfoot id="cfTfoot" style="background:#f9fafb;display:none;">
           <tr style="border-top:2px solid #e5e7eb;">
-            <td colspan="7" style="padding:12px 16px;font-size:13px;font-weight:700;color:#1f2937;">Totals</td>
-            <td style="padding:12px 16px;font-size:13px;font-weight:700;color:#1f2937;text-align:right;" id="cfFootTotal">Rs 0.00</td>
-            <td style="padding:12px 16px;font-size:13px;font-weight:700;color:#16a34a;text-align:right;" id="cfFootIn">Rs 0.00</td>
-            <td style="padding:12px 16px;font-size:13px;font-weight:700;color:#dc2626;text-align:right;" id="cfFootOut">Rs 0.00</td>
-            <td colspan="2" style="padding:12px 16px;font-size:13px;font-weight:700;color:#2563eb;text-align:right;" id="cfFootRunning">Rs 0.00</td>
+            <td data-column-key="index" style="padding:12px 16px;font-size:13px;font-weight:700;color:#1f2937;">Totals</td>
+            <td data-column-key="date"></td>
+            <td data-column-key="name"></td>
+            <td data-column-key="reference"></td>
+            <td data-column-key="category"></td>
+            <td data-column-key="type"></td>
+            <td data-column-key="payment_type"></td>
+            <td data-column-key="total" style="padding:12px 16px;font-size:13px;font-weight:700;color:#1f2937;text-align:right;" id="cfFootTotal">Rs 0.00</td>
+            <td data-column-key="cash_in" style="padding:12px 16px;font-size:13px;font-weight:700;color:#16a34a;text-align:right;" id="cfFootIn">Rs 0.00</td>
+            <td data-column-key="cash_out" style="padding:12px 16px;font-size:13px;font-weight:700;color:#dc2626;text-align:right;" id="cfFootOut">Rs 0.00</td>
+            <td data-column-key="running_cash" style="padding:12px 16px;font-size:13px;font-weight:700;color:#2563eb;text-align:right;" id="cfFootRunning">Rs 0.00</td>
+            <td data-column-key="actions"></td>
           </tr>
         </tfoot>
       </table>
@@ -380,6 +389,9 @@
 {{-- ============================================================
      CASH FLOW JAVASCRIPT
      ============================================================ --}}
+@once
+<script src="{{ asset('js/transaction-column-drag.js') }}"></script>
+@endonce
 <script>
 (function () {
   'use strict';
@@ -613,20 +625,20 @@
         <tr style="border-bottom:1px solid #f3f4f6;transition:background .15s;"
             onmouseover="this.style.background='#f9fafb'"
             onmouseout="this.style.background='#fff'">
-          <td style="padding:10px 12px;font-size:13px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${idx + 1}</td>
-          <td style="padding:10px 12px;font-size:13px;color:#374151;border-right:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.date || '—'}</td>
-          <td style="padding:10px 12px;font-size:13px;color:#111827;font-weight:500;border-right:1px solid #f3f4f6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(r.party_name||'').replace(/"/g,'&quot;')}">${r.party_name || '—'}</td>
-          <td style="padding:10px 12px;font-size:13px;color:#374151;border-right:1px solid #f3f4f6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.bill_number || '—'}</td>
-          <td style="padding:10px 12px;font-size:13px;color:#374151;border-right:1px solid #f3f4f6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.category || '—'}</td>
-          <td style="padding:10px 12px;border-right:1px solid #f3f4f6;white-space:nowrap;">
+          <td data-column-key="index" style="padding:10px 12px;font-size:13px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${idx + 1}</td>
+          <td data-column-key="date" style="padding:10px 12px;font-size:13px;color:#374151;border-right:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.date || '—'}</td>
+          <td data-column-key="name" style="padding:10px 12px;font-size:13px;color:#111827;font-weight:500;border-right:1px solid #f3f4f6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(r.party_name||'').replace(/"/g,'&quot;')}">${r.party_name || '—'}</td>
+          <td data-column-key="reference" style="padding:10px 12px;font-size:13px;color:#374151;border-right:1px solid #f3f4f6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.bill_number || '—'}</td>
+          <td data-column-key="category" style="padding:10px 12px;font-size:13px;color:#374151;border-right:1px solid #f3f4f6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.category || '—'}</td>
+          <td data-column-key="type" style="padding:10px 12px;border-right:1px solid #f3f4f6;white-space:nowrap;">
             <span class="px-2 py-1 rounded-pill" style="font-size:11px;font-weight:600;background:${tc}18;color:${tc};">${r.type || '—'}</span>
           </td>
-          <td style="padding:10px 12px;font-size:13px;color:#374151;border-right:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.payment_type || '—'}</td>
-          <td style="padding:10px 12px;font-size:13px;color:#374151;text-align:right;border-right:1px solid #f3f4f6;white-space:nowrap;">${total ? fmt(total) : '—'}</td>
-          <td style="padding:10px 12px;font-size:13px;font-weight:600;color:#16a34a;text-align:right;border-right:1px solid #f3f4f6;white-space:nowrap;">${cashIn ? fmt(cashIn) : '—'}</td>
-          <td style="padding:10px 12px;font-size:13px;font-weight:600;color:#dc2626;text-align:right;border-right:1px solid #f3f4f6;white-space:nowrap;">${cashOut ? fmt(cashOut) : '—'}</td>
-          <td style="padding:10px 12px;font-size:13px;font-weight:700;color:${rc};text-align:right;border-right:1px solid #f3f4f6;white-space:nowrap;">${fmt(running)}</td>
-          <td style="padding:10px 12px;text-align:center;white-space:nowrap;">
+          <td data-column-key="payment_type" style="padding:10px 12px;font-size:13px;color:#374151;border-right:1px solid #f3f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.payment_type || '—'}</td>
+          <td data-column-key="total" style="padding:10px 12px;font-size:13px;color:#374151;text-align:right;border-right:1px solid #f3f4f6;white-space:nowrap;">${total ? fmt(total) : '—'}</td>
+          <td data-column-key="cash_in" style="padding:10px 12px;font-size:13px;font-weight:600;color:#16a34a;text-align:right;border-right:1px solid #f3f4f6;white-space:nowrap;">${cashIn ? fmt(cashIn) : '—'}</td>
+          <td data-column-key="cash_out" style="padding:10px 12px;font-size:13px;font-weight:600;color:#dc2626;text-align:right;border-right:1px solid #f3f4f6;white-space:nowrap;">${cashOut ? fmt(cashOut) : '—'}</td>
+          <td data-column-key="running_cash" style="padding:10px 12px;font-size:13px;font-weight:700;color:${rc};text-align:right;border-right:1px solid #f3f4f6;white-space:nowrap;">${fmt(running)}</td>
+          <td data-column-key="actions" style="padding:10px 12px;text-align:center;white-space:nowrap;">
             <div class="d-flex justify-content-center align-items-center gap-1">
               <button class="btn p-0 border-0 bg-transparent" title="Print" onclick="cfPrintRow(${r.id},'${safeType}')">
                 <i class="fa-solid fa-print" style="font-size:14px;color:#6b7280;"></i>

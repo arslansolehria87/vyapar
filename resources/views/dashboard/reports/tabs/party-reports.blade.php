@@ -217,22 +217,23 @@
 
     <div class="party-report-table-wrap h-100 d-flex flex-column">
         <div class="party-report-table-box flex-grow-1 overflow-auto">
-            <table class="table table-hover w-100 report-resizable-table" id="ps-table">
+            <table class="table table-hover w-100 report-resizable-table" id="ps-table"
+                data-column-drag="native" data-column-drag-storage="vyapar.reports.party-statement.transactions.v1">
             <thead style="position:sticky; top:0; z-index:1;">
                 <tr>
-                    <th id="ps-col-date">Date</th>
-                    <th id="ps-col-type">TXN</th>
-                    <th id="ps-col-ref">Ref. No</th>
-                    <th id="ps-col-paytype">Payment</th>
-                    <th class="text-end" id="ps-col-total">Total</th>
-                    <th class="text-end" id="ps-col-received">Received/Paid</th>
-                    <th class="text-end" id="ps-col-txnbalance">TXN Balance</th>
-                    <th class="text-end" id="ps-col-receivable">Receivable Balance</th>
-                    <th class="text-end" id="ps-col-payable">Payable Balance</th>
-                    <th class="text-end d-none" id="ps-col-debit">Debit</th>
-                    <th class="text-end d-none" id="ps-col-credit">Credit</th>
-                    <th class="text-end d-none" id="ps-col-running">Running Balance</th>
-                    <th class="text-center">Actions</th>
+                    <th id="ps-col-date" data-column-key="date">Date</th>
+                    <th id="ps-col-type" data-column-key="transaction">TXN</th>
+                    <th id="ps-col-ref" data-column-key="reference">Ref. No</th>
+                    <th id="ps-col-paytype" data-column-key="payment_type">Payment</th>
+                    <th class="text-end" id="ps-col-total" data-column-key="total">Total</th>
+                    <th class="text-end" id="ps-col-received" data-column-key="received_paid">Received/Paid</th>
+                    <th class="text-end" id="ps-col-txnbalance" data-column-key="txn_balance">TXN Balance</th>
+                    <th class="text-end" id="ps-col-receivable" data-column-key="receivable">Receivable Balance</th>
+                    <th class="text-end" id="ps-col-payable" data-column-key="payable">Payable Balance</th>
+                    <th class="text-end d-none" id="ps-col-debit" data-column-key="debit">Debit</th>
+                    <th class="text-end d-none" id="ps-col-credit" data-column-key="credit">Credit</th>
+                    <th class="text-end d-none" id="ps-col-running" data-column-key="running_balance">Running Balance</th>
+                    <th class="text-center" data-column-key="actions">Actions</th>
                 </tr>
             </thead>
             <tbody id="ps-tbody">
@@ -572,6 +573,9 @@
     </div>
 </div>
 
+@once
+<script src="{{ asset('js/transaction-column-drag.js') }}"></script>
+@endonce
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const fromInput = document.getElementById('ui-date-from');
