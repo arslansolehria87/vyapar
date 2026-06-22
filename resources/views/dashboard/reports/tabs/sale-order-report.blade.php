@@ -64,16 +64,18 @@
     </div>
 
     <div id="so-table-wrap" class="table-responsive">
-      <table class="w-100" id="so-main-table" style="border-collapse:collapse;">
+      <table class="w-100" id="so-main-table" data-column-drag="native"
+        data-column-drag-storage="vyapar.reports.sale-order.transactions.v1"
+        style="border-collapse:collapse;">
         <thead style="background:#f9fafb;">
           <tr style="border-bottom:2px solid #e5e7eb;">
-            <th style="padding:11px 14px;font-size:12px;font-weight:600;color:#6b7280;text-align:left;">#</th>
-            <th style="padding:11px 14px;font-size:12px;font-weight:600;color:#6b7280;text-align:left;">Date</th>
-            <th style="padding:11px 14px;font-size:12px;font-weight:600;color:#6b7280;text-align:left;">Order No.</th>
-            <th style="padding:11px 14px;font-size:12px;font-weight:600;color:#6b7280;text-align:left;">Party Name</th>
-            <th style="padding:11px 14px;font-size:12px;font-weight:600;color:#6b7280;text-align:left;">Status</th>
-            <th style="padding:11px 14px;font-size:12px;font-weight:600;color:#6b7280;text-align:right;">Amount</th>
-            <th style="padding:11px 14px;font-size:12px;font-weight:600;color:#6b7280;text-align:right;">Balance</th>
+            <th data-column-key="index" style="padding:11px 14px;font-size:12px;font-weight:600;color:#6b7280;text-align:left;">#</th>
+            <th data-column-key="date" style="padding:11px 14px;font-size:12px;font-weight:600;color:#6b7280;text-align:left;">Date</th>
+            <th data-column-key="order_number" style="padding:11px 14px;font-size:12px;font-weight:600;color:#6b7280;text-align:left;">Order No.</th>
+            <th data-column-key="party_name" style="padding:11px 14px;font-size:12px;font-weight:600;color:#6b7280;text-align:left;">Party Name</th>
+            <th data-column-key="status" style="padding:11px 14px;font-size:12px;font-weight:600;color:#6b7280;text-align:left;">Status</th>
+            <th data-column-key="amount" style="padding:11px 14px;font-size:12px;font-weight:600;color:#6b7280;text-align:right;">Amount</th>
+            <th data-column-key="balance" style="padding:11px 14px;font-size:12px;font-weight:600;color:#6b7280;text-align:right;">Balance</th>
           </tr>
         </thead>
         <tbody id="so-table-body">
@@ -81,9 +83,13 @@
         </tbody>
         <tfoot id="so-table-foot" style="display:none;">
           <tr style="background:#f9fafb;border-top:2px solid #e5e7eb;">
-            <td colspan="5" style="padding:11px 14px;font-size:14px;font-weight:700;color:#1f2937;">Total</td>
-            <td id="so-grand-total" style="padding:11px 14px;font-size:14px;font-weight:700;color:#1f2937;text-align:right;">Rs 0.00</td>
-            <td id="so-balance-total" style="padding:11px 14px;font-size:14px;font-weight:700;color:#1f2937;text-align:right;">Rs 0.00</td>
+            <td data-column-key="index" style="padding:11px 14px;font-size:14px;font-weight:700;color:#1f2937;">Total</td>
+            <td data-column-key="date"></td>
+            <td data-column-key="order_number"></td>
+            <td data-column-key="party_name"></td>
+            <td data-column-key="status"></td>
+            <td data-column-key="amount" id="so-grand-total" style="padding:11px 14px;font-size:14px;font-weight:700;color:#1f2937;text-align:right;">Rs 0.00</td>
+            <td data-column-key="balance" id="so-balance-total" style="padding:11px 14px;font-size:14px;font-weight:700;color:#1f2937;text-align:right;">Rs 0.00</td>
           </tr>
         </tfoot>
       </table>
@@ -91,6 +97,9 @@
   </div>
 </div>
 
+@once
+<script src="{{ asset('js/transaction-column-drag.js') }}"></script>
+@endonce
 <script>
 (function(){
   var rows = [];
@@ -151,13 +160,13 @@
       var status = String(row.status || '').toLowerCase();
       var color = status === 'completed' ? '#16a34a' : (status === 'cancelled' ? '#dc2626' : '#ca8a04');
       return '<tr style="border-bottom:1px solid #e5e7eb;">'
-        + '<td style="padding:11px 14px;font-size:13px;color:#6b7280;">' + (index + 1) + '</td>'
-        + '<td style="padding:11px 14px;font-size:13px;color:#374151;">' + esc(dateText(row.date)) + '</td>'
-        + '<td style="padding:11px 14px;font-size:13px;color:#374151;">' + esc(row.bill_number || row.reference_bill_number || '-') + '</td>'
-        + '<td style="padding:11px 14px;font-size:13px;color:#374151;">' + esc(row.party_name || 'Walk-in') + '</td>'
-        + '<td style="padding:11px 14px;font-size:13px;"><span style="color:' + color + ';font-weight:600;">' + esc(statusText(row.status)) + '</span></td>'
-        + '<td style="padding:11px 14px;font-size:13px;color:#374151;text-align:right;">' + money(amount) + '</td>'
-        + '<td style="padding:11px 14px;font-size:13px;color:#374151;text-align:right;">' + money(row.balance) + '</td>'
+        + '<td data-column-key="index" style="padding:11px 14px;font-size:13px;color:#6b7280;">' + (index + 1) + '</td>'
+        + '<td data-column-key="date" style="padding:11px 14px;font-size:13px;color:#374151;">' + esc(dateText(row.date)) + '</td>'
+        + '<td data-column-key="order_number" style="padding:11px 14px;font-size:13px;color:#374151;">' + esc(row.bill_number || row.reference_bill_number || '-') + '</td>'
+        + '<td data-column-key="party_name" style="padding:11px 14px;font-size:13px;color:#374151;">' + esc(row.party_name || 'Walk-in') + '</td>'
+        + '<td data-column-key="status" style="padding:11px 14px;font-size:13px;"><span style="color:' + color + ';font-weight:600;">' + esc(statusText(row.status)) + '</span></td>'
+        + '<td data-column-key="amount" style="padding:11px 14px;font-size:13px;color:#374151;text-align:right;">' + money(amount) + '</td>'
+        + '<td data-column-key="balance" style="padding:11px 14px;font-size:13px;color:#374151;text-align:right;">' + money(row.balance) + '</td>'
         + '</tr>';
     }).join('');
     document.getElementById('so-table-foot').style.display = '';
