@@ -603,11 +603,39 @@ function filterItemDetail() {
 
 // Sale/Purchase By Category — party name filter
 function filterSalePurchaseCat() {
-    const q    = (document.getElementById('spc-party-filter')?.value || '').toLowerCase();
-    const rows = document.querySelectorAll('#spc-tbody tr');
-    rows.forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = !q || text.includes(q) ? '' : 'none';
+    const partyId = document.getElementById('spc-party-filter')?.value || '';
+    const fromDate = document.getElementById('spc-from-picker')?.value || '';
+    const toDate = document.getElementById('spc-to-picker')?.value || '';
+    const tbody = document.getElementById('spc-tbody');
+
+    if (!tbody) return;
+
+    const params = new URLSearchParams({ party_id: partyId, from: fromDate, to: toDate });
+
+    fetch(`{{ route('reports.sale-purchase-by-item-category') }}?${params}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        const rows = data.rows || [];
+
+        if (!rows.length) {
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-5">No data to show</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = rows.map(row => `
+            <tr style="border-bottom: 1px solid #f3f4f6;">
+                <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; border-right: 1px solid #e5e7eb;">${escapeReportHtml(row.category_name)}</td>
+                <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">${formatReportNumber(row.sale_qty)}</td>
+                <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">Rs ${formatReportNumber(row.total_sale_amount)}</td>
+                <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right; border-right: 1px solid #e5e7eb;">${formatReportNumber(row.purchase_qty)}</td>
+                <td style="padding: 12px 16px; font-size: 14px; color: #1f2937; text-align: right;">Rs ${formatReportNumber(row.total_purchase_amount)}</td>
+            </tr>
+        `).join('');
+    })
+    .catch(() => {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-5">Unable to load data.</td></tr>`;
     });
 }
 
@@ -676,6 +704,9 @@ window.showTab = function(tabName) {
     }
     if (tabName === 'item-wise-discount') {
         filterIWDAjax();
+    }
+    if (tabName === 'sale-purchase-report-by-item-category') {
+        filterSalePurchaseCat();
     }
 };
 

@@ -792,25 +792,29 @@
             <div class="d-flex align-items-center" style="gap: 12px;">
                 <div class="d-flex align-items-center" style="gap: 8px;">
                     <label style="font-size: 13px; color: #6b7280;">Party name</label>
-                    <input type="text" class="form-control form-control-sm" id="spc-party-filter"
-                        placeholder="Party name" style="width: 180px;" oninput="filterSalePurchaseCat()">
+                    <select class="form-select form-select-sm" id="spc-party-filter" style="width: 220px;" onchange="filterSalePurchaseCat()">
+                        <option value="">All Parties</option>
+                        @foreach($parties ?? [] as $party)
+                            <option value="{{ $party->id }}">{{ $party->name }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <span style="font-size: 13px; color: #6b7280;">From</span>
                 <input type="text" id="spc-from-display" readonly
                     style="width: 100px; border: 1px solid #d1d5db; border-radius: 4px; padding: 5px 8px; font-size: 13px; cursor: pointer; background: #fff;"
                     placeholder="From date"
-                    onclick="openCalendar('spc-from-picker','spc-from-display','')">
+                    onclick="openCalendar('spc-from-picker','spc-from-display','filterSalePurchaseCat')">
                 <input type="date" id="spc-from-picker" style="position:absolute;opacity:0;pointer-events:none;"
-                    onchange="syncDisplay(this,'spc-from-display')">
-                <i class="fa-regular fa-calendar" style="color:#9ca3af;cursor:pointer;" onclick="openCalendar('spc-from-picker','spc-from-display','')"></i>
+                    onchange="syncDisplay(this,'spc-from-display'); filterSalePurchaseCat()">
+                <i class="fa-regular fa-calendar" style="color:#9ca3af;cursor:pointer;" onclick="openCalendar('spc-from-picker','spc-from-display','filterSalePurchaseCat')"></i>
                 <span style="font-size: 13px; color: #6b7280;">To</span>
                 <input type="text" id="spc-to-display" readonly
                     style="width: 100px; border: 1px solid #d1d5db; border-radius: 4px; padding: 5px 8px; font-size: 13px; cursor: pointer; background: #fff;"
                     placeholder="To date"
-                    onclick="openCalendar('spc-to-picker','spc-to-display','')">
+                    onclick="openCalendar('spc-to-picker','spc-to-display','filterSalePurchaseCat')">
                 <input type="date" id="spc-to-picker" style="position:absolute;opacity:0;pointer-events:none;"
-                    onchange="syncDisplay(this,'spc-to-display')">
-                <i class="fa-regular fa-calendar" style="color:#9ca3af;cursor:pointer;" onclick="openCalendar('spc-to-picker','spc-to-display','')"></i>
+                    onchange="syncDisplay(this,'spc-to-display'); filterSalePurchaseCat()">
+                <i class="fa-regular fa-calendar" style="color:#9ca3af;cursor:pointer;" onclick="openCalendar('spc-to-picker','spc-to-display','filterSalePurchaseCat')"></i>
             </div>
             <div class="d-flex" style="gap: 8px;">
                 <button class="btn d-flex align-items-center justify-content-center p-0"

@@ -370,6 +370,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('reports/party-report-by-items', [ReportController::class, 'partyReportByItems']);
     Route::get('reports/sale-purchase-by-party', [ReportController::class, 'salePurchaseByParty']);
     Route::get('reports/sale-purchase-by-party-group', [ReportController::class, 'salePurchaseByPartyGroup']);
+    Route::get('reports/sale-purchase-by-item-category', [ReportController::class, 'salePurchaseByItemCategory'])->name('reports.sale-purchase-by-item-category');
     Route::get('/reports/profit-loss', [ReportController::class, 'profitAndLoss']);
     Route::get('/reports/profit-loss/export', [ReportController::class, 'profitAndLossExport']);
     Route::get('/reports/balance-sheet', [ReportController::class, 'balanceSheet']);
@@ -408,6 +409,8 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('reports/party-report-by-items',        [ReportController::class, 'partyReportByItems']);
     Route::get('reports/sale-purchase-by-party',       [ReportController::class, 'salePurchaseByParty']);
     Route::get('reports/sale-purchase-by-party-group', [ReportController::class, 'salePurchaseByPartyGroup']);
+    Route::get('reports/sale-purchase-by-item-category', [ReportController::class, 'salePurchaseByItemCategory'])
+        ->name('reports.sale-purchase-by-item-category');
     // Company management — inside the dashboard middleware group
     Route::get('/company',                       [CompanyController::class, 'index'])->name('company.index');
     Route::post('/company',                      [CompanyController::class, 'store'])->name('company.store');

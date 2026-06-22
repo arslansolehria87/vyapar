@@ -128,7 +128,8 @@ class ReportController extends Controller
             'purchase_amount' => 0,
         ];
         $itemCategoryPnL    = collect();
-        $salePurchaseByCat  = collect();
+        $salePurchaseByCatData = $this->buildSalePurchaseByCategoryReport(new Request());
+        $salePurchaseByCat  = $salePurchaseByCatData['rows'];
         $itemWiseDiscountData = $this->buildItemWiseDiscountReport(new Request([
             'from' => now()->startOfMonth()->toDateString(),
             'to' => now()->endOfMonth()->toDateString(),
@@ -812,6 +813,133 @@ class ReportController extends Controller
         })->values();
 
         return response()->json(['success' => true, 'rows' => $rows]);
+    }
+
+    // ============================================================
+    // 5B. SALE/PURCHASE REPORT BY ITEM CATEGORY
+    // ============================================================
+    public function salePurchaseByItemCategory(Request $request)
+    {
+        $data = $this->buildSalePurchaseByCategoryReport($request);
+
+        return response()->json([
+            'success' => true,
+            'rows' => $data['rows']->values()->all(),
+            'totals' => $data['totals'],
+            'period' => $data['period'],
+        ]);
+    }
+
+    private function buildSalePurchaseByCategoryReport(Request $request): array
+    {
+        [$from, $to] = $this->dateRange($request);
+
+        $saleRows = collect();
+        $purchaseRows = collect();
+        $hasItems = Schema::hasTable('items');
+        $hasCategories = Schema::hasTable('categories');
+
+        if (Schema::hasTable('sales') && Schema::hasTable('sale_items')) {
+            $hasSaleItemId = Schema::hasColumn('sale_items', 'item_id');
+            $hasSaleItemCategory = Schema::hasColumn('sale_items', 'item_category');
+            $saleCategoryExpr = $this->categoryNameExpression('si', $hasItems && $hasSaleItemId, $hasCategories, $hasSaleItemCategory);
+
+            $saleRows = DB::table('sale_items as si')
+                ->join('sales as s', 's.id', '=', 'si.sale_id')
+                ->when($hasItems && $hasSaleItemId, fn ($query) => $query->leftJoin('items as i', 'i.id', '=', 'si.item_id'))
+                ->when($hasItems && $hasSaleItemId && $hasCategories, fn ($query) => $query->leftJoin('categories as c', 'c.id', '=', 'i.category_id'))
+                ->whereBetween('s.invoice_date', [$from, $to])
+                ->when($request->filled('party_id') && Schema::hasColumn('sales', 'party_id'), fn ($query) => $query->where('s.party_id', $request->input('party_id')))
+                ->select(
+                    DB::raw($saleCategoryExpr . ' as category_name'),
+                    DB::raw('SUM(COALESCE(si.quantity, 0)) as sale_qty'),
+                    DB::raw('SUM(COALESCE(si.amount, 0)) as total_sale_amount')
+                )
+                ->groupBy(DB::raw($saleCategoryExpr))
+                ->get();
+        }
+
+        if (Schema::hasTable('purchases') && Schema::hasTable('purchase_items')) {
+            $hasPurchaseItemId = Schema::hasColumn('purchase_items', 'item_id');
+            $hasPurchaseItemCategory = Schema::hasColumn('purchase_items', 'item_category');
+            $purchaseCategoryExpr = $this->categoryNameExpression('pi', $hasItems && $hasPurchaseItemId, $hasCategories, $hasPurchaseItemCategory);
+
+            $purchaseRows = DB::table('purchase_items as pi')
+                ->join('purchases as pu', 'pu.id', '=', 'pi.purchase_id')
+                ->when($hasItems && $hasPurchaseItemId, fn ($query) => $query->leftJoin('items as i', 'i.id', '=', 'pi.item_id'))
+                ->when($hasItems && $hasPurchaseItemId && $hasCategories, fn ($query) => $query->leftJoin('categories as c', 'c.id', '=', 'i.category_id'))
+                ->whereBetween('pu.bill_date', [$from, $to])
+                ->when($request->filled('party_id') && Schema::hasColumn('purchases', 'party_id'), fn ($query) => $query->where('pu.party_id', $request->input('party_id')))
+                ->select(
+                    DB::raw($purchaseCategoryExpr . ' as category_name'),
+                    DB::raw('SUM(COALESCE(pi.quantity, 0)) as purchase_qty'),
+                    DB::raw('SUM(COALESCE(pi.amount, 0)) as total_purchase_amount')
+                )
+                ->groupBy(DB::raw($purchaseCategoryExpr))
+                ->get();
+        }
+
+        $rowsByCategory = [];
+
+        foreach ($saleRows as $row) {
+            $category = $row->category_name ?: 'Uncategorized';
+            $rowsByCategory[$category] = [
+                'category_name' => $category,
+                'sale_qty' => (float) $row->sale_qty,
+                'total_sale_amount' => (float) $row->total_sale_amount,
+                'purchase_qty' => 0,
+                'total_purchase_amount' => 0,
+            ];
+        }
+
+        foreach ($purchaseRows as $row) {
+            $category = $row->category_name ?: 'Uncategorized';
+            if (!isset($rowsByCategory[$category])) {
+                $rowsByCategory[$category] = [
+                    'category_name' => $category,
+                    'sale_qty' => 0,
+                    'total_sale_amount' => 0,
+                    'purchase_qty' => 0,
+                    'total_purchase_amount' => 0,
+                ];
+            }
+
+            $rowsByCategory[$category]['purchase_qty'] = (float) $row->purchase_qty;
+            $rowsByCategory[$category]['total_purchase_amount'] = (float) $row->total_purchase_amount;
+        }
+
+        $rows = collect($rowsByCategory)
+            ->sortBy('category_name')
+            ->values()
+            ->map(fn ($row) => (object) $row);
+
+        return [
+            'rows' => $rows,
+            'totals' => [
+                'sale_qty' => $this->fmt($rows->sum('sale_qty')),
+                'total_sale_amount' => $this->fmt($rows->sum('total_sale_amount')),
+                'purchase_qty' => $this->fmt($rows->sum('purchase_qty')),
+                'total_purchase_amount' => $this->fmt($rows->sum('total_purchase_amount')),
+            ],
+            'period' => ['from' => $from, 'to' => $to],
+        ];
+    }
+
+    private function categoryNameExpression(string $lineAlias, bool $canUseItems, bool $canUseCategories, bool $hasLineCategory): string
+    {
+        $parts = [];
+
+        if ($canUseItems && $canUseCategories) {
+            $parts[] = 'c.name';
+        }
+
+        if ($hasLineCategory) {
+            $parts[] = $lineAlias . '.item_category';
+        }
+
+        $parts[] = "'Uncategorized'";
+
+        return 'COALESCE(' . implode(', ', $parts) . ')';
     }
 
     // ============================================================
