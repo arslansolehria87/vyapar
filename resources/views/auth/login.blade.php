@@ -106,18 +106,224 @@
             box-shadow: 0 0 0 4px rgba(88, 19, 188, 0.15);
         }
 
-        /* RTL Urdu override */
-        body.lang-ur {
-            font-family: 'Tahoma', 'Plus Jakarta Sans', sans-serif;
-            direction: rtl;
+        /* ════════════════════════════════════════════════════════════
+           ROYAL BLUE & WHITE LEAF CURTAIN SPLASH SCREEN STYLES
+           ════════════════════════════════════════════════════════════ */
+        .curtain-splash-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            display: flex;
+            background: #06070a;
+            user-select: none;
+            overflow: hidden;
+            transition: opacity 0.8s ease 2.2s, visibility 0.8s ease 2.2s;
         }
-        body.lang-ur .ltr-override {
-            direction: ltr;
+
+        .curtain-royal-left {
+            display: flex;
+            height: 100%;
+            width: 50%;
+            position: relative;
+            transform-origin: left center;
+            transition: transform 2.4s cubic-bezier(0.72, 0, 0.22, 1);
+            will-change: transform;
+            box-shadow: 15px 0 35px rgba(0, 0, 0, 0.85);
+        }
+
+        .curtain-royal-right {
+            display: flex;
+            height: 100%;
+            width: 50%;
+            position: relative;
+            transform-origin: right center;
+            transition: transform 2.4s cubic-bezier(0.72, 0, 0.22, 1);
+            will-change: transform;
+            box-shadow: -15px 0 35px rgba(0, 0, 0, 0.85);
+        }
+
+        .curtain-border-blue {
+            background: 
+                linear-gradient(180deg, rgba(0,0,0,0.3) 0%, transparent 15%, transparent 85%, rgba(0,0,0,0.5) 100%),
+                repeating-linear-gradient(
+                    90deg,
+                    #031849 0px,
+                    #082e7e 15px,
+                    #0f48ba 35px,
+                    #175be6 50px,
+                    #0f48ba 65px,
+                    #072870 85px,
+                    #031644 100px
+                );
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
+        }
+
+        .curtain-center-leaf {
+            flex: 1;
+            background-color: #f7f9fd;
+            background-image: 
+                radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.7) 0%, transparent 70%),
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='200' viewBox='0 0 120 200'%3E%3Cpath d='M60 10 Q65 50 60 90 Q55 130 60 170 Q62 195 60 200' stroke='%230f48ba' stroke-width='2.5' fill='none' stroke-linecap='round'/%3E%3Cpath d='M60 40 C40 25 35 10 50 8 C60 7 60 30 60 40 Z' fill='%230b3b95'/%3E%3Cpath d='M60 60 C80 45 85 30 70 28 C60 27 60 50 60 60 Z' fill='%230f48ba'/%3E%3Cpath d='M60 90 C38 75 32 60 48 58 C58 57 59 80 60 90 Z' fill='%23082e7e'/%3E%3Cpath d='M60 115 C82 100 88 85 72 82 C62 80 60 105 60 115 Z' fill='%230f48ba'/%3E%3Cpath d='M60 145 C40 130 35 115 50 112 C60 110 60 135 60 145 Z' fill='%230b3b95'/%3E%3Cpath d='M60 170 C82 155 88 140 72 138 C62 136 60 160 60 170 Z' fill='%23082e7e'/%3E%3Cpath d='M20 20 C5 8 2 2 12 1 C20 0 20 15 20 20 Z' fill='%230f48ba' opacity='0.7'/%3E%3Cpath d='M100 35 C115 22 118 15 108 14 C100 13 100 28 100 35 Z' fill='%230b3b95' opacity='0.7'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            background-size: 110px 180px;
+            position: relative;
+        }
+
+        .curtain-center-leaf::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                rgba(0, 20, 60, 0.42) 0px,
+                rgba(0, 15, 50, 0.22) 18px,
+                transparent 38px,
+                rgba(255, 255, 255, 0.55) 54px,
+                transparent 72px,
+                rgba(0, 15, 50, 0.28) 92px,
+                rgba(0, 20, 60, 0.42) 110px
+            );
+            pointer-events: none;
+            mix-blend-mode: multiply;
+        }
+
+        .steel-rod {
+            background: linear-gradient(
+                180deg,
+                #ffffff 0%,
+                #d8dbe2 20%,
+                #8e95a5 45%,
+                #505664 65%,
+                #323742 85%,
+                #1b1e24 100%
+            );
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.9), inset 0 2px 3px rgba(255, 255, 255, 0.9);
+        }
+
+        .silver-eyelet {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #0e1118 40%, #e2e8f0 55%, #94a3b8 75%, #334155 100%);
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.8), inset 0 2px 4px rgba(255, 255, 255, 0.9);
+            display: inline-block;
+        }
+
+        .curtains-open .curtain-royal-left {
+            transform: scaleX(0.12) translateX(-20%);
+        }
+
+        .curtains-open .curtain-royal-right {
+            transform: scaleX(0.12) translateX(20%);
+        }
+
+        .curtains-open .center-welcome-wrapper {
+            opacity: 0;
+            transform: scale(1.15) translateY(-30px);
+            pointer-events: none;
+        }
+
+        .curtains-open.curtain-splash-overlay {
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
+        }
+
+        .center-welcome-wrapper {
+            transition: opacity 1.1s cubic-bezier(0.4, 0, 0.2, 1), transform 1.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .codice-welcome-pill {
+            background: rgba(18, 18, 20, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 2px solid rgba(172, 34, 203, 0.7);
+            border-radius: 9999px;
+            padding: 14px 44px;
+            display: inline-flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 
+                0 0 35px rgba(172, 34, 203, 0.45),
+                0 20px 45px rgba(0, 0, 0, 0.85),
+                inset 0 0 20px rgba(88, 19, 188, 0.35);
+        }
+
+        .codice-welcome-text {
+            font-family: 'Cinzel', 'Plus Jakarta Sans', serif;
+            font-size: clamp(2rem, 5vw, 3.8rem);
+            font-weight: 900;
+            letter-spacing: 6px;
+            background: linear-gradient(135deg, #ffffff 0%, #D4C2DF 25%, #AC22CB 65%, #5813BC 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 20px rgba(172, 34, 203, 0.6)) drop-shadow(0 4px 10px rgba(0, 0, 0, 0.95));
+            line-height: 1;
+        }
+
+        .logo-symbol-glow {
+            filter: drop-shadow(0 0 15px rgba(172, 34, 203, 0.8));
         }
     </style>
 </head>
 
 <body id="page-body" class="min-h-screen w-full bg-[#F3F3FF] dark:bg-[#0e0e12] flex flex-col lg:flex-row select-none">
+
+    <!-- ════════════════════════════════════════════════════════════
+         ROYAL BLUE & WHITE LEAF CURTAIN SPLASH SCREEN OVERLAY
+         ════════════════════════════════════════════════════════════ -->
+    <div id="curtainSplash" class="curtain-splash-overlay cursor-pointer" onclick="handleCurtainClick()" title="Click anywhere to open curtains">
+        
+        <!-- LEFT CURTAIN (Solid Blue Edge + Silky White Leaf Center + Inner Blue Edge) -->
+        <div id="curtainLeft" class="curtain-royal-left">
+            <div class="w-[22%] h-full curtain-border-blue relative">
+                <div class="absolute inset-y-0 right-0 w-2 bg-black/40"></div>
+            </div>
+            <div class="curtain-center-leaf"></div>
+            <div class="w-[16%] h-full curtain-border-blue relative">
+                <div class="absolute inset-y-0 left-0 w-2 bg-black/40"></div>
+            </div>
+            <div class="absolute top-0 right-0 bottom-0 w-6 bg-gradient-to-l from-black/80 to-transparent pointer-events-none"></div>
+        </div>
+
+        <!-- RIGHT CURTAIN (Inner Blue Edge + Silky White Leaf Center + Solid Blue Edge) -->
+        <div id="curtainRight" class="curtain-royal-right">
+            <div class="w-[16%] h-full curtain-border-blue relative">
+                <div class="absolute inset-y-0 right-0 w-2 bg-black/40"></div>
+            </div>
+            <div class="curtain-center-leaf"></div>
+            <div class="w-[22%] h-full curtain-border-blue relative">
+                <div class="absolute inset-y-0 left-0 w-2 bg-black/40"></div>
+            </div>
+            <div class="absolute top-0 left-0 bottom-0 w-6 bg-gradient-to-r from-black/80 to-transparent pointer-events-none"></div>
+        </div>
+
+        <!-- TOP STAINLESS STEEL ROD & SILVER EYELET RINGS -->
+        <div class="absolute top-0 inset-x-0 h-12 steel-rod z-40 flex items-center justify-between px-6 pointer-events-none">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-white via-[#94a3b8] to-[#1e293b] shadow-xl border-2 border-white/70"></div>
+            <div class="flex-1 flex justify-around px-8">
+                <span class="silver-eyelet"></span>
+                <span class="silver-eyelet"></span>
+                <span class="silver-eyelet"></span>
+                <span class="silver-eyelet"></span>
+                <span class="silver-eyelet"></span>
+                <span class="silver-eyelet"></span>
+                <span class="silver-eyelet"></span>
+                <span class="silver-eyelet"></span>
+            </div>
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-white via-[#94a3b8] to-[#1e293b] shadow-xl border-2 border-white/70"></div>
+        </div>
+
+        <!-- CENTER "WELCOME" IN CODICESYNC LOGO GRADIENT -->
+        <div id="curtainWelcome" class="center-welcome-wrapper absolute inset-0 z-50 flex items-center justify-center p-6 text-center pointer-events-none">
+            <div class="codice-welcome-pill animate-pulse">
+                <img src="{{ asset('images/codice-sync-logo.png') }}" alt="CodiceSync" class="h-9 sm:h-11 w-auto object-contain logo-symbol-glow">
+                <span class="codice-welcome-text">
+                    WELCOME
+                </span>
+            </div>
+        </div>
+    </div>
 
     <!-- ════════════════════════════════════════════════════════════
          LEFT PANEL: Hero, Animated Live Stats & Brand Showcase
@@ -264,6 +470,14 @@
                          style="background: linear-gradient(135deg, #5813BC 0%, #AC22CB 100%); transform: translateX(0px);">
                         <i id="theme-icon" class="fa-solid fa-sun text-white"></i>
                     </div>
+                </button>
+
+                <!-- 🎭 Replay Welcome Curtains Button -->
+                <button type="button" onclick="replayCurtains()"
+                        class="h-7 px-3 bg-white dark:bg-[#1c1c24] border border-[#D4C2DF]/60 dark:border-white/15 rounded-full text-[11px] font-bold text-[#5813BC] dark:text-[#AC22CB] hover:scale-105 transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                        title="Replay Welcome Curtains Splash">
+                    <span>🎭</span>
+                    <span class="hidden sm:inline">Curtains</span>
                 </button>
             </div>
         </div>
@@ -632,7 +846,164 @@
             // Restore Language
             const savedLang = localStorage.getItem('codicesync_login_lang') || 'en';
             setLanguage(savedLang);
+
+            // Auto-trigger curtain reveal after brief greeting
+            curtainTimer = setTimeout(() => {
+                openCurtains();
+            }, 900);
         });
+
+        // ── 7. Royal Curtain Splash Screen & Loud Acoustic Sound ──
+        let audioCtx = null;
+        let curtainOpened = false;
+        let curtainTimer = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playLoudCurtainSound(multiplier = 3.6) {
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+                const duration = 2.4;
+
+                const compressor = ctx.createDynamicsCompressor();
+                compressor.threshold.setValueAtTime(-14, now);
+                compressor.knee.setValueAtTime(4, now);
+                compressor.ratio.setValueAtTime(10, now);
+                compressor.attack.setValueAtTime(0.002, now);
+                compressor.release.setValueAtTime(0.2, now);
+
+                const masterGain = ctx.createGain();
+                masterGain.gain.setValueAtTime(multiplier, now);
+
+                compressor.connect(masterGain);
+                masterGain.connect(ctx.destination);
+
+                const bufferSize = ctx.sampleRate * duration;
+                const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const data = noiseBuffer.getChannelData(0);
+                let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+
+                for (let i = 0; i < bufferSize; i++) {
+                    const white = Math.random() * 2 - 1;
+                    b0 = 0.99886 * b0 + white * 0.0555179;
+                    b1 = 0.99332 * b1 + white * 0.0750759;
+                    b2 = 0.96900 * b2 + white * 0.1538520;
+                    b3 = 0.86650 * b3 + white * 0.3104856;
+                    b4 = 0.55000 * b4 + white * 0.5329522;
+                    b5 = -0.7616 * b5 - white * 0.0168980;
+                    data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.20;
+                    b6 = white * 0.115926;
+                }
+
+                const noiseSource = ctx.createBufferSource();
+                noiseSource.buffer = noiseBuffer;
+
+                const sweepFilter = ctx.createBiquadFilter();
+                sweepFilter.type = 'bandpass';
+                sweepFilter.frequency.setValueAtTime(250, now);
+                sweepFilter.frequency.exponentialRampToValueAtTime(1100, now + 0.5);
+                sweepFilter.frequency.exponentialRampToValueAtTime(400, now + 1.9);
+                sweepFilter.Q.setValueAtTime(2.2, now);
+
+                const sweepGain = ctx.createGain();
+                sweepGain.gain.setValueAtTime(0.01, now);
+                sweepGain.gain.linearRampToValueAtTime(1.0, now + 0.3);
+                sweepGain.gain.exponentialRampToValueAtTime(0.7, now + 1.2);
+                sweepGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+                noiseSource.connect(sweepFilter);
+                sweepFilter.connect(sweepGain);
+                sweepGain.connect(compressor);
+
+                const ringFilter = ctx.createBiquadFilter();
+                ringFilter.type = 'bandpass';
+                ringFilter.frequency.setValueAtTime(2200, now);
+                ringFilter.frequency.linearRampToValueAtTime(3200, now + 0.7);
+                ringFilter.frequency.linearRampToValueAtTime(1800, now + 1.8);
+                ringFilter.Q.setValueAtTime(4.0, now);
+
+                const ringGain = ctx.createGain();
+                ringGain.gain.setValueAtTime(0.001, now);
+                ringGain.gain.linearRampToValueAtTime(0.85, now + 0.25);
+                ringGain.gain.exponentialRampToValueAtTime(0.001, now + 1.9);
+
+                noiseSource.connect(ringFilter);
+                ringFilter.connect(ringGain);
+                ringGain.connect(compressor);
+
+                const lowFilter = ctx.createBiquadFilter();
+                lowFilter.type = 'lowpass';
+                lowFilter.frequency.setValueAtTime(300, now);
+
+                const lowGain = ctx.createGain();
+                lowGain.gain.setValueAtTime(0.01, now);
+                lowGain.gain.linearRampToValueAtTime(0.95, now + 0.35);
+                lowGain.gain.exponentialRampToValueAtTime(0.001, now + 1.6);
+
+                noiseSource.connect(lowFilter);
+                lowFilter.connect(lowGain);
+                lowGain.connect(compressor);
+
+                noiseSource.start(now);
+                noiseSource.stop(now + duration);
+            } catch (err) {
+                console.warn('Audio error:', err);
+            }
+        }
+
+        function openCurtains() {
+            if (curtainOpened) return;
+            curtainOpened = true;
+            if (curtainTimer) clearTimeout(curtainTimer);
+
+            const splash = document.getElementById('curtainSplash');
+            if (!splash) return;
+
+            // Play loud whoosh and ring slide sound
+            playLoudCurtainSound(3.6);
+
+            // Trigger CSS parting animation
+            splash.classList.add('curtains-open');
+
+            // Hide and disable pointer events after animation finishes
+            setTimeout(() => {
+                splash.style.pointerEvents = 'none';
+                splash.style.visibility = 'hidden';
+                splash.style.display = 'none';
+            }, 2600);
+        }
+
+        function handleCurtainClick() {
+            if (!curtainOpened) {
+                openCurtains();
+            }
+        }
+
+        function replayCurtains() {
+            const splash = document.getElementById('curtainSplash');
+            if (!splash) return;
+
+            splash.style.display = 'flex';
+            splash.style.visibility = 'visible';
+            splash.style.pointerEvents = 'auto';
+            splash.classList.remove('curtains-open');
+            curtainOpened = false;
+
+            // Automatically open after viewing greeting
+            setTimeout(() => {
+                openCurtains();
+            }, 1000);
+        }
     </script>
 
 </body>
