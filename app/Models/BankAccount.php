@@ -3,12 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BelongsToCompany;
 
 class BankAccount extends Model
 {
+    use BelongsToCompany;
+
     protected $appends = ['display_with_account'];
 
     protected $fillable = [
+        'company_id',
         'display_name',
         'type',
         'opening_balance',

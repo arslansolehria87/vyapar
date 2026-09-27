@@ -4,23 +4,27 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap');
 
-/* ── CSS Variables (Design Tokens) ── */
+/* ── CodiceSync Design Tokens ── */
 :root {
-  --sidebar-bg: #191e2b;
-  --sidebar-hover: #2b2b42;
-  --sidebar-text: #e0e0e0;
-  --primary-blue: #1a73e8;
-  --primary-blue-hover: #155eb0;
-  --bg-light: #f0f2f5;
+  --sidebar-bg: #121214;
+  --sidebar-hover: #2A2A33;
+  --sidebar-text: #F3F3FF;
+  --sidebar-active: #5813BC;
+  --primary-blue: #5813BC;
+  --primary-blue-hover: #AC22CB;
+  --brand-purple: #5813BC;
+  --brand-magenta: #AC22CB;
+  --brand-gradient: linear-gradient(135deg, #5813BC 0%, #AC22CB 100%);
+  --bg-light: #F3F3FF;
   --card-bg: #ffffff;
-  --border-color: #e0e0e0;
-  --text-dark: #202124;
-  --text-muted: #5f6368;
-  --success-green: #1e8e3e;
-  --success-bg: #e6f4ea;
-  --promo-red: #e60023;
-  --warning-yellow: #ffc107;
-  --purple-header: #7c5cbf;
+  --border-color: #D4C2DF;
+  --text-dark: #121214;
+  --text-muted: #575656;
+  --success-green: #10B981;
+  --success-bg: #ECFDF5;
+  --promo-red: #EF4444;
+  --warning-yellow: #F59E0B;
+  --purple-header: #5813BC;
   --sidebar-width: 250px;
   --navbar-height: 50px;
 }
@@ -394,7 +398,7 @@ a:hover {
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  background: linear-gradient(135deg, var(--primary-blue), #4a90d9);
+  background: linear-gradient(135deg, #5813BC 0%, #AC22CB 100%);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -8,13 +8,17 @@ use App\Models\BankAccount;
 use App\Models\Broker;
 use App\Models\Item;
 use App\Models\Sale;
+use App\Traits\BelongsToCompany;
 
 class Transaction extends Model
 {
+    use BelongsToCompany;
+
     protected static bool $isSyncingPartyBalance = false;
     private const LEDGER_SNAP_EPSILON = 0.011;
 
     protected $fillable = [
+        'company_id',
         'party_id',
         'counter_party_id',
         'type',

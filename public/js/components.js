@@ -28,7 +28,9 @@
     (userRoles.length === 0 && userPermissions.length === 0 && appUser?.id && appUser?.id !== 0 && appUser?.name && appUser.name.toLowerCase().includes('super')) ||
     (isAuthenticated && !appUser); // Fallback: if authenticated but no user object, show full menu
 
-  console.log('Sidebar debug: window.App', window.App, 'appUser', appUser, 'userRoles', userRoles, 'userPermissions', userPermissions, 'isSuperAdmin', isSuperAdmin);
+  const isPlatformSuperAdmin = Boolean(window.App?.isSuperAdmin || appUser?.is_super_admin || appUser?.id === 1);
+
+  console.log('Sidebar debug: window.App', window.App, 'appUser', appUser, 'userRoles', userRoles, 'userPermissions', userPermissions, 'isSuperAdmin', isSuperAdmin, 'isPlatformSuperAdmin', isPlatformSuperAdmin);
 
   const hasPermission = (permission) => {
     if (isSuperAdmin) return true;
@@ -85,8 +87,13 @@
       .join('');
   };
 
-  const userName = appUser?.name || 'Grocery Store';
-  const userInitials = getInitials(appUser?.name);
+  let rawUserName = appUser?.name || 'CodiceSync';
+  if (rawUserName.toLowerCase().includes('waqas') || rawUserName.toLowerCase().includes('grocery')) {
+    rawUserName = 'CodiceSync';
+  }
+  const userName = rawUserName;
+  const tenantCompanyName = window.App?.companyName || 'CodiceSync';
+  const userInitials = 'CS';
   const currentUrl = window.location.pathname;
   const sidebarVisibilityStorageKey = 'vyaparGeneralSidebarConfig';
   const sidebarVisibilityEndpoint = '/dashboard/settings/general/sidebar-config';
@@ -292,7 +299,8 @@
   href: '/dashboard/sales/estimate',
   dataPage: 'estimate',
   permission: 'sales.estimate',
-  feature: 'sales.estimate'
+  feature: 'sales.estimate',
+  saasFeature: 'estimates'
 },
 
 {
@@ -317,7 +325,8 @@
   href: '/dashboard/proforma-invoice',
   dataPage: 'proforma-invoice',
   permission: 'sales.proforma',
-  feature: 'sales.proforma'
+  feature: 'sales.proforma',
+  saasFeature: 'quotations'
 },
 
 {
@@ -330,7 +339,8 @@
   href: '/dashboard/sale-order',
   dataPage: 'sale-order',
   permission: 'sales.order',
-  feature: 'sales.order'
+  feature: 'sales.order',
+  saasFeature: 'sale_orders'
 },
 
 {
@@ -343,7 +353,8 @@
   href: '/dashboard/delivery-challan',
   dataPage: 'delivery-challan',
   permission: 'sales.delivery_challan',
-  feature: 'sales.delivery_challan'
+  feature: 'sales.delivery_challan',
+  saasFeature: 'delivery_challan'
 },
         {
   label: `
@@ -356,7 +367,7 @@
   dataPage: 'sale-return',
   permission: 'sales.sale_return'
 },
-        { label: 'Vyapar POS', href: '/dashboard/sales/pos', dataPage: 'pos', permission: 'sales.pos' },
+        { label: 'Codice POS', href: '/dashboard/sales/pos', dataPage: 'pos', permission: 'sales.pos', saasFeature: 'pos' },
       ],
     },
     {
@@ -368,7 +379,7 @@
         { label: 'Payment Out', href: '/dashboard/payment-out', dataPage: 'payment-out', permission: 'purchase.payment_out' },
         { label: 'Purchase Return / Dr. Note', href: '/dashboard/purchase-return', dataPage: 'purchase-return', permission: 'purchase.return' },
         { label: 'Expense', href: '/dashboard/expense', dataPage: 'expense', permission: 'purchase.expense' },
-        { label: 'Purchase Order', href: '/dashboard/purchase-order', dataPage: 'purchase-order', permission: 'purchase.order', feature: 'purchase.order' },
+        { label: 'Purchase Order', href: '/dashboard/purchase-order', dataPage: 'purchase-order', permission: 'purchase.order', feature: 'purchase.order', saasFeature: 'purchase_orders' },
 
       ],
     },
@@ -393,7 +404,8 @@
           `,
           href: '/dashboard/loan-accounts',
           dataPage: 'loan-accounts',
-          permission: 'cashbank.loan_accounts'
+          permission: 'cashbank.loan_accounts',
+          saasFeature: 'loans'
         },
         {
           label: `
@@ -427,7 +439,8 @@
           `,
           href: '/dashboard/cheques',
           dataPage: 'cheques',
-          permission: 'cashbank.view'
+          permission: 'cashbank.view',
+          saasFeature: 'cheques'
         },
       ],
     },
@@ -440,10 +453,10 @@
       dataPage: 'utilities',
       children: [
         { label: 'Import Items', href: '/dashboard/utilities/import-items', dataPage: 'import-items', permission: 'utilities.view' },
-        { label: 'Barcode Generator', href: '/dashboard/utilities/barcode-generator', dataPage: 'barcode-generator', permission: 'utilities.view' },
+        { label: 'Barcode Generator', href: '/dashboard/utilities/barcode-generator', dataPage: 'barcode-generator', permission: 'utilities.view', saasFeature: 'barcodes' },
         { label: 'Update Items In Bulk', href: '/dashboard/utilities/update-items-in-bulk', dataPage: 'update-items-in-bulk', permission: 'utilities.view' },
         { label: 'Import Parties', href: '/dashboard/utilities/import-parties', dataPage: 'import-parties', permission: 'utilities.view' },
-        { label: 'Exports To Tally', href: '/dashboard/utilities/exports-to-tally', dataPage: 'exports-to-tally', permission: 'utilities.view' },
+        { label: 'Exports To Tally', href: '/dashboard/utilities/exports-to-tally', dataPage: 'exports-to-tally', permission: 'utilities.view', saasFeature: 'tally_export' },
         { label: 'Export Items', href: '/dashboard/utilities/export-items', dataPage: 'export-items', permission: 'utilities.view' },
         { label: 'Verify My Data', href: '/dashboard/utilities/verify-my-data', dataPage: 'verify-my-data', permission: 'utilities.view' },
         { label: 'Close Financial Year', href: '/dashboard/utilities/close-financial-year', dataPage: 'close-financial-year', permission: 'utilities.view' },
@@ -455,6 +468,15 @@
   const canViewMenuItem = (item) => {
     // Always show Home for authenticated users
     if (item.dataPage === 'dashboard') return true;
+
+    // SaaS Feature check: If feature is disabled on current tenant, hide it
+    if (!isPlatformSuperAdmin && item.saasFeature) {
+      const enabledFeatures = Array.isArray(window.App?.enabledFeatures) ? window.App.enabledFeatures : ['*'];
+      if (!enabledFeatures.includes('*') && !enabledFeatures.includes(item.saasFeature)) {
+        return false;
+      }
+    }
+
     if (isSuperAdmin) return true;
 
     const hasChild = item.children ? item.children.some(canViewMenuItem) : false;
@@ -530,17 +552,17 @@
     </ul>
 
     <div class="sidebar-promo">
-      <span class="promo-badge">Vyapar</span>
+      <span class="promo-badge" style="background: linear-gradient(135deg, #5813BC, #AC22CB); color: #fff;">CodiceSync</span>
       <h6>EARLY BIRD OFFER</h6>
       <p>Upto <strong>50% OFF</strong> on all plans. Limited time only!</p>
-      <button class="btn-promo">Buy Now</button>
+      <button class="btn-promo" style="background: linear-gradient(135deg, #5813BC, #AC22CB);">Buy Now</button>
     </div>
 
     <div class="sidebar-company" id="sidebarCompany">
-      <div class="company-avatar">${userInitials}</div>
+      <div class="company-avatar" style="background: linear-gradient(135deg, #5813BC, #AC22CB); color: #fff; font-weight: 800;">CS</div>
       <div class="company-info">
-        <div class="company-name">${userName}</div>
-        <div class="company-role">My Company</div>
+        <div class="company-name">CodiceSync</div>
+        <div class="company-role">Admin</div>
       </div>
       ${logoutUrl && window.App?.isAuthenticated ? `
       <div class="company-dropdown" id="companyDropdown">
@@ -560,7 +582,10 @@
  const navbarHTML = `
 <nav class="top-navbar" id="topNavbar">
   <div class="navbar-left">
-    <span class="brand-logo"><i class="fa-solid fa-bolt"></i> Vyapar</span>
+    <span class="brand-logo" style="display:inline-flex;align-items:center;gap:8px;font-weight:800;letter-spacing:-0.3px;">
+      <img src="/images/codice-sync-logo.png" alt="CodiceSync" style="height:24px;width:auto;object-fit:contain;">
+      <span>Codice<span style="color:#AC22CB;font-weight:600;">Sync</span></span>
+    </span>
 
     <!-- ── Company dropdown ── -->
     <div class="navbar-company-wrapper" style="position:relative;display:inline-block;">
@@ -635,12 +660,17 @@
     <a href="#" onclick="openShortcutsModal('pos', event)" style="display:block; padding:10px 15px; text-decoration:none; color:#333; font-size:14px;">POS Shortcuts</a>
   </div>
 </div>
+    ${isPlatformSuperAdmin ? `
+    <a href="/super-admin" class="nav-link-item" style="display:inline-flex;align-items:center;gap:6px;color:#AC22CB;font-weight:700;background:rgba(172,34,203,0.1);padding:4px 10px;border-radius:6px;border:1px solid rgba(172,34,203,0.25);margin-left:8px;text-decoration:none;">
+      <i class="fa-solid fa-crown" style="font-size:12px;"></i> Super Admin Hub
+    </a>
+    ` : ''}
     <button class="btn-icon" title="Refresh"><i class="fa-solid fa-arrows-rotate"></i></button>
   </div>
   <div class="navbar-center">
-    Customer Support : <i class="fa-solid fa-phone"></i>
-    <span class="phone-number">(+91) 9333 911 911</span> |
-    <a href="#">Get Instant Online Support</a>
+    Customer Support : <i class="fa-solid fa-phone" style="color: #5813BC;"></i>
+    <span class="phone-number" style="font-weight: 700; color: #121214;">0371-0045282 / 0321-4530103</span> |
+    <a href="mailto:codicesync@gmail.com" style="color: #121214; text-decoration: none; font-weight: 600;"><i class="fa-regular fa-envelope me-1" style="color: #AC22CB;"></i>codicesync@gmail.com</a>
   </div>
  <div class="navbar-right">
   </div>
@@ -1311,15 +1341,20 @@ document.addEventListener('keydown', (e) => {
   if (logoutUrl && window.App?.isAuthenticated) {
     const logoutBtn = document.getElementById('sidebarLogoutBtn');
     if (logoutBtn) {
-      logoutBtn.addEventListener('click', () => {
+      logoutBtn.addEventListener('click', (e) => {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        const currentMetaToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = logoutUrl;
+        form.action = logoutUrl || '/logout';
         form.style.display = 'none';
         const token = document.createElement('input');
         token.type = 'hidden';
         token.name = '_token';
-        token.value = csrfToken || '';
+        token.value = currentMetaToken || csrfToken || '';
         form.appendChild(token);
         document.body.appendChild(form);
         form.submit();

@@ -474,7 +474,13 @@
         }
         if(normalPrintBtn) normalPrintBtn.addEventListener('click', doPrint);
         if(thermalPrintBtn) thermalPrintBtn.addEventListener('click', doPrint);
-        if(shareWhatsappBtn) shareWhatsappBtn.addEventListener('click', function(){ openShareWindow('https://wa.me/', 'text'); });
+        if(shareWhatsappBtn) shareWhatsappBtn.addEventListener('click', function(){ 
+            let targetPhone = String(invoiceData.billPhone || '').replace(/\D+/g, '');
+            if (targetPhone.startsWith('03') && targetPhone.length === 11) {
+                targetPhone = '92' + targetPhone.slice(1);
+            }
+            openShareWindow(`https://wa.me/${targetPhone}`, 'text'); 
+        });
         if(shareGmailBtn) shareGmailBtn.addEventListener('click', function(){ openShareWindow('https://mail.google.com/mail/?view=cm&fs=1', 'body'); });
         if(openPreviewModalBtn) openPreviewModalBtn.addEventListener('click', function(){ syncModalPreview(); invoicePreviewModal.classList.add('open'); });
         if(closePreviewModalBtn) closePreviewModalBtn.addEventListener('click', function(){ invoicePreviewModal.classList.remove('open'); });

@@ -6,6 +6,8 @@ namespace App\Models;
 use App\Models\Permission;
 use App\Models\Company;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -13,51 +15,6 @@ class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
-
-    /**
-     * Roles that belong to the user.
-     */
-    public function roles()
-    {
-        return $this->belongsToMany(Role::class, 'role_user');
-    }
-
-    /**
-     * Retrieve permission names derived from user roles.
-     */
-    public function getAllPermissions(): array
-    {
-        // Super-admin shortcut: user ID 1 has all permissions by default.
-        // This addresses the 'admin click does nothing / blank page' case when no roles are linked.
-        if ($this->id === 1) {
-            return Permission::pluck('name')->toArray();
-        }
-
-        $rolePermissions = $this->roles()
-            ->with('permissions')
-            ->get()
-            ->flatMap(fn ($role) => $role->permissions->pluck('name'))
-            ->unique()
-            ->values()
-            ->toArray();
-
-        // If no role-based permissions are assigned, give a default safe set for admin users only.
-        if (empty($rolePermissions) && $this->id === 1) {
-            return Permission::pluck('name')->toArray();
-        }
-
-        return $rolePermissions;
-    }
-
-    public function hasPermission(string $permission): bool
-    {
-        // Super-admin user id=1 should always have access regardless of DB permissions.
-        if ($this->id === 1) {
-            return true;
-        }
-
-        return in_array($permission, $this->getAllPermissions());
-    }
 
     /**
      * The attributes that are mass assignable.
@@ -68,6 +25,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_super_admin',
+        'is_active',
+        'company_id',
+        'phone',
     ];
 
     /**
@@ -90,10 +51,77 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_super_admin' => 'boolean',
+            'is_active' => 'boolean',
         ];
     }
-    public function companies()
-{
-    return $this->hasMany(Company::class);
-}
+
+    /**
+     * Roles that belong to the user.
+     */
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'role_user');
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function companies(): HasMany
+    {
+        return $this->hasMany(Company::class);
+    }
+
+    /**
+     * Retrieve permission names derived from user roles.
+     */
+    public function getAllPermissions(): array
+    {
+        // Super-admin shortcut: user with ID 1 or is_super_admin = true has all permissions
+        if ($this->id === 1 || $this->is_super_admin) {
+            return Permission::pluck('name')->toArray();
+        }
+
+        $rolePermissions = $this->roles()
+            ->with('permissions')
+            ->get()
+            ->flatMap(fn ($role) => $role->permissions->pluck('name'))
+            ->unique()
+            ->values()
+            ->toArray();
+
+        return $rolePermissions;
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        // Super-admin always has access
+        if ($this->id === 1 || $this->is_super_admin) {
+            return true;
+        }
+
+        return in_array($permission, $this->getAllPermissions());
+    }
+
+    /**
+     * Helper to get the user's active company model.
+     */
+    public function currentCompany(): ?Company
+    {
+        $sessionCompanyId = session('current_company_id');
+        if ($sessionCompanyId) {
+            $comp = Company::find($sessionCompanyId);
+            if ($comp) {
+                return $comp;
+            }
+        }
+
+        if ($this->company_id) {
+            return $this->company;
+        }
+
+        return $this->companies()->first();
+    }
 }

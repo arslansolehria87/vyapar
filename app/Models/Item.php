@@ -3,10 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BelongsToCompany;
 
 class Item extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
+        'company_id',
         'type', 'name', 'category_id', 'unit', 'price',
         'secondary_unit', 'unit_conversion_rate', 'bag_weight',
         'sale_price', 'wholesale_price', 'purchase_price',

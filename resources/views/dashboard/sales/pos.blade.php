@@ -5,7 +5,8 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<title>POS – Sale</title>
+<title>CodiceSync POS — Fast Billing</title>
+<link rel="icon" type="image/png" href="{{ asset('images/codicesync_logo.png') }}"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
   .custom-table thead th {
@@ -37,17 +38,17 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --blue:#1976d2;--blue-light:#e3f2fd;--blue-dark:#1565c0;
-  --green:#a5d6a7;--green-dark:#1b5e20;--green-btn:#4caf50;
+  --blue:#5813BC;--blue-light:#f3f3ff;--blue-dark:#450ea0;
+  --accent:#AC22CB;--green:#a5d6a7;--green-dark:#1b5e20;--green-btn:#4caf50;
   --red:#e53935;--border:#e0e0e0;--bg:#f0f2f5;--white:#fff;
   --text:#222;--muted:#555;--light-muted:#888;
-  --row-hover:#f7fbff;--row-sel:#e3f2fd;
+  --row-hover:#f8f5fc;--row-sel:#efe8f8;
 }
 html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:13px;background:var(--bg);color:var(--text)}
 
 /* ── TOP BAR ── */
 .app-bar{height:34px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 10px;flex-shrink:0;user-select:none}
-.brand{display:flex;align-items:center;gap:6px;font-weight:700;font-size:15px;color:var(--red)}
+.brand{display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px;}
 .brand svg{width:20px;height:20px}
 .menu-btns{display:flex;gap:2px;margin-left:8px}
 .menu-btns button{background:none;border:none;cursor:pointer;font-size:12px;color:#444;padding:3px 9px;border-radius:3px;font-family:inherit}
@@ -295,8 +296,9 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
 <!-- TOP BAR -->
 <div class="app-bar">
   <div style="display:flex;align-items:center;gap:2px">
-    <div class="brand">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5z" fill="#e53935"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="#e53935" stroke-width="2" stroke-linecap="round"/></svg>
+    <div class="brand" style="display:flex;align-items:center;gap:7px;">
+      <img src="{{ asset('images/codicesync_logo.png') }}" alt="CodiceSync" style="height:22px;width:auto;object-fit:contain;vertical-align:middle;"/>
+      <span style="font-weight:700;font-size:14px;background:linear-gradient(135deg,#5813BC,#AC22CB);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.2px;">CodiceSync POS</span>
     </div>
     <div class="menu-btns">
       <button>Company</button>
@@ -307,9 +309,9 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
     </div>
   </div>
   <div class="support">
-    <span>Customer Support: 📞 <strong>(+92) 300 000 0000</strong></span>
+    <span>Customer Support: 📞 <strong>0371-0045282 / 0321-4530103</strong></span>
     <span>|</span>
-    <a href="#">Get Instant Online Support</a>
+    <a href="mailto:codicesync@gmail.com">codicesync@gmail.com</a>
   </div>
   <div class="win-btns">
     <button title="Minimize">─</button>
@@ -789,11 +791,11 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
   </div>
 </div>
 
-<!-- ── FIX 1: Print / Save Success Modal ── -->
+<!-- ── Print & WhatsApp Success Modal ── -->
 <div class="overlay" id="receipt-overlay">
   <div class="print-mbox">
-    <div class="print-header">
-      <h2>🖨️ Bill Saved Successfully</h2>
+    <div class="print-header" style="background: linear-gradient(135deg, #5813BC 0%, #AC22CB 100%);">
+      <h2 style="display:flex;align-items:center;gap:8px;">🧾 Bill Saved Successfully</h2>
       <button class="ph-close" onclick="closePrintModal()">✕</button>
     </div>
     <div class="print-body">
@@ -822,7 +824,25 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
         </div>
         <div class="ps-item" style="grid-column:1/-1">
           <div class="ps-label">Grand Total</div>
-          <div class="ps-val" id="pr-total" style="font-size:18px;color:var(--blue)">Rs 0.00</div>
+          <div class="ps-val" id="pr-total" style="font-size:18px;font-weight:700;color:var(--blue)">Rs 0.00</div>
+        </div>
+      </div>
+
+      <!-- ── WhatsApp Digital Receipt Dispatch ── -->
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:12px;font-weight:700;color:#15803d;display:flex;align-items:center;gap:6px;">
+            <svg style="width:16px;height:16px;fill:#22c55e;" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
+            Send WhatsApp E-Receipt
+          </span>
+          <span style="font-size:11px;color:#16a34a;font-weight:500;">Paperless Digital Bill</span>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <input type="text" id="pr-wa-phone" placeholder="Customer WhatsApp (e.g. 03214530103)" style="flex:1;height:36px;border:1px solid #86efac;border-radius:6px;padding:0 10px;font-size:13px;outline:none;background:#fff;" />
+          <button type="button" onclick="sendBillViaWhatsApp()" style="background:#22c55e;color:#fff;border:none;border-radius:6px;padding:0 14px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:background 0.2s;">
+            <svg style="width:14px;height:14px;fill:#fff;" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
+            Send WhatsApp
+          </button>
         </div>
       </div>
 
@@ -831,7 +851,7 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
       </div>
 
       <div class="print-actions">
-        <button class="btn-print-now" onclick="doPrint()">🖨️ Print Receipt</button>
+        <button class="btn-print-now" onclick="doPrint()" style="background: linear-gradient(135deg, #5813BC, #AC22CB);">🖨️ Print Receipt</button>
         <button class="btn-print-skip" onclick="closePrintModal()">Skip &amp; New Bill</button>
       </div>
     </div>
@@ -892,6 +912,7 @@ function saveTabState(tabId) {
     remarks:           remarks,
     selectedPartyId:   selectedPartyId,
     selectedPartyName: selectedPartyName,
+    selectedPartyPhone: selectedPartyPhone,
     selectedDate:      new Date(selectedDate.getTime()),
     custInValue:       document.getElementById('cust-in').value,
     amtRecvValue:      document.getElementById('amt-recv').value,
@@ -902,26 +923,28 @@ function saveTabState(tabId) {
 function loadTabState(tabId) {
   const s = TAB_STATES[tabId];
   if (!s) {
-    billItems         = [];
-    selRow            = -1;
-    billDiscount      = 0;
-    additionalCharges = 0;
-    remarks           = '';
-    selectedPartyId   = null;
-    selectedPartyName = 'Walk-in Customer';
-    selectedDate      = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    billItems          = [];
+    selRow             = -1;
+    billDiscount       = 0;
+    additionalCharges  = 0;
+    remarks            = '';
+    selectedPartyId    = null;
+    selectedPartyName  = 'Walk-in Customer';
+    selectedPartyPhone = '';
+    selectedDate       = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     document.getElementById('cust-in').value  = '';
     document.getElementById('amt-recv').value = '0.00';
     document.getElementById('pay-mode').value = document.getElementById('pay-mode').options[0]?.value || '';
   } else {
-    billItems         = JSON.parse(JSON.stringify(s.billItems));
-    selRow            = s.selRow;
-    billDiscount      = s.billDiscount;
-    additionalCharges = s.additionalCharges;
-    remarks           = s.remarks;
-    selectedPartyId   = s.selectedPartyId;
-    selectedPartyName = s.selectedPartyName;
-    selectedDate      = new Date(s.selectedDate.getTime());
+    billItems          = JSON.parse(JSON.stringify(s.billItems));
+    selRow             = s.selRow;
+    billDiscount       = s.billDiscount;
+    additionalCharges  = s.additionalCharges;
+    remarks            = s.remarks;
+    selectedPartyId    = s.selectedPartyId;
+    selectedPartyName  = s.selectedPartyName;
+    selectedPartyPhone = s.selectedPartyPhone || '';
+    selectedDate       = new Date(s.selectedDate.getTime());
     document.getElementById('cust-in').value  = s.custInValue;
     document.getElementById('amt-recv').value = s.amtRecvValue;
     document.getElementById('pay-mode').value = s.payMode;
@@ -930,8 +953,9 @@ function loadTabState(tabId) {
   updateDateDisplay();
   renderCal();
 }
-let selectedPartyId   = null;
-let selectedPartyName = 'Walk-in Customer';
+let selectedPartyId    = null;
+let selectedPartyName  = 'Walk-in Customer';
+let selectedPartyPhone = '';
 
 const today = new Date();
 let calDate      = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -1145,7 +1169,7 @@ const paymentsPayload = recv > 0 ? [{
   .then(r => r.json())
   .then(data => {
     if (data.success) {
-      showPrintModal(data.bill_number || data.id, payMode, total, itemsPayload);
+      showPrintModal(data.bill_number || data.id, payMode, total, itemsPayload, data.share_url || '');
     } else {
       toast('Error saving bill: ' + (data.message || ''));
     }
@@ -1153,14 +1177,40 @@ const paymentsPayload = recv > 0 ? [{
   .catch(() => toast('Network error. Please try again.'));
 }
 
-// ── FIX 1: Show Print Modal ──
-function showPrintModal(billNo, payMode, total, items) {
+let currentSavedBill = {
+  billNo: '',
+  payMode: '',
+  total: 0,
+  items: [],
+  customerName: '',
+  customerPhone: '',
+  shareUrl: '',
+};
+
+// ── Show Print & WhatsApp Modal ──
+function showPrintModal(billNo, payMode, total, items, shareUrl = '') {
+  currentSavedBill = {
+    billNo: billNo,
+    payMode: payMode,
+    total: total,
+    items: items,
+    customerName: selectedPartyName || 'Walk-in Customer',
+    customerPhone: selectedPartyPhone || '',
+    shareUrl: shareUrl || '',
+  };
+
   document.getElementById('pr-bill-no').textContent    = `Bill #${billNo}`;
   document.getElementById('pr-customer').textContent   = selectedPartyName || 'Walk-in Customer';
   document.getElementById('pr-date').textContent       = formatDateDisplay(selectedDate);
-  document.getElementById('pr-items').textContent      = `${items.length} item(s), Qty: ${items.reduce((s,i)=>s+i.quantity,0)}`;
+  document.getElementById('pr-items').textContent      = `${items.length} item(s), Qty: ${items.reduce((s,i)=>s+(i.quantity||i.qty||1),0)}`;
   document.getElementById('pr-paymode').textContent    = payMode;
   document.getElementById('pr-total').textContent      = `Rs ${total.toFixed(2)}`;
+
+  // Auto-populate customer phone in WhatsApp field if available
+  const waPhoneInput = document.getElementById('pr-wa-phone');
+  if (waPhoneInput) {
+    waPhoneInput.value = selectedPartyPhone || '';
+  }
 
   // Build thermal-style receipt
   const line = '─'.repeat(32);
@@ -1170,10 +1220,15 @@ function showPrintModal(billNo, payMode, total, items) {
   rec += `Customer: ${selectedPartyName || 'Walk-in'}\n`;
   rec += `${line}\n`;
   items.forEach(it => {
-    rec += `${it.item_name}\n`;
-    rec += `  ${it.quantity} x Rs${it.unit_price.toFixed(2)}`;
-    if (it.discount > 0) rec += ` -Rs${it.discount.toFixed(2)}`;
-    rec += `   = Rs${it.amount.toFixed(2)}\n`;
+    const itName = it.item_name || it.name || 'Item';
+    const itQty = it.quantity || it.qty || 1;
+    const itPrice = it.unit_price || it.price || 0;
+    const itDiscount = it.discount || 0;
+    const itAmt = it.amount || (itPrice * itQty - itDiscount);
+    rec += `${itName}\n`;
+    rec += `  ${itQty} x Rs${Number(itPrice).toFixed(2)}`;
+    if (itDiscount > 0) rec += ` -Rs${Number(itDiscount).toFixed(2)}`;
+    rec += `   = Rs${Number(itAmt).toFixed(2)}\n`;
   });
   rec += `${line}\n`;
   if (billDiscount > 0) rec += `Bill Discount:   -Rs${billDiscount.toFixed(2)}\n`;
@@ -1187,6 +1242,58 @@ function showPrintModal(billNo, payMode, total, items) {
   rc.style.display = 'block';
 
   openModal('receipt-overlay');
+}
+
+// ── Instant WhatsApp Cloud Receipt Dispatch ──
+function sendBillViaWhatsApp() {
+  const phoneInput = document.getElementById('pr-wa-phone');
+  let rawPhone = (phoneInput?.value || '').trim();
+  let cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+
+  if (!cleanPhone) {
+    toast('Please enter customer WhatsApp number');
+    phoneInput?.focus();
+    return;
+  }
+
+  // Convert Pakistani local 03xx to international 923xx
+  if (cleanPhone.startsWith('03') && cleanPhone.length === 11) {
+    cleanPhone = '92' + cleanPhone.slice(1);
+  } else if (cleanPhone.length === 10 && cleanPhone.startsWith('3')) {
+    cleanPhone = '92' + cleanPhone;
+  }
+
+  const bill = currentSavedBill;
+  const divider = '━━━━━━━━━━━━━━━━━━━━';
+  let msg = `*CodiceSync POS — Digital Sale Receipt*\n`;
+  msg += `${divider}\n`;
+  msg += `🧾 *Bill No:* #${bill.billNo}\n`;
+  msg += `📅 *Date:* ${formatDateDisplay(selectedDate)}\n`;
+  msg += `👤 *Customer:* ${bill.customerName}\n`;
+  msg += `${divider}\n`;
+  msg += `🛒 *Items Summary:*\n`;
+  if (Array.isArray(bill.items)) {
+    bill.items.forEach((it, idx) => {
+      const itName = it.item_name || it.name || 'Item';
+      const itQty = it.quantity || it.qty || 1;
+      const itAmt = typeof it.amount === 'number' ? it.amount : ((it.unit_price || it.price || 0) * itQty);
+      msg += `${idx + 1}. *${itName}* (x${itQty}) = Rs ${Number(itAmt).toFixed(2)}\n`;
+    });
+  }
+  msg += `${divider}\n`;
+  msg += `💰 *Grand Total:* Rs ${Number(bill.total).toFixed(2)}\n`;
+  msg += `💳 *Payment Mode:* ${bill.payMode}\n`;
+  if (bill.shareUrl) {
+    msg += `🔗 *View E-Invoice:* ${bill.shareUrl}\n`;
+  }
+  msg += `${divider}\n`;
+  msg += `🙏 *Thank you for your purchase!*\n`;
+  msg += `📞 Support: 0371-0045282 / 0321-4530103\n`;
+  msg += `✉️ codicesync@gmail.com\n`;
+
+  const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+  window.open(waUrl, '_blank');
+  toast('Opening WhatsApp...');
 }
 
 function doPrint() {
@@ -1206,8 +1313,11 @@ function resetBill() {
   remarks            = '';
   selectedPartyId    = null;
   selectedPartyName  = 'Walk-in Customer';
+  selectedPartyPhone = '';
   document.getElementById('amt-recv').value = '0.00';
   document.getElementById('cust-in').value  = '';
+  const waPhoneInput = document.getElementById('pr-wa-phone');
+  if (waPhoneInput) waPhoneInput.value = '';
   renderBill();
 }
 
@@ -1451,7 +1561,7 @@ function mpSave(type) {
     if (data.success) {
       closeModal('modal-multipay');
       const payMode = paymentsPayload.length ? paymentsPayload.map(p=>p.payment_type).join('+') : 'Mixed';
-      showPrintModal(data.bill_number || data.id, payMode, total, payload.items);
+      showPrintModal(data.bill_number || data.id, payMode, total, payload.items, data.share_url || '');
       if (type === 'new') addTab();
     } else {
       toast('Error saving bill.');
@@ -1481,8 +1591,9 @@ function filterCust(q) {
 }
 
 function selectCust(name, phone, partyId) {
-  selectedPartyId   = partyId;
-  selectedPartyName = name;
+  selectedPartyId    = partyId;
+  selectedPartyName  = name;
+  selectedPartyPhone = phone || '';
   document.getElementById('cust-in').value = phone ? `${name} (${phone})` : name;
   document.getElementById('cust-dd').classList.remove('open');
   // Auto-fill amount received when customer selected

@@ -933,6 +933,35 @@ $(document).ready(function () {
       emailReportUrl.searchParams.set('sale_ids', String(saleId));
       emailReportUrl.searchParams.set('duration', `For invoice ${saleNumber}`);
       showPrintOptions(previewReportUrl.toString(), pdfReportUrl.toString(), `Sale Report - ${saleNumber}`, emailReportUrl.toString());
+    } else if (action === 'whatsapp') {
+      const partyPhone = String($menu.data('party-phone') || '').trim();
+      const grandTotal = $menu.data('grand-total') || 0;
+      let targetPhone = partyPhone.replace(/\D+/g, '');
+      if (!targetPhone) {
+        targetPhone = prompt(`Enter WhatsApp number for ${partyName || 'Customer'}:`, '') || '';
+        targetPhone = targetPhone.replace(/\D+/g, '');
+      }
+      if (!targetPhone) return;
+
+      if (targetPhone.startsWith('03') && targetPhone.length === 11) {
+        targetPhone = '92' + targetPhone.slice(1);
+      } else if (targetPhone.length === 10 && targetPhone.startsWith('3')) {
+        targetPhone = '92' + targetPhone;
+      }
+      const divider = '━━━━━━━━━━━━━━━━━━━━';
+      let msg = `*CodiceSync — Sales Invoice*\n`;
+      msg += `${divider}\n`;
+      msg += `🧾 *Invoice #:* ${saleNumber}\n`;
+      msg += `👤 *Customer:* ${partyName || 'Valued Customer'}\n`;
+      msg += `💰 *Grand Total:* Rs ${Number(grandTotal).toFixed(2)}\n`;
+      if (previewUrl) {
+        msg += `🔗 *View Invoice:* ${previewUrl}\n`;
+      }
+      msg += `${divider}\n`;
+      msg += `Thank you for your business!\n`;
+      msg += `Support: 0371-0045282 / 0321-4530103\n`;
+
+      window.open(`https://wa.me/${targetPhone}?text=${encodeURIComponent(msg)}`, '_blank');
     } else if (action === 'history') {
       if (!bankHistoryUrl) return;
 
@@ -1070,6 +1099,45 @@ $(document).ready(function () {
     if (printUrl) {
       window.open(printUrl, '_blank');
     }
+  });
+
+  $(document).on('click', '.row-action-whatsapp', function (e) {
+    e.stopPropagation();
+    const $menu = $(this).closest('td').find('.sale-action-menu');
+    const saleId = $menu.data('sale-id');
+    const partyName = $menu.data('party-name') || 'Customer';
+    let partyPhone = String($menu.data('party-phone') || '').trim();
+    const grandTotal = $menu.data('grand-total') || 0;
+    const saleNumber = $menu.data('sale-number') || saleId;
+    const previewUrl = buildUrlWithTheme($menu.data('preview-url'), saleId);
+
+    let targetPhone = partyPhone.replace(/\D+/g, '');
+    if (!targetPhone) {
+      targetPhone = prompt(`Enter WhatsApp number for ${partyName}:`, '') || '';
+      targetPhone = targetPhone.replace(/\D+/g, '');
+    }
+    if (!targetPhone) return;
+
+    if (targetPhone.startsWith('03') && targetPhone.length === 11) {
+      targetPhone = '92' + targetPhone.slice(1);
+    } else if (targetPhone.length === 10 && targetPhone.startsWith('3')) {
+      targetPhone = '92' + targetPhone;
+    }
+
+    const divider = '━━━━━━━━━━━━━━━━━━━━';
+    let msg = `*CodiceSync — Sales Invoice*\n`;
+    msg += `${divider}\n`;
+    msg += `🧾 *Invoice #:* ${saleNumber}\n`;
+    msg += `👤 *Customer:* ${partyName}\n`;
+    msg += `💰 *Grand Total:* Rs ${Number(grandTotal).toFixed(2)}\n`;
+    if (previewUrl) {
+      msg += `🔗 *View Invoice:* ${previewUrl}\n`;
+    }
+    msg += `${divider}\n`;
+    msg += `Thank you for your business!\n`;
+    msg += `Support: 0371-0045282 / 0321-4530103\n`;
+
+    window.open(`https://wa.me/${targetPhone}?text=${encodeURIComponent(msg)}`, '_blank');
   });
 
   $(document).on('click', '.row-action-share', function () {

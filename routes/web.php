@@ -47,7 +47,26 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::middleware(['auth'])->prefix('dashboard')->group(function () {
+// Subscription Expired / Suspended screen
+Route::get('/subscription/expired', function () {
+    return view('auth.subscription-expired');
+})->middleware('auth')->name('subscription.expired');
+
+// Super Admin SaaS Hub
+Route::middleware(['auth', 'super_admin'])->prefix('super-admin')->name('superadmin.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\SuperAdmin\SuperAdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/tenants', [\App\Http\Controllers\SuperAdmin\SuperAdminController::class, 'tenants'])->name('tenants.index');
+    Route::get('/tenants/create', [\App\Http\Controllers\SuperAdmin\SuperAdminController::class, 'createTenant'])->name('tenants.create');
+    Route::post('/tenants', [\App\Http\Controllers\SuperAdmin\SuperAdminController::class, 'storeTenant'])->name('tenants.store');
+    Route::get('/tenants/{tenant}/edit', [\App\Http\Controllers\SuperAdmin\SuperAdminController::class, 'editTenant'])->name('tenants.edit');
+    Route::put('/tenants/{tenant}', [\App\Http\Controllers\SuperAdmin\SuperAdminController::class, 'updateTenant'])->name('tenants.update');
+    Route::post('/tenants/{tenant}/toggle-status', [\App\Http\Controllers\SuperAdmin\SuperAdminController::class, 'toggleStatus'])->name('tenants.toggle-status');
+    Route::post('/tenants/{tenant}/extend', [\App\Http\Controllers\SuperAdmin\SuperAdminController::class, 'extendSubscription'])->name('tenants.extend');
+    Route::post('/tenants/{tenant}/impersonate', [\App\Http\Controllers\SuperAdmin\SuperAdminController::class, 'impersonate'])->name('tenants.impersonate');
+    Route::get('/stop-impersonate', [\App\Http\Controllers\SuperAdmin\SuperAdminController::class, 'stopImpersonate'])->name('stop-impersonate');
+});
+
+Route::middleware(['auth', 'check_subscription'])->prefix('dashboard')->group(function () {
 
     // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
@@ -89,7 +108,7 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::post('/sales/terms-conditions', [SaleController::class, 'storeTermsTemplate'])->name('sale.terms-conditions.store');
     Route::post('/sales/{sale}/cancel', [SaleController::class, 'cancel'])->name('sale.cancel');
     Route::delete('/sales/{sale}', [SaleController::class, 'destroy'])->name('sale.destroy');
-    Route::get('sales/pos', [SaleController::class, 'pos1'])->name('sale.pos');
+    Route::get('sales/pos', [SaleController::class, 'pos1'])->name('sale.pos')->middleware('feature:pos');
 
 
 
@@ -150,27 +169,29 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/sale/next-number', [SaleController::class, 'getNextNumber'])->name('sale.next-number');
 
     // Delivery Challan
-    Route::get('delivery-challan', [DeliveryController::class, 'deliveryChallan'])->name('delivery-challan');
-
-    Route::get('create-challan', [DeliveryController::class, 'createChallan'])->name('create-challan');
-    Route::post('delivery-challan', [DeliveryController::class, 'store'])->name('delivery-challan.store');
-    Route::get('delivery-challan/{sale}/edit', [DeliveryController::class, 'edit'])->name('delivery-challan.edit');
-    Route::put('delivery-challan/{sale}', [DeliveryController::class, 'update'])->name('delivery-challan.update');
-    Route::delete('delivery-challan/{sale}', [DeliveryController::class, 'destroy'])->name('delivery-challan.destroy');
-    Route::get('delivery-challan/{sale}/preview', [DeliveryController::class, 'preview'])->name('delivery-challan.preview');
-    Route::get('delivery-challan/{sale}/print', [DeliveryController::class, 'print'])->name('delivery-challan.print');
-    Route::get('delivery-challan/{sale}/pdf', [DeliveryController::class, 'pdf'])->name('delivery-challan.pdf');
-    Route::get('delivery-challan/{sale}/duplicate', [DeliveryController::class, 'duplicate'])->name('delivery-challan.duplicate');
-
-    Route::get('delivery-challan/next-number', [DeliveryController::class, 'getNextNumber'])->name('delivery-challan.next-number');
+    Route::middleware('feature:delivery_challan')->group(function () {
+        Route::get('delivery-challan', [DeliveryController::class, 'deliveryChallan'])->name('delivery-challan');
+        Route::get('create-challan', [DeliveryController::class, 'createChallan'])->name('create-challan');
+        Route::post('delivery-challan', [DeliveryController::class, 'store'])->name('delivery-challan.store');
+        Route::get('delivery-challan/{sale}/edit', [DeliveryController::class, 'edit'])->name('delivery-challan.edit');
+        Route::put('delivery-challan/{sale}', [DeliveryController::class, 'update'])->name('delivery-challan.update');
+        Route::delete('delivery-challan/{sale}', [DeliveryController::class, 'destroy'])->name('delivery-challan.destroy');
+        Route::get('delivery-challan/{sale}/preview', [DeliveryController::class, 'preview'])->name('delivery-challan.preview');
+        Route::get('delivery-challan/{sale}/print', [DeliveryController::class, 'print'])->name('delivery-challan.print');
+        Route::get('delivery-challan/{sale}/pdf', [DeliveryController::class, 'pdf'])->name('delivery-challan.pdf');
+        Route::get('delivery-challan/{sale}/duplicate', [DeliveryController::class, 'duplicate'])->name('delivery-challan.duplicate');
+        Route::get('delivery-challan/next-number', [DeliveryController::class, 'getNextNumber'])->name('delivery-challan.next-number');
+    });
 
     // Sale Orders
-    Route::get('sale-order', [SaleOrderController::class, 'saleOrder'])->name('sale-order');
-    Route::get('sale-order/create', [SaleOrderController::class, 'create'])->name('sale-order.create');
-    Route::post('sale-order', [SaleOrderController::class, 'store'])->name('sale-order.store');
-    Route::put('sale-order/{sale}', [SaleOrderController::class, 'update'])->name('sale-order.update');
-    Route::get('sale-order/{sale}/edit', [SaleOrderController::class, 'edit'])->name('sale-order.edit');
-    Route::get('estimates/{sale}/convert-to-sale-order', [SaleOrderController::class, 'createFromEstimate'])->name('estimates.convert-to-sale-order');
+    Route::middleware('feature:sale_orders')->group(function () {
+        Route::get('sale-order', [SaleOrderController::class, 'saleOrder'])->name('sale-order');
+        Route::get('sale-order/create', [SaleOrderController::class, 'create'])->name('sale-order.create');
+        Route::post('sale-order', [SaleOrderController::class, 'store'])->name('sale-order.store');
+        Route::put('sale-order/{sale}', [SaleOrderController::class, 'update'])->name('sale-order.update');
+        Route::get('sale-order/{sale}/edit', [SaleOrderController::class, 'edit'])->name('sale-order.edit');
+        Route::get('estimates/{sale}/convert-to-sale-order', [SaleOrderController::class, 'createFromEstimate'])->name('estimates.convert-to-sale-order');
+    });
 
     // Invoice
     Route::get('/invoice', [InvoiceController::class, 'index'])->name('invoice');
@@ -187,14 +208,16 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/market-invoices/{marketInvoice}', [SimpleInvoiceController::class, 'show'])->name('market-invoices.show');
 
     // Loan Accounts
-    Route::get('/loan-accounts', [LoanAccountController::class, 'index'])->name('loan-accounts');
-    Route::post('/loan-accounts', [LoanAccountController::class, 'store'])->name('loan-accounts.store');
-    Route::get('/loan-accounts/{loanAccount}', [LoanAccountController::class, 'show'])->name('loan-accounts.show');
-    Route::get('/loan-accounts/{loanAccount}/edit', [LoanAccountController::class, 'edit'])->name('loan-accounts.edit');
-    Route::put('/loan-accounts/{loanAccount}', [LoanAccountController::class, 'update'])->name('loan-accounts.update');
-    Route::delete('/loan-accounts/{loanAccount}', [LoanAccountController::class, 'destroy'])->name('loan-accounts.destroy');
-    Route::post('/loan-accounts/{loanAccount}/transactions', [LoanAccountController::class, 'storeTransaction'])->name('loan-accounts.transactions.store');
-    Route::put('/loan-accounts/{loanAccount}/transactions/{transaction}', [LoanAccountController::class, 'updateTransaction'])->name('loan-accounts.transactions.update');
+    Route::middleware('feature:loans')->group(function () {
+        Route::get('/loan-accounts', [LoanAccountController::class, 'index'])->name('loan-accounts');
+        Route::post('/loan-accounts', [LoanAccountController::class, 'store'])->name('loan-accounts.store');
+        Route::get('/loan-accounts/{loanAccount}', [LoanAccountController::class, 'show'])->name('loan-accounts.show');
+        Route::get('/loan-accounts/{loanAccount}/edit', [LoanAccountController::class, 'edit'])->name('loan-accounts.edit');
+        Route::put('/loan-accounts/{loanAccount}', [LoanAccountController::class, 'update'])->name('loan-accounts.update');
+        Route::delete('/loan-accounts/{loanAccount}', [LoanAccountController::class, 'destroy'])->name('loan-accounts.destroy');
+        Route::post('/loan-accounts/{loanAccount}/transactions', [LoanAccountController::class, 'storeTransaction'])->name('loan-accounts.transactions.store');
+        Route::put('/loan-accounts/{loanAccount}/transactions/{transaction}', [LoanAccountController::class, 'updateTransaction'])->name('loan-accounts.transactions.update');
+    });
 
     // Bank Accounts
     Route::get('/bank-accounts', [BankAccountController::class, 'index'])->name('bank-accounts');
@@ -206,16 +229,19 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/bank-accounts/{bankAccount}/edit', [BankAccountController::class, 'edit'])->name('bank-accounts.edit');
     Route::put('/bank-accounts/{bankAccount}', [BankAccountController::class, 'update'])->name('bank-accounts.update');
     Route::delete('/bank-accounts/{bankAccount}', [BankAccountController::class, 'destroy'])->name('bank-accounts.destroy');
+
     // ─── Cheques ───────────────────────────────────────────────
-    Route::get('/cheques',                    [ChequeController::class, 'index'])->name('cheques.index');
-    Route::post('/cheques',                   [ChequeController::class, 'store'])->name('cheques.store');
-    Route::get('/cheques/{cheque}',           [ChequeController::class, 'show'])->name('cheques.show');
-    Route::put('/cheques/{cheque}',           [ChequeController::class, 'update'])->name('cheques.update');
-    Route::patch('/cheques/{cheque}',         [ChequeController::class, 'update']);       // alias
-    Route::delete('/cheques/{cheque}',        [ChequeController::class, 'destroy'])->name('cheques.destroy');
-    Route::post('/cheques/{cheque}/deposit',  [ChequeController::class, 'deposit'])->name('cheques.deposit');
-    Route::post('/cheques/{cheque}/status',   [ChequeController::class, 'updateStatus'])->name('cheques.status');
-    Route::get('/cheques/{cheque}/history',   [ChequeController::class, 'history'])->name('cheques.history');
+    Route::middleware('feature:cheques')->group(function () {
+        Route::get('/cheques',                    [ChequeController::class, 'index'])->name('cheques.index');
+        Route::post('/cheques',                   [ChequeController::class, 'store'])->name('cheques.store');
+        Route::get('/cheques/{cheque}',           [ChequeController::class, 'show'])->name('cheques.show');
+        Route::put('/cheques/{cheque}',           [ChequeController::class, 'update'])->name('cheques.update');
+        Route::patch('/cheques/{cheque}',         [ChequeController::class, 'update']);       // alias
+        Route::delete('/cheques/{cheque}',        [ChequeController::class, 'destroy'])->name('cheques.destroy');
+        Route::post('/cheques/{cheque}/deposit',  [ChequeController::class, 'deposit'])->name('cheques.deposit');
+        Route::post('/cheques/{cheque}/status',   [ChequeController::class, 'updateStatus'])->name('cheques.status');
+        Route::get('/cheques/{cheque}/history',   [ChequeController::class, 'history'])->name('cheques.history');
+    });
 
 
     // Purchase & Expenses
@@ -235,17 +261,20 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
 
 
 
-    Route::get('purchase-order', [PurchaseOrderController::class, 'purchaseOrder'])->name('purchase-order');
-    Route::get('purchase-order/create', [PurchaseOrderController::class, 'create'])->name('purchase-order.create');
-    Route::get('purchase-orders/{purchase}', [PurchaseOrderController::class, 'show'])->name('purchase-orders.show');
-    Route::post('purchase-orders', [PurchaseOrderController::class, 'store'])->name('purchase-orders.store');
-    Route::get('purchase-orders/{purchase}/edit', [PurchaseOrderController::class, 'edit'])->name('purchase-orders.edit');
-    Route::get('purchase-orders/{purchase}/preview', [PurchaseOrderController::class, 'preview'])->name('purchase-orders.preview');
-    Route::get('purchase-orders/{purchase}/print', [PurchaseOrderController::class, 'print'])->name('purchase-orders.print');
-    Route::get('purchase-orders/{purchase}/pdf', [PurchaseOrderController::class, 'pdf'])->name('purchase-orders.pdf');
-    Route::get('purchase-orders/{purchase}/history', [PurchaseOrderController::class, 'history'])->name('purchase-orders.history');
-    Route::put('purchase-orders/{purchase}', [PurchaseOrderController::class, 'update'])->name('purchase-orders.update');
-    Route::delete('purchase-orders/{purchase}', [PurchaseOrderController::class, 'destroy'])->name('purchase-orders.destroy');
+    // Purchase Orders
+    Route::middleware('feature:purchase_orders')->group(function () {
+        Route::get('purchase-order', [PurchaseOrderController::class, 'purchaseOrder'])->name('purchase-order');
+        Route::get('purchase-order/create', [PurchaseOrderController::class, 'create'])->name('purchase-order.create');
+        Route::get('purchase-orders/{purchase}', [PurchaseOrderController::class, 'show'])->name('purchase-orders.show');
+        Route::post('purchase-orders', [PurchaseOrderController::class, 'store'])->name('purchase-orders.store');
+        Route::get('purchase-orders/{purchase}/edit', [PurchaseOrderController::class, 'edit'])->name('purchase-orders.edit');
+        Route::get('purchase-orders/{purchase}/preview', [PurchaseOrderController::class, 'preview'])->name('purchase-orders.preview');
+        Route::get('purchase-orders/{purchase}/print', [PurchaseOrderController::class, 'print'])->name('purchase-orders.print');
+        Route::get('purchase-orders/{purchase}/pdf', [PurchaseOrderController::class, 'pdf'])->name('purchase-orders.pdf');
+        Route::get('purchase-orders/{purchase}/history', [PurchaseOrderController::class, 'history'])->name('purchase-orders.history');
+        Route::put('purchase-orders/{purchase}', [PurchaseOrderController::class, 'update'])->name('purchase-orders.update');
+        Route::delete('purchase-orders/{purchase}', [PurchaseOrderController::class, 'destroy'])->name('purchase-orders.destroy');
+    });
 
 
     Route::get('settings/general', [SettingController::class, 'general'])->name('settings.general');
@@ -273,36 +302,39 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
         return view('dashboard.utilities.import-items');
     })->name('utilities.import-items');
     Route::post('/utilities/import-items/valid-items', [ItemController::class, 'importValidItems'])->name('utilities.import-items.valid-items');
-    Route::get('/utilities/barcode-generator', function () {
-        $barcodes = Barcode::latest()->take(20)->get();
-        return view('dashboard.utilities.barcode-generator', compact('barcodes'));
-    })->name('utilities.barcode-generator');
-    Route::post('/utilities/barcode-generator', function (Request $request) {
-        $data = $request->validate([
-            'item_id' => 'nullable|exists:items,id',
-            'item_name' => 'required|string|max:255',
-            'item_code' => 'required|string|max:255',
-            'sale_price' => 'nullable|numeric',
-            'discount' => 'nullable|numeric',
-            'header' => 'nullable|string|max:255',
-            'line_1' => 'nullable|string|max:255',
-            'line_2' => 'nullable|string|max:255',
-            'line_3' => 'nullable|string|max:255',
-            'line_4' => 'nullable|string|max:255',
-            'labels' => 'nullable|integer|min:1',
-            'barcode_value' => 'nullable|string|max:255',
-        ]);
+    // Barcode Generator
+    Route::middleware('feature:barcodes')->group(function () {
+        Route::get('/utilities/barcode-generator', function () {
+            $barcodes = Barcode::latest()->take(20)->get();
+            return view('dashboard.utilities.barcode-generator', compact('barcodes'));
+        })->name('utilities.barcode-generator');
+        Route::post('/utilities/barcode-generator', function (Request $request) {
+            $data = $request->validate([
+                'item_id' => 'nullable|exists:items,id',
+                'item_name' => 'required|string|max:255',
+                'item_code' => 'required|string|max:255',
+                'sale_price' => 'nullable|numeric',
+                'discount' => 'nullable|numeric',
+                'header' => 'nullable|string|max:255',
+                'line_1' => 'nullable|string|max:255',
+                'line_2' => 'nullable|string|max:255',
+                'line_3' => 'nullable|string|max:255',
+                'line_4' => 'nullable|string|max:255',
+                'labels' => 'nullable|integer|min:1',
+                'barcode_value' => 'nullable|string|max:255',
+            ]);
 
-        $data['barcode_value'] = $data['barcode_value'] ?: $data['item_code'] ?: Str::upper(Str::random(12));
-        $data['user_id'] = auth()->id();
-        $data['labels'] = $data['labels'] ?? 1;
-        $data['sale_price'] = $data['sale_price'] ?? 0;
-        $data['discount'] = $data['discount'] ?? 0;
+            $data['barcode_value'] = $data['barcode_value'] ?: $data['item_code'] ?: Str::upper(Str::random(12));
+            $data['user_id'] = auth()->id();
+            $data['labels'] = $data['labels'] ?? 1;
+            $data['sale_price'] = $data['sale_price'] ?? 0;
+            $data['discount'] = $data['discount'] ?? 0;
 
-        Barcode::create($data);
+            Barcode::create($data);
 
-        return redirect()->route('utilities.barcode-generator')->with('success', 'Barcode entry saved successfully.');
-    })->name('utilities.barcode-generator.store');
+            return redirect()->route('utilities.barcode-generator')->with('success', 'Barcode entry saved successfully.');
+        })->name('utilities.barcode-generator.store');
+    });
     Route::get('/utilities/update-items-in-bulk', function () {
         return view('dashboard.utilities.update-items-in-bulk');
     })->name('utilities.update-items-in-bulk');
@@ -313,10 +345,14 @@ Route::middleware(['auth'])->prefix('dashboard')->group(function () {
     Route::get('/utilities/import-parties/sample', [PartyController::class, 'downloadImportTemplate'])->name('utilities.import-parties.sample');
     Route::post('/utilities/import-parties/preview', [PartyController::class, 'previewImport'])->name('utilities.import-parties.preview');
     Route::post('/utilities/import-parties/valid-parties', [PartyController::class, 'importValidParties'])->name('utilities.import-parties.valid-parties');
-    Route::get('/utilities/exports-to-tally', [ExportsToTallyController::class, 'index'])->name('utilities.exports-to-tally');
-    Route::get('/utilities/exports-to-tally/data', [ExportsToTallyController::class, 'data'])->name('utilities.exports-to-tally.data');
-    Route::get('/utilities/exports-to-tally/download', [ExportsToTallyController::class, 'download'])->name('utilities.exports-to-tally.download');
-    Route::post('/utilities/exports-to-tally/push', [ExportsToTallyController::class, 'push'])->name('utilities.exports-to-tally.push');
+
+    // Exports To Tally
+    Route::middleware('feature:tally_export')->group(function () {
+        Route::get('/utilities/exports-to-tally', [ExportsToTallyController::class, 'index'])->name('utilities.exports-to-tally');
+        Route::get('/utilities/exports-to-tally/data', [ExportsToTallyController::class, 'data'])->name('utilities.exports-to-tally.data');
+        Route::get('/utilities/exports-to-tally/download', [ExportsToTallyController::class, 'download'])->name('utilities.exports-to-tally.download');
+        Route::post('/utilities/exports-to-tally/push', [ExportsToTallyController::class, 'push'])->name('utilities.exports-to-tally.push');
+    });
     Route::get('/utilities/export-items/data', [ItemController::class, 'exportItemsData'])->name('utilities.export-items.data');
     Route::get('/utilities/export-items/download', [ItemController::class, 'exportItemsDownload'])->name('utilities.export-items.download');
     Route::get('/utilities/export-items', function () {

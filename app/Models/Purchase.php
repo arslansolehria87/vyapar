@@ -3,10 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BelongsToCompany;
 
 class Purchase extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
+        'company_id',
         'type',
         'source_purchase_order_id',
         'party_id',

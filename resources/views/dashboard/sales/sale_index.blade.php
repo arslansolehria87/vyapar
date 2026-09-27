@@ -4,8 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vyapar — Sales Invoices</title>
-  <meta name="description" content="Create professional estimates and quotations for your customers in Vyapar.">
+  <title>CodiceSync — Sales Invoices</title>
+  <link rel="icon" type="image/png" href="{{ asset('images/codicesync_logo.png') }}"/>
+  <meta name="description" content="Manage and track sales invoices in CodiceSync.">
   <meta name="csrf-token" content="{{ csrf_token() }}">
 
   <!-- Bootstrap 5 CSS -->
@@ -679,11 +680,14 @@
             <td class="text-muted" data-column-key="actions">
               <div class="d-flex align-items-center gap-2">
                 <i class="fa-solid fa-print row-action-print" title="Print" style="cursor:pointer;"></i>
+                <i class="fa-brands fa-whatsapp text-success row-action-whatsapp" title="Send on WhatsApp" style="cursor:pointer;font-size:16px;"></i>
                 <i class="fa-solid fa-share row-action-share" title="Share" style="cursor:pointer;"></i>
                 <div class="dropdown sale-action-menu"
                      data-sale-id="{{ $sale->id }}"
                      data-party-name="{{ $sale->party?->name ?? 'No Party Selected' }}"
+                     data-party-phone="{{ $sale->party?->phone ?? $sale->phone ?? '' }}"
                      data-party-email="{{ $sale->party?->email ?? '' }}"
+                     data-grand-total="{{ (float) ($sale->grand_total ?? $sale->total_amount ?? 0) }}"
                      data-balance="{{ (float) ($sale->balance ?? 0) }}"
                      data-edit-url="{{ route('sale.edit', $sale) }}"
                      data-preview-url="{{ route('sale.invoice-preview', $sale) }}"
@@ -701,6 +705,7 @@
                     <i class="fa-solid fa-ellipsis-vertical"></i>
                   </button>
                   <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item text-success" href="#" data-action="whatsapp"><i class="fa-brands fa-whatsapp me-2"></i>Send on WhatsApp</a></li>
                     <li><a class="dropdown-item" href="#" data-action="view">View / Edit</a></li>
                     <li><a class="dropdown-item" href="#" data-action="convert-return">Convert to Return</a></li>
                     <li><a class="dropdown-item" href="#" data-action="preview-delivery">Preview Delivery Challan</a></li>

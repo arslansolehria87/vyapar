@@ -4,10 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Broker;
+use App\Traits\BelongsToCompany;
 
 class Sale extends Model
 {
+    use BelongsToCompany;
+
     protected $fillable = [
+        'company_id',
         'type',
         'party_id',
         'broker_id',
