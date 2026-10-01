@@ -8,6 +8,15 @@
 
     <title>CodiceSync — Enterprise Sign In</title>
 
+    <!-- PWA Mobile App Support -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#5813BC">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CodiceSync POS">
+    <link rel="apple-touch-icon" href="{{ asset('images/apple-touch-icon.png') }}">
+
     <!-- Google Fonts: Plus Jakarta Sans & Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -846,6 +855,11 @@
             // Restore Language
             const savedLang = localStorage.getItem('codicesync_login_lang') || 'en';
             setLanguage(savedLang);
+
+            // PWA Service Worker Registration
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js').catch(e => console.log('SW reg error:', e));
+            }
 
             // Auto-trigger curtain reveal after brief greeting
             curtainTimer = setTimeout(() => {

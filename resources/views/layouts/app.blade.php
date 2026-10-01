@@ -12,6 +12,15 @@
   <meta name="description" content="@yield('description', 'CodiceSync POS & Business Management')">
   <meta name="csrf-token" content="{{ csrf_token() }}">
 
+  <!-- PWA Mobile App Support -->
+  <link rel="manifest" href="{{ asset('manifest.json') }}">
+  <meta name="theme-color" content="#5813BC">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CodiceSync POS">
+  <link rel="apple-touch-icon" href="{{ asset('images/apple-touch-icon.png') }}">
+
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
@@ -88,6 +97,14 @@
 <script src="{{ asset('js/components.js') }}?v={{ filemtime(public_path('js/components.js')) }}"></script>
 <script src="{{ asset('js/common.js') }}"></script>
 @stack('scripts')
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch((err) => console.log('SW reg fail:', err));
+    });
+  }
+</script>
 
 </body>
 </html>
