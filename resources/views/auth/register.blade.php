@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}?v={{ @filemtime(public_path('favicon-32x32.png')) ?: time() }}">
     <link rel="shortcut icon" href="{{ asset('favicon.ico') }}?v={{ @filemtime(public_path('favicon.ico')) ?: time() }}">
 
-    <title>CodiceSync — Create Account</title>
+    <title>Hexasolv — Create Account</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,10 +57,10 @@
         <div class="concentric-circle concentric-circle-2"></div>
 
         <div class="relative z-10 flex items-center gap-3.5">
-            <img src="{{ asset('images/codice-sync-logo.png') }}" alt="CodiceSync" class="h-11 w-auto object-contain">
+            <img src="{{ asset('images/codice-sync-logo.png') }}" alt="Hexasolv" class="h-11 w-auto object-contain">
             <div>
                 <span class="text-xl sm:text-2xl font-extrabold tracking-tight text-white block leading-none">
-                    Codice<span class="font-normal text-[#D4C2DF]">Sync</span>
+                    Hexa<span class="font-normal text-[#D4C2DF]">solv</span>
                 </span>
                 <span class="text-[9px] font-semibold text-[#AC22CB] tracking-[2px] uppercase block mt-1">
                     Software Solutions
@@ -159,7 +159,7 @@
 
         <div class="pt-4 text-center sm:text-right">
             <p class="text-[11px] text-[#575656] font-medium">
-                © 2026 CodiceSync — Developed by <span class="font-semibold text-[#121214]">CodiceSync Solutions</span>
+                © 2026 Hexasolv — Developed by <span class="font-semibold text-[#121214]">Hexasolv Solutions</span>
             </p>
         </div>
     </div>

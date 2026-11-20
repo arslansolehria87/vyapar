@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" href="{{ asset('images/codice-sync-logo.png') }}"/>
     <link rel="shortcut icon" href="{{ asset('images/codice-sync-logo.png') }}"/>
 
-    <title>{{ config('app.name', 'CodiceSync POS') }}</title>
+    <title>{{ config('app.name', 'Hexasolv POS') }}</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -92,10 +92,10 @@
 
             <div class="relative z-10 flex items-center gap-3">
                 <a href="{{ route('login') }}" class="flex items-center gap-3">
-                    <img src="{{ asset('images/codice-sync-logo.png') }}" alt="CodiceSync Logo" class="h-10 w-auto object-contain">
+                    <img src="{{ asset('images/codice-sync-logo.png') }}" alt="Hexasolv Logo" class="h-10 w-auto object-contain">
                     <div>
                         <span class="text-xl font-extrabold text-white block leading-none">
-                            Codice<span class="font-normal text-[#D4C2DF]">Sync</span>
+                            Hexa<span class="font-normal text-[#D4C2DF]">solv</span>
                         </span>
                         <span class="text-[9px] font-semibold text-[#AC22CB] tracking-[2px] uppercase block mt-1">
                             Enterprise ERP & POS
@@ -110,13 +110,13 @@
                     <span class="text-transparent bg-clip-text bg-gradient-to-r from-white via-[#D4C2DF] to-[#AC22CB]">Simplified.</span>
                 </h2>
                 <p class="text-xs text-[#D4C2DF]/80 mt-3 leading-relaxed">
-                    Access your CodiceSync enterprise workspace securely with high-grade data protection.
+                    Access your Hexasolv enterprise workspace securely with high-grade data protection.
                 </p>
             </div>
 
             <div class="relative z-10 flex items-center gap-2 text-[11px] text-[#D4C2DF]/70">
                 <i class="fa-solid fa-shield-halved text-[#AC22CB]"></i>
-                <span>Protected by CodiceSync Solutions</span>
+                <span>Protected by Hexasolv Solutions</span>
             </div>
         </div>
 
@@ -124,8 +124,8 @@
         <div class="p-8 sm:p-10 flex flex-col justify-between">
             <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center gap-2.5 md:hidden">
-                    <img src="{{ asset('images/codice-sync-logo.png') }}" alt="CodiceSync" class="h-8 w-auto">
-                    <span class="text-lg font-bold text-[#121214]">Codice<span class="text-[#5813BC]">Sync</span></span>
+                    <img src="{{ asset('images/codice-sync-logo.png') }}" alt="Hexasolv" class="h-8 w-auto">
+                    <span class="text-lg font-bold text-[#121214]">Hexa<span class="text-[#5813BC]">solv</span></span>
                 </div>
                 <a href="{{ route('login') }}" class="text-xs font-semibold text-[#5813BC] hover:text-[#AC22CB] transition-colors ml-auto flex items-center gap-1">
                     <i class="fa-solid fa-arrow-left text-[10px]"></i>
@@ -139,7 +139,7 @@
 
             <div class="pt-6 mt-6 border-t border-gray-100 text-center">
                 <p class="text-[11px] text-gray-400 font-medium">
-                    &copy; 2026 CodiceSync - Developed by <span class="font-bold text-[#5813BC]">CodiceSync Solutions</span>
+                    &copy; 2026 Hexasolv - Developed by <span class="font-bold text-[#5813BC]">Hexasolv Solutions</span>
                 </p>
             </div>
         </div>

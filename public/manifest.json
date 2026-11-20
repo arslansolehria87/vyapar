@@ -1,6 +1,6 @@
 {
-  "name": "CodiceSync POS & ERP",
-  "short_name": "CodiceSync",
+  "name": "Hexasolv POS & ERP",
+  "short_name": "Hexasolv",
   "start_url": "/login",
   "display": "standalone",
   "orientation": "any",

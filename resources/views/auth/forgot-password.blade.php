@@ -6,7 +6,7 @@
     <link rel="icon" type="image/png" href="{{ asset('images/codice-sync-logo.png') }}"/>
     <link rel="shortcut icon" href="{{ asset('images/codice-sync-logo.png') }}"/>
 
-    <title>CodiceSync - Reset Password</title>
+    <title>Hexasolv - Reset Password</title>
 
     <!-- Google Fonts: Plus Jakarta Sans & Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -103,10 +103,10 @@
         <!-- Brand Top Logo -->
         <div class="relative z-10 flex items-center gap-3.5">
             <a href="{{ route('login') }}" class="flex items-center gap-3.5 group">
-                <img src="{{ asset('images/codice-sync-logo.png') }}" alt="CodiceSync Logo" class="h-11 w-auto object-contain transition-transform group-hover:scale-105 duration-200">
+                <img src="{{ asset('images/codice-sync-logo.png') }}" alt="Hexasolv Logo" class="h-11 w-auto object-contain transition-transform group-hover:scale-105 duration-200">
                 <div>
                     <span class="text-xl sm:text-2xl font-extrabold tracking-tight text-white block leading-none">
-                        Codice<span class="font-normal text-[#D4C2DF]">Sync</span>
+                        Hexa<span class="font-normal text-[#D4C2DF]">solv</span>
                     </span>
                     <span class="text-[9px] font-semibold text-[#AC22CB] tracking-[2px] uppercase block mt-1">
                         Enterprise Solutions
@@ -196,7 +196,7 @@
                     Forgot Password?
                 </h2>
                 <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2 font-normal leading-relaxed">
-                    Enter the email address registered with your CodiceSync account and we will email you a secure link to reset your password.
+                    Enter the email address registered with your Hexasolv account and we will email you a secure link to reset your password.
                 </p>
 
                 <!-- Status Banner (Success) -->
@@ -261,7 +261,7 @@
         <!-- Footer -->
         <div class="pt-6 text-center sm:text-right w-full max-w-[500px] mx-auto">
             <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                &copy; 2026 CodiceSync - Developed by <span class="font-bold text-[#5813BC] dark:text-[#D4C2DF]">CodiceSync Solutions</span>
+                &copy; 2026 Hexasolv - Developed by <span class="font-bold text-[#5813BC] dark:text-[#D4C2DF]">Hexasolv Solutions</span>
             </p>
         </div>
 

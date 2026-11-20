@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}?v={{ @filemtime(public_path('favicon-32x32.png')) ?: time() }}">
     <link rel="shortcut icon" href="{{ asset('favicon.ico') }}?v={{ @filemtime(public_path('favicon.ico')) ?: time() }}">
 
-    <title>Subscription Notice — CodiceSync</title>
+    <title>Subscription Notice — Hexasolv</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -43,7 +43,7 @@
 
         <!-- Brand Emblem -->
         <div class="mx-auto mb-6 flex justify-center">
-            <img src="{{ asset('images/codice-sync-logo.png') }}" alt="CodiceSync" class="h-14 w-auto object-contain">
+            <img src="{{ asset('images/codice-sync-logo.png') }}" alt="Hexasolv" class="h-14 w-auto object-contain">
         </div>
 
         <!-- Badge -->
@@ -82,7 +82,7 @@
 
         <!-- Action Buttons -->
         <div class="space-y-3">
-            <a href="https://wa.me/923214530103?text={{ urlencode('Hello CodiceSync Support, I would like to renew/reactivate subscription for my business: ' . $companyName) }}"
+            <a href="https://wa.me/923214530103?text={{ urlencode('Hello Hexasolv Support, I would like to renew/reactivate subscription for my business: ' . $companyName) }}"
                target="_blank"
                class="w-full py-3.5 px-6 rounded-xl btn-cs-gradient text-white font-bold text-sm shadow-[0_4px_20px_rgba(172,34,203,0.35)] hover:shadow-[0_6px_25px_rgba(172,34,203,0.5)] transition-all flex items-center justify-center gap-2">
                 <i class="fa-brands fa-whatsapp text-lg"></i>
@@ -91,7 +91,7 @@
 
             <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-[#D4C2DF] space-y-1">
                 <div>📞 Direct Line: <strong class="text-white">0371-0045282</strong> / <strong class="text-white">0321-4530103</strong></div>
-                <div>✉️ Email: <a href="mailto:codicesync@gmail.com" class="text-[#AC22CB] hover:underline font-semibold">codicesync@gmail.com</a></div>
+                <div>✉️ Email: <a href="mailto:support@hexasolv.com" class="text-[#AC22CB] hover:underline font-semibold">support@hexasolv.com</a></div>
             </div>
 
             <form method="POST" action="{{ route('logout') }}">
@@ -104,7 +104,7 @@
 
         <!-- Footer -->
         <div class="mt-8 pt-4 border-t border-white/5 text-[11px] text-[#575656]">
-            CodiceSync Software Solutions — Customer Support Team
+            Hexasolv Software Solutions — Customer Support Team
         </div>
 
     </div>

@@ -23,6 +23,6 @@ class SuperAdminOnly
             return $next($request);
         }
 
-        abort(403, 'Unauthorized access. Only CodiceSync Platform Super-Administrators can access this portal.');
+        abort(403, 'Unauthorized access. Only Hexasolv Platform Super-Administrators can access this portal.');
     }
 }

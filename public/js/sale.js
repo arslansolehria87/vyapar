@@ -949,7 +949,7 @@ $(document).ready(function () {
         targetPhone = '92' + targetPhone;
       }
       const divider = '━━━━━━━━━━━━━━━━━━━━';
-      let msg = `*CodiceSync — Sales Invoice*\n`;
+      let msg = `*Hexasolv — Sales Invoice*\n`;
       msg += `${divider}\n`;
       msg += `🧾 *Invoice #:* ${saleNumber}\n`;
       msg += `👤 *Customer:* ${partyName || 'Valued Customer'}\n`;
@@ -1125,7 +1125,7 @@ $(document).ready(function () {
     }
 
     const divider = '━━━━━━━━━━━━━━━━━━━━';
-    let msg = `*CodiceSync — Sales Invoice*\n`;
+    let msg = `*Hexasolv — Sales Invoice*\n`;
     msg += `${divider}\n`;
     msg += `🧾 *Invoice #:* ${saleNumber}\n`;
     msg += `👤 *Customer:* ${partyName}\n`;

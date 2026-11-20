@@ -1427,6 +1427,8 @@ body.sidebar-compact .sidebar-nav .sidebar-submenu .nav-link span {
 /* ============================================
    RESPONSIVE
    ============================================ */
+
+/* ── Tablet (≤992px) ── */
 @media (max-width: 992px) {
   .sidebar { width: 60px; }
   .sidebar .sidebar-search,
@@ -1444,8 +1446,271 @@ body.sidebar-compact .sidebar-nav .sidebar-submenu .nav-link span {
   .floating-actions { transform: translateX(calc(-50% + 30px)); }
 }
 
+/* ── Mobile (≤768px): Full mobile-first responsive overhaul ── */
 @media (max-width: 768px) {
-  .main-content { padding: 12px; }
-  .navbar-center { display: none; }
-  .invoice-preview { padding: 20px 16px; }
+
+  /* -- Navbar mobile layout -- */
+  .top-navbar {
+    height: 52px;
+    padding: 0 12px;
+  }
+  .navbar-center { display: none !important; }
+  .navbar-left .nav-link-item,
+  .navbar-left .nav-help-wrapper,
+  .navbar-left .nav-version-wrapper,
+  .navbar-left .nav-shortcuts-wrapper,
+  .navbar-left .navbar-company-wrapper { display: none !important; }
+  .navbar-left .brand-logo { font-size: 15px !important; }
+  .navbar-left .brand-logo img { height: 20px !important; }
+  .navbar-right { gap: 6px; }
+  .navbar-right .btn-icon { font-size: 14px; padding: 6px; }
+
+  /* -- Mobile Hamburger Button -- */
+  .mobile-menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--text-dark);
+    font-size: 20px;
+    padding: 6px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-menu-btn:active {
+    background: var(--bg-light);
+  }
+
+  /* -- Sidebar: Off-canvas overlay on mobile -- */
+  .sidebar {
+    width: 280px !important;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 2000 !important;
+    box-shadow: none;
+    top: 0 !important;
+  }
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 8px 0 32px rgba(0,0,0,0.35);
+  }
+
+  /* Sidebar search visible in mobile */
+  .sidebar.mobile-open .sidebar-search,
+  .sidebar.mobile-open .nav-link span,
+  .sidebar.mobile-open .badge-plus,
+  .sidebar.mobile-open .dropdown-arrow,
+  .sidebar.mobile-open .sidebar-promo,
+  .sidebar.mobile-open .sidebar-company .company-info { display: block !important; }
+  .sidebar.mobile-open .nav-link { justify-content: flex-start !important; padding: 12px 18px !important; gap: 12px !important; }
+
+  /* Dark overlay behind sidebar */
+  .mobile-sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1999;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-sidebar-overlay.active {
+    display: block;
+  }
+
+  /* -- Main content: no margin on mobile -- */
+  .main-content {
+    margin-left: 0 !important;
+    padding: 64px 12px 80px 12px !important;
+    min-height: 100vh;
+  }
+
+  /* -- Top navbar on mobile: full width -- */
+  body.has-vyapar-shell > .top-navbar {
+    left: 0 !important;
+    width: 100% !important;
+  }
+  body.has-vyapar-shell > .main-content,
+  body.has-vyapar-shell > main.main-content {
+    margin-left: 0 !important;
+    padding: 64px 12px 80px 12px !important;
+  }
+  body.has-vyapar-shell.sidebar-compact > .top-navbar {
+    left: 0 !important;
+  }
+  body.has-vyapar-shell.sidebar-compact > .main-content,
+  body.has-vyapar-shell.sidebar-compact > main.main-content {
+    margin-left: 0 !important;
+  }
+
+  /* Hide resize handle on mobile */
+  .sidebar-resize-handle { display: none !important; }
+
+  /* -- Business name bar & view tabs mobile -- */
+  .business-name-bar {
+    margin: -12px -12px 14px -12px !important;
+    padding: 8px 12px !important;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .business-name-bar .form-control {
+    max-width: 100% !important;
+    flex: 1 1 auto;
+  }
+  .view-tabs-bar {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    margin-bottom: 12px;
+  }
+  .view-tabs-bar .view-tab {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  /* -- Cards & Tables responsive -- */
+  .card { border-radius: 10px; }
+  .table-responsive { font-size: 12px; }
+  .table th, .table td { padding: 8px 6px; white-space: nowrap; }
+
+  /* -- Invoice preview mobile -- */
+  .invoice-preview { padding: 16px 10px; }
+
+  /* -- Split pane mobile -- */
+  .split-left { width: 100% !important; border-right: none; border-bottom: 1px solid var(--border-color); }
+  .split-right { width: 100% !important; }
+  .split-pane { flex-direction: column !important; }
+
+  /* -- Floating actions mobile center -- */
+  .floating-actions {
+    transform: none;
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+
+  /* -- Compact dropdown on mobile -- */
+  .company-dropdown { width: calc(100% - 24px) !important; left: 12px !important; }
+
+  /* -- Better touch targets -- */
+  .btn { min-height: 42px; font-size: 14px; }
+  input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="search"],
+  select, textarea {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+    min-height: 42px;
+  }
+
+  /* -- Mobile Bottom Navigation Bar -- */
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: #ffffff;
+    border-top: 1px solid #e0dce4;
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+    z-index: 1050;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 4px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .mobile-bottom-nav .mob-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    text-decoration: none;
+    color: #777;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    flex: 1;
+    min-width: 0;
+  }
+  .mobile-bottom-nav .mob-nav-item i {
+    font-size: 18px;
+    line-height: 1;
+  }
+  .mobile-bottom-nav .mob-nav-item.active,
+  .mobile-bottom-nav .mob-nav-item:active {
+    color: var(--primary-blue);
+  }
+  .mobile-bottom-nav .mob-nav-item.mob-pos-btn {
+    background: linear-gradient(135deg, #5813BC, #AC22CB);
+    color: #fff !important;
+    border-radius: 14px;
+    padding: 8px 12px;
+    margin: -10px 2px 0;
+    box-shadow: 0 4px 14px rgba(88, 19, 188, 0.35);
+  }
+  .mobile-bottom-nav .mob-nav-item.mob-pos-btn i { font-size: 20px; }
+}
+
+/* -- Hide mobile elements on desktop -- */
+.mobile-menu-btn { display: none !important; }
+.mobile-sidebar-overlay { display: none; }
+.mobile-bottom-nav { display: none !important; }
+
+@media (max-width: 768px) {
+  .mobile-menu-btn { display: flex !important; }
+  .mobile-bottom-nav { display: flex !important; }
+}
+
+/* ── Very small phones (≤380px) ── */
+@media (max-width: 380px) {
+  .top-navbar { padding: 0 8px; }
+  .navbar-left .brand-logo { font-size: 13px !important; }
+  .navbar-left .brand-logo img { height: 18px !important; }
+  .mobile-bottom-nav .mob-nav-item { font-size: 9px; padding: 4px 4px; }
+  .mobile-bottom-nav .mob-nav-item i { font-size: 16px; }
+  .main-content { padding: 58px 8px 76px 8px !important; }
+  body.has-vyapar-shell > .main-content,
+  body.has-vyapar-shell > main.main-content {
+    padding: 58px 8px 76px 8px !important;
+  }
+}
+
+/* ── Hexasolv: Asan Dukan (Simple Village Mode) Rules ── */
+body.asan-dukan-mode .sidebar .nav-item[data-page="brokers"],
+body.asan-dukan-mode .sidebar .nav-item[data-page="estimate"],
+body.asan-dukan-mode .sidebar .nav-item[data-page="proforma-invoice"],
+body.asan-dukan-mode .sidebar .nav-item[data-page="sale-order"],
+body.asan-dukan-mode .sidebar .nav-item[data-page="delivery-challan"],
+body.asan-dukan-mode .sidebar .nav-item[data-page="purchase-order"],
+body.asan-dukan-mode .sidebar .nav-item[data-page="bank-accounts"],
+body.asan-dukan-mode .sidebar .nav-item[data-page="loan-accounts"],
+body.asan-dukan-mode .sidebar .nav-item[data-page="cheques"],
+body.asan-dukan-mode .sidebar .nav-item[data-page="roles"],
+body.asan-dukan-mode .sidebar .nav-item[data-page="users"],
+body.asan-dukan-mode .sidebar li:has(a[href*="utilities"]),
+body.asan-dukan-mode .sidebar li:has(a[href*="settings"]),
+body.asan-dukan-mode .sidebar li:has(a[href*="reports"]) {
+  display: none !important;
+}
+
+/* ── Mobile Responsive Enhancements ── */
+@media (max-width: 768px) {
+  .mob-voice-btn {
+    animation: voiceOrbPulse 1.8s infinite ease-in-out;
+  }
+  @keyframes voiceOrbPulse {
+    0% { transform: scale(1); box-shadow: 0 4px 14px rgba(88,19,188,0.5); }
+    50% { transform: scale(1.08); box-shadow: 0 8px 24px rgba(172,34,203,0.7); }
+    100% { transform: scale(1); box-shadow: 0 4px 14px rgba(88,19,188,0.5); }
+  }
+
+  .container-fluid {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
 }

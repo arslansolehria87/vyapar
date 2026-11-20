@@ -71,6 +71,21 @@ Route::middleware(['auth', 'check_subscription'])->prefix('dashboard')->group(fu
     // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
+    // ── Alex AI: Urdu Voice Khata & Billing Assistant ──
+    Route::prefix('voice-assistant')->name('voice.')->group(function () {
+        Route::post('/process', [\App\Http\Controllers\VoiceAssistantController::class, 'process'])->name('process');
+        Route::post('/confirm-sale', [\App\Http\Controllers\VoiceAssistantController::class, 'confirmSale'])->name('confirm-sale');
+        Route::post('/confirm-stock-inward', [\App\Http\Controllers\VoiceAssistantController::class, 'confirmStockInward'])->name('confirm-stock-inward');
+        Route::get('/khata-query', [\App\Http\Controllers\VoiceAssistantController::class, 'handleKhataQuery'])->name('khata-query');
+    });
+
+    // ── Daily Udhar Register, Customer Khata Book & Village Asan Dukan ──
+    Route::get('/udhar-register', [\App\Http\Controllers\UdharRegisterController::class, 'index'])->name('udhar.register');
+    Route::get('/udhar-register/today-summary', [\App\Http\Controllers\UdharRegisterController::class, 'todaySummaryApi'])->name('udhar.today-summary');
+    Route::get('/udhar-register/khata/{party}', [\App\Http\Controllers\UdharRegisterController::class, 'customerKhata'])->name('udhar.khata');
+    Route::get('/udhar-register/khata/{party}/receipt', [\App\Http\Controllers\UdharRegisterController::class, 'customerReceipt'])->name('udhar.receipt');
+    Route::get('/asan-dukan', [\App\Http\Controllers\UdharRegisterController::class, 'asanDukan'])->name('asan.dukan');
+
     // Roles
     Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
     Route::get('/roles/create', [RoleController::class, 'create'])->name('roles.create');

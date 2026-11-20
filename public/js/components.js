@@ -87,13 +87,13 @@
       .join('');
   };
 
-  let rawUserName = appUser?.name || 'CodiceSync';
+  let rawUserName = appUser?.name || 'Hexasolv';
   if (rawUserName.toLowerCase().includes('waqas') || rawUserName.toLowerCase().includes('grocery')) {
-    rawUserName = 'CodiceSync';
+    rawUserName = 'Hexasolv';
   }
   const userName = rawUserName;
-  const tenantCompanyName = window.App?.companyName || 'CodiceSync';
-  const userInitials = 'CS';
+  const tenantCompanyName = window.App?.companyName || 'Hexasolv';
+  const userInitials = 'HS';
   const currentUrl = window.location.pathname;
   const sidebarVisibilityStorageKey = 'vyaparGeneralSidebarConfig';
   const sidebarVisibilityEndpoint = '/dashboard/settings/general/sidebar-config';
@@ -224,6 +224,20 @@
       href: '/dashboard',
       dataPage: 'dashboard',
       permission: null,
+    },
+    {
+      label: '<span style="color:#059669;font-weight:700;">🏪 آسان کریانہ پورٹل</span>',
+      icon: 'fa-store',
+      href: '/dashboard/asan-dukan',
+      dataPage: 'asan-dukan',
+      permission: null,
+    },
+    {
+      label: '<span style="color:#5813BC;font-weight:700;">📖 روزانہ ادھار رجسٹر</span>',
+      icon: 'fa-book-bookmark',
+      href: '/dashboard/udhar-register',
+      dataPage: 'udhar-register',
+      permission: 'sales.view',
     },
     {
       label: 'User Management',
@@ -367,7 +381,8 @@
   dataPage: 'sale-return',
   permission: 'sales.sale_return'
 },
-        { label: 'Codice POS', href: '/dashboard/sales/pos', dataPage: 'pos', permission: 'sales.pos', saasFeature: 'pos' },
+        { label: 'Hexasolv POS', href: '/dashboard/sales/pos', dataPage: 'pos', permission: 'sales.pos', saasFeature: 'pos' },
+        { label: 'روزانہ ادھار رجسٹر (Udhar Book)', href: '/dashboard/udhar-register', dataPage: 'udhar-register', permission: 'sales.view' },
       ],
     },
     {
@@ -552,16 +567,16 @@
     </ul>
 
     <div class="sidebar-promo">
-      <span class="promo-badge" style="background: linear-gradient(135deg, #5813BC, #AC22CB); color: #fff;">CodiceSync</span>
+      <span class="promo-badge" style="background: linear-gradient(135deg, #5813BC, #AC22CB); color: #fff;">Hexasolv</span>
       <h6>EARLY BIRD OFFER</h6>
       <p>Upto <strong>50% OFF</strong> on all plans. Limited time only!</p>
       <button class="btn-promo" style="background: linear-gradient(135deg, #5813BC, #AC22CB);">Buy Now</button>
     </div>
 
     <div class="sidebar-company" id="sidebarCompany">
-      <div class="company-avatar" style="background: linear-gradient(135deg, #5813BC, #AC22CB); color: #fff; font-weight: 800;">CS</div>
+      <div class="company-avatar" style="background: linear-gradient(135deg, #5813BC, #AC22CB); color: #fff; font-weight: 800;">HS</div>
       <div class="company-info">
-        <div class="company-name">CodiceSync</div>
+        <div class="company-name">Hexasolv</div>
         <div class="company-role">Admin</div>
       </div>
       ${logoutUrl && window.App?.isAuthenticated ? `
@@ -582,9 +597,12 @@
  const navbarHTML = `
 <nav class="top-navbar" id="topNavbar">
   <div class="navbar-left">
+    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
+      <i class="fa-solid fa-bars"></i>
+    </button>
     <span class="brand-logo" style="display:inline-flex;align-items:center;gap:8px;font-weight:800;letter-spacing:-0.3px;">
-      <img src="/images/codice-sync-logo.png" alt="CodiceSync" style="height:24px;width:auto;object-fit:contain;">
-      <span>Codice<span style="color:#AC22CB;font-weight:600;">Sync</span></span>
+      <img src="/images/codice-sync-logo.png" alt="Hexasolv" style="height:24px;width:auto;object-fit:contain;">
+      <span>Hexa<span style="color:#AC22CB;font-weight:600;">solv</span></span>
     </span>
 
     <!-- ── Company dropdown ── -->
@@ -670,9 +688,15 @@
   <div class="navbar-center">
     Customer Support : <i class="fa-solid fa-phone" style="color: #5813BC;"></i>
     <span class="phone-number" style="font-weight: 700; color: #121214;">0371-0045282 / 0321-4530103</span> |
-    <a href="mailto:codicesync@gmail.com" style="color: #121214; text-decoration: none; font-weight: 600;"><i class="fa-regular fa-envelope me-1" style="color: #AC22CB;"></i>codicesync@gmail.com</a>
+    <a href="mailto:support@hexasolv.com" style="color: #121214; text-decoration: none; font-weight: 600;"><i class="fa-regular fa-envelope me-1" style="color: #AC22CB;"></i>support@hexasolv.com</a>
   </div>
- <div class="navbar-right">
+  <div class="navbar-right" style="display:flex;align-items:center;gap:6px;">
+    <button type="button" id="hexasolvModeToggleBtn" onclick="toggleHexasolvMode()" class="btn btn-sm" style="background:linear-gradient(135deg, #16a34a, #059669);color:#fff;border-radius:20px;font-weight:700;font-size:11.5px;padding:4px 10px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">
+      <i class="fa-solid fa-store"></i> <span id="hexasolvModeToggleText">آسان دکان موڈ</span>
+    </button>
+    <a href="/dashboard/asan-dukan" class="btn btn-sm btn-outline-secondary" style="font-size:11.5px;padding:3px 8px;border-radius:6px;text-decoration:none;" title="آسان کریانہ پورٹل">
+      🏪 پورٹل
+    </a>
   </div>
 </nav>
 
@@ -1152,6 +1176,31 @@ window.saveNavRename = async function() {
     body.has-vyapar-shell.sidebar-compact > main.main-content {
       margin-left: ${sidebarMinWidth}px;
     }
+    @media (max-width: 768px) {
+      body.has-vyapar-shell > .sidebar {
+        width: 280px !important;
+        transform: translateX(-100%);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 2000 !important;
+        top: 0 !important;
+      }
+      body.has-vyapar-shell > .sidebar.mobile-open {
+        transform: translateX(0) !important;
+        box-shadow: 8px 0 32px rgba(0,0,0,0.4);
+      }
+      body.has-vyapar-shell > .top-navbar,
+      body.has-vyapar-shell.sidebar-compact > .top-navbar {
+        left: 0 !important;
+        width: 100% !important;
+      }
+      body.has-vyapar-shell > .main-content,
+      body.has-vyapar-shell > main.main-content,
+      body.has-vyapar-shell.sidebar-compact > .main-content,
+      body.has-vyapar-shell.sidebar-compact > main.main-content {
+        margin-left: 0 !important;
+        padding: 64px 12px 84px 12px !important;
+      }
+    }
   `;
   if (!document.getElementById('vyapar-shell-layout-styles')) {
     const shellStyle = document.createElement('style');
@@ -1164,6 +1213,135 @@ window.saveNavRename = async function() {
     document.body.classList.add('has-vyapar-shell');
     document.body.insertAdjacentHTML('afterbegin', sidebarHTML);
     document.body.insertAdjacentHTML('afterbegin', navbarHTML);
+
+    // ── Mobile: Overlay + Bottom Nav + Hamburger Logic ──
+    if (!document.getElementById('mobileSidebarOverlay')) {
+      document.body.insertAdjacentHTML('beforeend', '<div class="mobile-sidebar-overlay" id="mobileSidebarOverlay"></div>');
+    }
+
+    // Mobile Bottom Navigation Bar
+    const currentPath = window.location.pathname;
+    const isActive = (p) => currentPath.startsWith(p) ? 'active' : '';
+    if (!document.getElementById('mobileBottomNav')) {
+      const mobileBottomNavHTML = `
+      <nav class="mobile-bottom-nav" id="mobileBottomNav">
+        <a href="/dashboard/asan-dukan" class="mob-nav-item ${currentPath.includes('asan-dukan') ? 'active' : ''}">
+          <i class="fa-solid fa-store"></i>
+          <span>آسان دکان</span>
+        </a>
+        <a href="/dashboard/udhar-register" class="mob-nav-item ${currentPath.includes('udhar-register') ? 'active' : ''}">
+          <i class="fa-solid fa-book-bookmark"></i>
+          <span>ادھار رجسٹر</span>
+        </a>
+        <button type="button" class="mob-nav-item mob-voice-btn" onclick="window.AlexVoiceAssistant && window.AlexVoiceAssistant.openVoiceModal()" style="background:linear-gradient(135deg, #5813BC, #AC22CB);color:#fff!important;border:none;border-radius:50%;width:50px;height:50px;margin-top:-20px;box-shadow:0 4px 18px rgba(88,19,188,0.55);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 50px;" title="وائس بل و کھاتہ بولیں">
+          <i class="fa-solid fa-microphone" style="font-size:20px;color:#fff;"></i>
+        </button>
+        <a href="/dashboard/items" class="mob-nav-item ${isActive('/dashboard/items')}">
+          <i class="fa-solid fa-boxes-stacked"></i>
+          <span>اسٹاک</span>
+        </a>
+        <a href="/dashboard/parties" class="mob-nav-item ${isActive('/dashboard/parties')}">
+          <i class="fa-solid fa-users"></i>
+          <span>کھاتے</span>
+        </a>
+      </nav>`;
+      document.body.insertAdjacentHTML('beforeend', mobileBottomNavHTML);
+    }
+
+    // Simple Mode vs Full ERP logic
+    window.toggleHexasolvMode = function() {
+      const isSimple = localStorage.getItem('hexasolv_simple_mode') === 'true';
+      if (isSimple) {
+        localStorage.setItem('hexasolv_simple_mode', 'false');
+      } else {
+        localStorage.setItem('hexasolv_simple_mode', 'true');
+      }
+      updateModeUI();
+    };
+
+    function updateModeUI() {
+      const isSimple = localStorage.getItem('hexasolv_simple_mode') === 'true';
+      const textEl = document.getElementById('hexasolvModeToggleText');
+      const btnEl = document.getElementById('hexasolvModeToggleBtn');
+      if (isSimple) {
+        document.body.classList.add('asan-dukan-mode');
+        if (textEl) textEl.textContent = 'آسان دکان موڈ (آن)';
+        if (btnEl) btnEl.style.background = 'linear-gradient(135deg, #16a34a, #059669)';
+      } else {
+        document.body.classList.remove('asan-dukan-mode');
+        if (textEl) textEl.textContent = 'مکمل ERP موڈ';
+        if (btnEl) btnEl.style.background = 'linear-gradient(135deg, #475569, #334155)';
+      }
+    }
+
+    if (localStorage.getItem('hexasolv_simple_mode') === null) {
+      localStorage.setItem('hexasolv_simple_mode', 'true');
+    }
+    updateModeUI();
+
+    // Hamburger toggle
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobileSidebarOverlay');
+
+    const openMobileSidebar = () => {
+      if (sidebar) sidebar.classList.add('mobile-open');
+      if (overlay) overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    };
+    const closeMobileSidebar = () => {
+      if (sidebar) sidebar.classList.remove('mobile-open');
+      if (overlay) overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    };
+
+    if (mobileMenuBtn) {
+      mobileMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (sidebar && sidebar.classList.contains('mobile-open')) {
+          closeMobileSidebar();
+        } else {
+          openMobileSidebar();
+        }
+      });
+    }
+    if (overlay) {
+      overlay.addEventListener('click', closeMobileSidebar);
+    }
+
+    // "More" button in bottom nav opens sidebar
+    const mobMoreBtn = document.getElementById('mobMoreBtn');
+    if (mobMoreBtn) {
+      mobMoreBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openMobileSidebar();
+      });
+    }
+
+    // Close sidebar on link click (mobile)
+    if (sidebar) {
+      sidebar.addEventListener('click', (e) => {
+        const link = e.target.closest('a.nav-link[href]:not([href="#"])');
+        if (link && window.innerWidth <= 768) {
+          setTimeout(closeMobileSidebar, 150);
+        }
+      });
+    }
+
+    // Close sidebar on swipe left
+    let touchStartX = 0;
+    if (sidebar) {
+      sidebar.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; }, { passive: true });
+      sidebar.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].clientX;
+        if (touchStartX - touchEndX > 60) { closeMobileSidebar(); }
+      }, { passive: true });
+    }
+
+    // Expose globally for other scripts
+    window.openMobileSidebar = openMobileSidebar;
+    window.closeMobileSidebar = closeMobileSidebar;
+
   } else {
     document.body.classList.add('has-vyapar-shell');
   }
@@ -1760,6 +1938,7 @@ const searchDatabase = [
     { name: 'Settings', url: '/dashboard/settings/general' },
   ]},
   { category: 'Sales', items: [
+    { name: 'Daily Udhar Register (روزانہ ادھار رجسٹر)', url: '/dashboard/udhar-register' },
     { name: 'Create Sale Invoice', url: '/dashboard/sale/create' },
     { name: 'Estimate / Quotation', url: '/dashboard/sales/estimate' },
     { name: 'Create Estimate', url: '/dashboard/estimates/create' },

@@ -1,0 +1,521 @@
+/* =========================================================
+   ALEX AI — Urdu Voice Khata & Billing Assistant Styles (v2)
+   ========================================================= */
+
+/* Floating Voice Orb Button */
+.alex-voice-fab {
+  position: fixed;
+  bottom: 80px;
+  right: 22px;
+  z-index: 1090;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #5813BC 0%, #AC22CB 100%);
+  color: #ffffff !important;
+  border: none;
+  border-radius: 50px;
+  padding: 10px 18px 10px 14px;
+  font-family: 'Plus Jakarta Sans', Tahoma, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 8px 25px rgba(88, 19, 188, 0.45), 0 2px 6px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.alex-voice-fab:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 12px 30px rgba(172, 34, 203, 0.55);
+}
+
+.alex-voice-fab:active {
+  transform: scale(0.96);
+}
+
+.alex-voice-fab .fab-mic-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.alex-voice-fab.recording {
+  animation: alexPulse 1.2s infinite ease-in-out;
+  background: linear-gradient(135deg, #e53935 0%, #d81b60 100%);
+}
+
+@keyframes alexPulse {
+  0% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.6); }
+  70% { box-shadow: 0 0 0 18px rgba(229, 57, 53, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0); }
+}
+
+/* Modal Overlay */
+.alex-voice-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 12, 22, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 99999;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.alex-voice-overlay.open {
+  display: flex;
+  opacity: 1;
+}
+
+/* Modal Card */
+.alex-voice-card {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  border: 1px solid rgba(212, 194, 223, 0.6);
+  animation: alexSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  direction: rtl;
+  text-align: right;
+  font-family: 'Plus Jakarta Sans', Tahoma, 'Noto Nastaliq Urdu', sans-serif;
+}
+
+@keyframes alexSlideUp {
+  from { transform: translateY(30px) scale(0.95); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* Header */
+.alex-card-header {
+  background: linear-gradient(135deg, #121214 0%, #1e1b2e 100%);
+  color: #ffffff;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid #5813BC;
+}
+
+.alex-card-header h5 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.alex-badge-ai {
+  background: linear-gradient(135deg, #5813BC, #AC22CB);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+
+.alex-btn-close {
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  color: #ffffff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: background 0.15s;
+}
+
+.alex-btn-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Listening State Body */
+.alex-listening-box {
+  padding: 24px 20px 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Animated Sound Wave Equalizer */
+.alex-equalizer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 28px;
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+
+.alex-bar {
+  width: 4px;
+  height: 6px;
+  border-radius: 3px;
+  background: #AC22CB;
+  transition: height 0.08s ease;
+}
+
+.alex-wave-orb {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5813BC, #AC22CB);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 34px;
+  box-shadow: 0 10px 30px rgba(88, 19, 188, 0.4);
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.alex-wave-orb.active {
+  animation: orbBreath 1.4s infinite ease-in-out;
+  background: linear-gradient(135deg, #e53935 0%, #AC22CB 100%);
+}
+
+@keyframes orbBreath {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(172, 34, 203, 0.6); }
+  50% { transform: scale(1.08); box-shadow: 0 0 0 18px rgba(172, 34, 203, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(172, 34, 203, 0); }
+}
+
+.alex-listening-label {
+  font-size: 16px;
+  font-weight: 800;
+  color: #121214;
+  margin-top: 14px;
+  margin-bottom: 2px;
+}
+
+.alex-listening-hint {
+  font-size: 12px;
+  color: #71717a;
+  max-width: 380px;
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+/* Transcript Text Box (Interactive & Editable) */
+.alex-transcript-container {
+  margin: 0 20px 14px;
+}
+
+.alex-transcript-input {
+  width: 100%;
+  min-height: 80px;
+  background: #faf8fd;
+  border: 1.5px solid #c4b5fd;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 16px;
+  color: #2e1065;
+  font-weight: 600;
+  line-height: 1.8;
+  outline: none;
+  resize: vertical;
+  font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Urdu Typesetting', Tahoma, sans-serif;
+  transition: border-color 0.2s, background 0.2s;
+  direction: rtl;
+  text-align: right;
+  box-sizing: border-box;
+}
+
+.alex-transcript-input:focus {
+  border-color: #7c3aed;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+/* Quick Example Chips */
+.alex-sample-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 20px 16px;
+  direction: rtl;
+}
+
+.alex-chip {
+  background: #f3e8ff;
+  color: #5813BC;
+  border: 1px solid #d8b4fe;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.alex-chip:hover {
+  background: #5813BC;
+  color: #ffffff;
+}
+
+/* Buttons Area */
+.alex-control-btns {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px 20px;
+}
+
+.alex-btn-submit {
+  flex: 1;
+  background: linear-gradient(135deg, #5813BC 0%, #AC22CB 100%);
+  color: #ffffff;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform 0.15s, opacity 0.15s;
+}
+
+.alex-btn-submit:active {
+  transform: scale(0.98);
+}
+
+.alex-btn-mic-toggle {
+  background: #f4f4f5;
+  color: #27272a;
+  border: 1.5px solid #e4e4e7;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.alex-btn-mic-toggle.recording {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+/* Result / Confirmation View */
+.alex-result-box {
+  padding: 18px 20px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.alex-party-chip {
+  background: #f3f3ff;
+  border: 1px solid #D4C2DF;
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.alex-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+.alex-items-table th {
+  background: #f4f4f5;
+  padding: 8px 10px;
+  font-weight: 700;
+  color: #52525b;
+  border-bottom: 1px solid #e4e4e7;
+}
+
+.alex-items-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid #f4f4f5;
+  color: #18181b;
+  vertical-align: middle;
+}
+
+/* Live Editable Table Inputs */
+.alex-cell-input {
+  width: 58px;
+  padding: 4px 6px;
+  border: 1.5px solid #d4c2df;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  color: #18181b;
+  background: #ffffff;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.alex-cell-input:focus {
+  border-color: #5813BC;
+  box-shadow: 0 0 0 2px rgba(88, 19, 188, 0.15);
+}
+
+.alex-rate-input {
+  width: 70px;
+  color: #5813BC;
+}
+
+.alex-btn-del-row {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.15s;
+}
+
+.alex-btn-del-row:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.alex-btn-add-row {
+  background: #f4f4f5;
+  color: #5813BC;
+  border: 1px dashed #c4b5fd;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  margin-bottom: 12px;
+  transition: all 0.15s;
+}
+
+.alex-btn-add-row:hover {
+  background: #f3e8ff;
+  border-color: #5813BC;
+}
+
+.alex-total-strip {
+  background: linear-gradient(135deg, #f3f3ff 0%, #faf5ff 100%);
+  border: 1px solid #D4C2DF;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: 800;
+  color: #5813BC;
+  margin-bottom: 16px;
+}
+
+.alex-khata-card {
+  background: #ffffff;
+  border: 1.5px solid #5813BC;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 16px rgba(88, 19, 188, 0.08);
+}
+
+.alex-khata-balance {
+  font-size: 26px;
+  font-weight: 900;
+  color: #e53935;
+  margin: 4px 0 10px;
+}
+
+.alex-btn-whatsapp {
+  background: #25D366;
+  color: #ffffff;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.alex-status-alert {
+  margin: 8px 20px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  display: none;
+}
+
+.alex-status-alert.error {
+  display: block;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.alex-status-alert.warning {
+  display: block;
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+@media (max-width: 768px) {
+  .alex-voice-fab {
+    bottom: 74px;
+    right: 14px;
+    padding: 8px 14px 8px 10px;
+    font-size: 12px;
+  }
+  .alex-voice-card {
+    border-radius: 16px;
+    max-width: 96vw;
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+  .alex-cell-input {
+    font-size: 14px !important;
+  }
+}

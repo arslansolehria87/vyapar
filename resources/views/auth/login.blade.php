@@ -6,7 +6,7 @@
     <link rel="icon" type="image/png" href="{{ asset('images/codice-sync-logo.png') }}"/>
     <link rel="shortcut icon" href="{{ asset('images/codice-sync-logo.png') }}"/>
 
-    <title>CodiceSync — Enterprise Sign In</title>
+    <title>Hexasolv — Enterprise Sign In</title>
 
     <!-- PWA Mobile App Support -->
     <link rel="manifest" href="{{ asset('manifest.json') }}">
@@ -14,7 +14,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="CodiceSync POS">
+    <meta name="apple-mobile-web-app-title" content="Hexasolv POS">
     <link rel="apple-touch-icon" href="{{ asset('images/apple-touch-icon.png') }}">
 
     <!-- Google Fonts: Plus Jakarta Sans & Inter -->
@@ -59,7 +59,7 @@
             transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        /* CodiceSync Ambient Glow Background */
+        /* Hexasolv Ambient Glow Background */
         .cs-ambient-glow {
             background-color: #121214;
             background-image: 
@@ -323,10 +323,10 @@
             <div class="w-8 h-8 rounded-full bg-gradient-to-br from-white via-[#94a3b8] to-[#1e293b] shadow-xl border-2 border-white/70"></div>
         </div>
 
-        <!-- CENTER "WELCOME" IN CODICESYNC LOGO GRADIENT -->
+        <!-- CENTER "WELCOME" IN HEXASOLV LOGO GRADIENT -->
         <div id="curtainWelcome" class="center-welcome-wrapper absolute inset-0 z-50 flex items-center justify-center p-6 text-center pointer-events-none">
             <div class="codice-welcome-pill animate-pulse">
-                <img src="{{ asset('images/codice-sync-logo.png') }}" alt="CodiceSync" class="h-9 sm:h-11 w-auto object-contain logo-symbol-glow">
+                <img src="{{ asset('images/codice-sync-logo.png') }}" alt="Hexasolv" class="h-9 sm:h-11 w-auto object-contain logo-symbol-glow">
                 <span class="codice-welcome-text">
                     WELCOME
                 </span>
@@ -347,10 +347,10 @@
         <!-- Top Left Brand Header -->
         <div class="relative z-10 flex items-center justify-between">
             <div class="flex items-center gap-3.5">
-                <img src="{{ asset('images/codice-sync-logo.png') }}" alt="CodiceSync" class="h-11 w-auto object-contain filter drop-shadow-[0_4px_12px_rgba(172,34,203,0.4)]">
+                <img src="{{ asset('images/codice-sync-logo.png') }}" alt="Hexasolv" class="h-11 w-auto object-contain filter drop-shadow-[0_4px_12px_rgba(172,34,203,0.4)]">
                 <div>
                     <span class="text-2xl font-extrabold tracking-tight text-white block leading-none">
-                        Codice<span class="font-normal text-[#D4C2DF]">Sync</span>
+                        Hexa<span class="font-normal text-[#D4C2DF]">solv</span>
                     </span>
                     <span class="text-[10px] font-bold text-[#AC22CB] tracking-[2.5px] uppercase block mt-1">
                         Software Solutions
@@ -605,14 +605,14 @@
         </div>
 
         <!-- ════════════════════════════════════════════════════════════
-             Bottom Footer: Strictly "Developed by CodiceSync Solutions"
+             Bottom Footer: Strictly "Developed by Hexasolv Solutions"
              ════════════════════════════════════════════════════════════ -->
         <div class="pt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#575656] dark:text-[#a1a1aa]">
             <p class="font-medium text-center sm:text-left">
-                © 2026 CodiceSync — <span class="text-[#121214] dark:text-white font-semibold">Developed by CodiceSync Solutions</span>
+                © 2026 Hexasolv — <span class="text-[#121214] dark:text-white font-semibold">Developed by Hexasolv Solutions</span>
             </p>
             <p class="text-[11px] text-[#575656]/80 dark:text-[#a1a1aa]/80">
-                Support: <a href="mailto:codicesync@gmail.com" class="text-[#5813BC] dark:text-[#AC22CB] hover:underline">codicesync@gmail.com</a>
+                Support: <a href="mailto:support@hexasolv.com" class="text-[#5813BC] dark:text-[#AC22CB] hover:underline">support@hexasolv.com</a>
             </p>
         </div>
 
@@ -744,7 +744,7 @@
         // ── 2. Dynamic Language Switcher Function ──
         function setLanguage(lang) {
             const data = translations[lang] || translations.en;
-            localStorage.setItem('codicesync_login_lang', lang);
+            localStorage.setItem('hexasolv_login_lang', lang);
 
             // Update All Content Dynamically
             document.getElementById('txt-hero-badge').innerHTML = data.heroBadge;
@@ -792,7 +792,7 @@
         // ── 3. Interactive Theme Mode Toggle ──
         function toggleDarkMode() {
             const isDark = document.documentElement.classList.toggle('dark');
-            localStorage.setItem('codicesync_login_theme', isDark ? 'dark' : 'light');
+            localStorage.setItem('hexasolv_login_theme', isDark ? 'dark' : 'light');
             updateThemeUI(isDark);
         }
 
@@ -843,7 +843,7 @@
         // ── 6. Initial State Restoration ──
         document.addEventListener('DOMContentLoaded', () => {
             // Restore Theme
-            const savedTheme = localStorage.getItem('codicesync_login_theme') || 'light';
+            const savedTheme = localStorage.getItem('hexasolv_login_theme') || 'light';
             if (savedTheme === 'dark') {
                 document.documentElement.classList.add('dark');
                 updateThemeUI(true);
@@ -853,7 +853,7 @@
             }
 
             // Restore Language
-            const savedLang = localStorage.getItem('codicesync_login_lang') || 'en';
+            const savedLang = localStorage.getItem('hexasolv_login_lang') || 'en';
             setLanguage(savedLang);
 
             // PWA Service Worker Registration

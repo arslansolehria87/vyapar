@@ -7,7 +7,7 @@ use App\Models\Company;
 class FeatureManager
 {
     /**
-     * Complete list of modular features available in CodiceSync.
+     * Complete list of modular features available in Hexasolv.
      */
     public static function getAllFeatures(): array
     {

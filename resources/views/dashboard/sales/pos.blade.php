@@ -5,9 +5,11 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<title>CodiceSync POS — Fast Billing</title>
+<title>Hexasolv POS — Fast Billing</title>
 <link rel="icon" type="image/png" href="{{ asset('images/codicesync_logo.png') }}"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;600;700&display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet"/>
+<link href="{{ asset('css/alex-voice-assistant.css') }}?v={{ @filemtime(public_path('css/alex-voice-assistant.css')) ?: time() }}" rel="stylesheet"/>
 <style>
   .custom-table thead th {
     font-size: 13px; color: #6c757d; font-weight: 500;
@@ -281,6 +283,100 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
   .print-actions{display:none!important}
 }
 
+/* ── Mobile Responsive for POS ── */
+@media (max-width: 768px) {
+  html, body {
+    height: auto !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+  .app-bar {
+    height: 44px;
+    padding: 0 8px;
+  }
+  .app-bar .menu-btns,
+  .app-bar .support {
+    display: none !important;
+  }
+  .tab-bar {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    height: 38px;
+  }
+  .tab {
+    font-size: 11px;
+    padding: 4px 8px;
+    height: 32px;
+  }
+  .pos-wrap {
+    height: auto !important;
+    min-height: auto;
+    overflow: visible !important;
+  }
+  .split {
+    flex-direction: column !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+  .left {
+    border-right: none !important;
+    border-bottom: 2px solid var(--border);
+    flex: none !important;
+  }
+  .table-wrap {
+    max-height: 240px;
+    overflow-y: auto;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .bill-table th, .bill-table td {
+    padding: 6px 6px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .right {
+    width: 100% !important;
+    flex: none !important;
+    overflow: visible !important;
+    padding: 12px 10px 80px 10px;
+  }
+  .sc-row {
+    flex-wrap: wrap;
+  }
+  .sc-btn {
+    font-size: 10px;
+    padding: 5px 3px;
+    min-width: 60px;
+  }
+  .mbox, .print-mbox, .info-mbox, .rem-mbox {
+    min-width: 0 !important;
+    width: 94vw !important;
+    max-width: 96vw !important;
+    padding: 16px !important;
+    margin: 8px auto;
+  }
+  .cust-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .mi-row {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .mi-row2 {
+    grid-template-columns: 1fr !important;
+  }
+  .mpay-fields {
+    grid-template-columns: 1fr !important;
+  }
+  .print-summary {
+    grid-template-columns: 1fr !important;
+  }
+  .btn-save, .btn-credit {
+    height: 44px;
+    font-size: 14px;
+  }
+}
+
 /* Feedback toast */
 #toast{position:fixed;left:14px;bottom:14px;z-index:2000;background:rgba(15,23,42,.9);color:#fff;padding:7px 13px;border-radius:7px;font-size:12px;opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity 140ms,transform 140ms}
 #toast.show{opacity:1;transform:translateY(0)}
@@ -297,8 +393,8 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
 <div class="app-bar">
   <div style="display:flex;align-items:center;gap:2px">
     <div class="brand" style="display:flex;align-items:center;gap:7px;">
-      <img src="{{ asset('images/codicesync_logo.png') }}" alt="CodiceSync" style="height:22px;width:auto;object-fit:contain;vertical-align:middle;"/>
-      <span style="font-weight:700;font-size:14px;background:linear-gradient(135deg,#5813BC,#AC22CB);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.2px;">CodiceSync POS</span>
+      <img src="{{ asset('images/codicesync_logo.png') }}" alt="Hexasolv" style="height:22px;width:auto;object-fit:contain;vertical-align:middle;"/>
+      <span style="font-weight:700;font-size:14px;background:linear-gradient(135deg,#5813BC,#AC22CB);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.2px;">Hexasolv POS</span>
     </div>
     <div class="menu-btns">
       <button>Company</button>
@@ -311,7 +407,7 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-size:1
   <div class="support">
     <span>Customer Support: 📞 <strong>0371-0045282 / 0321-4530103</strong></span>
     <span>|</span>
-    <a href="mailto:codicesync@gmail.com">codicesync@gmail.com</a>
+    <a href="mailto:support@hexasolv.com">support@hexasolv.com</a>
   </div>
   <div class="win-btns">
     <button title="Minimize">─</button>
@@ -1265,7 +1361,7 @@ function sendBillViaWhatsApp() {
 
   const bill = currentSavedBill;
   const divider = '━━━━━━━━━━━━━━━━━━━━';
-  let msg = `*CodiceSync POS — Digital Sale Receipt*\n`;
+  let msg = `*Hexasolv POS — Digital Sale Receipt*\n`;
   msg += `${divider}\n`;
   msg += `🧾 *Bill No:* #${bill.billNo}\n`;
   msg += `📅 *Date:* ${formatDateDisplay(selectedDate)}\n`;
@@ -1289,7 +1385,7 @@ function sendBillViaWhatsApp() {
   msg += `${divider}\n`;
   msg += `🙏 *Thank you for your purchase!*\n`;
   msg += `📞 Support: 0371-0045282 / 0321-4530103\n`;
-  msg += `✉️ codicesync@gmail.com\n`;
+  msg += `✉️ support@hexasolv.com\n`;
 
   const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
   window.open(waUrl, '_blank');
@@ -1842,5 +1938,6 @@ document.addEventListener('keydown', e => {
     document.addEventListener('DOMContentLoaded', init);
   })();
 </script>
+<script src="{{ asset('js/alex-voice-assistant.js') }}?v={{ filemtime(public_path('js/alex-voice-assistant.js')) }}"></script>
 </body>
 </html>

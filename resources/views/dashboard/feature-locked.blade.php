@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Feature Upgrade Required — CodiceSync')
+@section('title', 'Feature Upgrade Required — Hexasolv')
 
 @section('content')
 <div class="container py-5">
@@ -27,12 +27,12 @@
                         <span class="small fw-semibold text-dark">How to enable this module?</span>
                     </div>
                     <p class="small text-muted mb-0 mt-1">
-                        Contact CodiceSync administration to add this module to your business workspace. Your administrator will instantly activate it for your account.
+                        Contact Hexasolv administration to add this module to your business workspace. Your administrator will instantly activate it for your account.
                     </p>
                 </div>
 
                 <div class="d-flex flex-column gap-2 mt-2">
-                    <a href="https://wa.me/923214530103?text={{ urlencode('Hello, I want to upgrade my CodiceSync plan to include: ' . ($featureInfo['name'] ?? 'Feature') . ' for business: ' . ($company->name ?? '')) }}"
+                    <a href="https://wa.me/923214530103?text={{ urlencode('Hello, I want to upgrade my Hexasolv plan to include: ' . ($featureInfo['name'] ?? 'Feature') . ' for business: ' . ($company->name ?? '')) }}"
                        target="_blank"
                        class="btn text-white fw-bold py-2.5 rounded-3"
                        style="background: linear-gradient(135deg, #5813BC 0%, #AC22CB 100%);">
@@ -41,7 +41,7 @@
 
                     <div class="text-muted small py-1">
                         Support: <strong>0371-0045282</strong> / <strong>0321-4530103</strong> | 
-                        <a href="mailto:codicesync@gmail.com" class="text-decoration-none" style="color: #5813BC;">codicesync@gmail.com</a>
+                        <a href="mailto:support@hexasolv.com" class="text-decoration-none" style="color: #5813BC;">support@hexasolv.com</a>
                     </div>
 
                     <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary py-2 rounded-3 small">

@@ -995,3 +995,25 @@ font-size:12px;
 }
 
 }
+
+
+/* ── Parties Mobile Responsive Enhancements ── */
+@media (max-width: 768px) {
+  .uper-panel {
+    height: auto !important;
+    min-height: 48px;
+    padding: 8px 12px;
+  }
+  .panel-main {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .dropdown-container {
+    width: 100%;
+  }
+  .party-table-container,
+  .txn-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

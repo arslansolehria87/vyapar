@@ -1,5 +1,5 @@
-// CodiceSync POS Service Worker
-const CACHE_NAME = 'codicesync-pos-v1';
+// Hexasolv POS Service Worker
+const CACHE_NAME = 'hexasolv-pos-v2';
 const ASSETS_TO_CACHE = [
   '/manifest.json',
   '/images/icon-192.png',

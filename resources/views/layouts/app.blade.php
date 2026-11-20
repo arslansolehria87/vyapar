@@ -8,8 +8,8 @@
   <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('favicon.png') }}?v={{ @filemtime(public_path('favicon.png')) ?: time() }}">
   <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}?v={{ @filemtime(public_path('favicon-32x32.png')) ?: time() }}">
   <link rel="shortcut icon" href="{{ asset('favicon.ico') }}?v={{ @filemtime(public_path('favicon.ico')) ?: time() }}">
-  <title>@yield('title', 'CodiceSync')</title>
-  <meta name="description" content="@yield('description', 'CodiceSync POS & Business Management')">
+  <title>@yield('title', 'Hexasolv')</title>
+  <meta name="description" content="@yield('description', 'Hexasolv POS & Business Management')">
   <meta name="csrf-token" content="{{ csrf_token() }}">
 
   <!-- PWA Mobile App Support -->
@@ -18,8 +18,13 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="CodiceSync POS">
+  <meta name="apple-mobile-web-app-title" content="Hexasolv POS">
   <link rel="apple-touch-icon" href="{{ asset('images/apple-touch-icon.png') }}">
+
+  <!-- Google Fonts & Urdu Nastaliq -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;600;700&display=swap" rel="stylesheet">
 
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -28,7 +33,8 @@
   <!-- Font Awesome 6 -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
   <!-- Custom Styles -->
-  <link href="{{ asset('css/styles.css') }}" rel="stylesheet">
+  <link href="{{ asset('css/styles.css') }}?v={{ @filemtime(public_path('css/styles.css')) ?: time() }}" rel="stylesheet">
+  <link href="{{ asset('css/alex-voice-assistant.css') }}?v={{ @filemtime(public_path('css/alex-voice-assistant.css')) ?: time() }}" rel="stylesheet">
 
 </head>
   @stack('styles')
@@ -96,6 +102,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ asset('js/components.js') }}?v={{ filemtime(public_path('js/components.js')) }}"></script>
 <script src="{{ asset('js/common.js') }}"></script>
+<script src="{{ asset('js/alex-voice-assistant.js') }}?v={{ filemtime(public_path('js/alex-voice-assistant.js')) }}"></script>
 @stack('scripts')
 
 <script>

@@ -9,7 +9,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}?v={{ @filemtime(public_path('favicon-32x32.png')) ?: time() }}">
     <link rel="shortcut icon" href="{{ asset('favicon.ico') }}?v={{ @filemtime(public_path('favicon.ico')) ?: time() }}">
 
-    <title>@yield('title', 'Super Admin') — CodiceSync SaaS Hub</title>
+    <title>@yield('title', 'Super Admin') — Hexasolv SaaS Hub</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -120,9 +120,9 @@
             <!-- Left Brand -->
             <div class="d-flex align-items-center gap-3">
                 <a href="{{ route('superadmin.dashboard') }}" class="d-flex align-items-center gap-2 text-decoration-none">
-                    <img src="{{ asset('images/codice-sync-logo.png') }}" alt="CodiceSync" style="height: 32px; width: auto; object-fit: contain;">
+                    <img src="{{ asset('images/codice-sync-logo.png') }}" alt="Hexasolv" style="height: 32px; width: auto; object-fit: contain;">
                     <div>
-                        <span class="fw-bold text-white fs-5" style="letter-spacing: -0.3px;">Codice<span style="color: var(--cs-magenta)">Sync</span></span>
+                        <span class="fw-bold text-white fs-5" style="letter-spacing: -0.3px;">Hexa<span style="color: var(--cs-magenta)">solv</span></span>
                         <span class="badge ms-2" style="background: rgba(172, 34, 203, 0.25); color: #E0D4F5; font-size: 10px; border: 1px solid rgba(172, 34, 203, 0.4);">
                             SaaS Master Hub
                         </span>
